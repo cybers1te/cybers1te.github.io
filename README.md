@@ -4,7 +4,7 @@ Dashboard de surveillance pour les logs JSON Lines de [Cowrie](https://github.co
 
 ## Version site GitHub Pages
 
-Le dépôt est nommé `cybers1te.github.io` et contient un workflow GitHub Actions dans `.github/workflows/pages.yml`. À chaque push sur `main`, il publie `frontend/index.html`, `frontend/styles.css` et `frontend/app.js`.
+Le dépôt est nommé `cybers1te.github.io`. GitHub publie automatiquement les fichiers statiques placés à la racine du dépôt utilisateur ; les fichiers `index.html`, `styles.css` et `app.js` sont donc également présents à la racine.
 
 GitHub Pages est un hébergement **statique** : il ne peut pas exécuter le backend Flask, lire `cowrie.json` ni écrire dans SQLite. Lorsque l’API n’est pas disponible, le site affiche automatiquement des données de démonstration afin que l’interface reste visible. Pour les données Cowrie réelles, il faut lancer le backend sur un serveur Python séparé puis adapter l’URL d’API dans `frontend/app.js`.
 
@@ -12,7 +12,7 @@ Le site visé est : `https://cybers1te.github.io/`.
 
 ### Activation Pages
 
-Le workflow est prêt, mais GitHub doit autoriser Pages une première fois dans **Settings → Pages → Build and deployment → Source: GitHub Actions**. L’API GitHub utilisée pour ce dépôt ne dispose pas de la permission nécessaire pour effectuer cette activation automatiquement. Si le compte est sur GitHub Free, la publication Pages depuis un dépôt privé peut également nécessiter un plan prenant en charge Pages privé ; dans ce cas, il faut soit activer cette option sur le compte, soit rendre uniquement ce dépôt public. Le code reste compatible avec les deux scénarios.
+Pour un dépôt utilisateur public nommé `cybers1te.github.io`, GitHub Pages sert automatiquement la branche principale depuis sa racine. Il suffit de conserver `index.html` à la racine et d’attendre quelques secondes après un push.
 
 ## Fonctionnalités MVP
 
