@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cowrie Watch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar"><div><p class="eyebrow">COWRIE / SECURITY TELEMETRY</p><h1>Honeypot command center</h1></div><div class="status"><span class="pulse"></span><span id="statusText">Connexion…</span><small id="lastRefresh"></small></div></header>
+  <main>
+    <section class="cards">
+      <article class="metric"><span>Total tentatives</span><strong id="totalAttempts">—</strong><small id="last24h">— sur 24h</small></article>
+      <article class="metric"><span>IPs uniques</span><strong id="uniqueIps">—</strong><small>sources observées</small></article>
+      <article class="metric"><span>Commandes</span><strong id="commands">—</strong><small>inputs capturés</small></article>
+      <article class="metric accent"><span>Fichiers uploadés</span><strong id="uploads">—</strong><small>artefacts détectés</small></article>
+    </section>
+    <section class="grid-main">
+      <article class="panel map-panel"><div class="panel-head"><div><p class="eyebrow">LIVE ORIGINS</p><h2>Carte des attaquants</h2></div><span class="tag">AUTO <span id="refreshRate">15</span>s</span></div><div id="map"></div><div id="mapLegend" class="map-legend">Les points sont géolocalisés via ip-api.com.</div></article>
+      <article class="panel"><div class="panel-head"><div><p class="eyebrow">RECENT SESSIONS</p><h2>Sessions récentes</h2></div><button class="ghost" id="refreshButton">Rafraîchir</button></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Pays</th><th>Dernière activité</th><th>Événements</th></tr></thead><tbody id="sessionsBody"><tr><td colspan="4" class="empty">Chargement…</td></tr></tbody></table></div></article>
+    </section>
+    <section class="grid-bottom">
+      <article class="panel"><div class="panel-head"><div><p class="eyebrow">ACTIVITY</p><h2>Activité — 24 dernières heures</h2></div></div><div class="bars" id="timeline"></div></article>
+      <article class="panel"><div class="panel-head"><div><p class="eyebrow">TOP SIGNALS</p><h2>Sources les plus actives</h2></div></div><ol class="ranking" id="topAttackers"></ol></article>
+    </section>
+  </main>
+  <dialog id="sessionDialog"><div class="dialog-head"><div><p class="eyebrow">SESSION DETAIL</p><h2 id="dialogTitle">Session</h2></div><button class="close" onclick="sessionDialog.close()">×</button></div><div id="sessionDetail"></div></dialog>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="/app.js"></script>
+</body>
+</html>
