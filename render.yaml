@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cowrie-dashboard-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT backend.app:app
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_PATH
+        value: ./data/cowrie.db
+      - key: COWRIE_LOG_PATH
+        value: /var/data/cowrie.json
+      - key: DEMO_MODE
+        value: "0"
+      - key: REFRESH_SECONDS
+        value: "15"
