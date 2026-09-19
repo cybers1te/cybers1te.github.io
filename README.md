@@ -10,6 +10,10 @@ GitHub Pages est un hébergement **statique** : il ne peut pas exécuter le back
 
 Le site visé est : `https://cybers1te.github.io/`.
 
+### Activation Pages
+
+Le workflow est prêt, mais GitHub doit autoriser Pages une première fois dans **Settings → Pages → Build and deployment → Source: GitHub Actions**. L’API GitHub utilisée pour ce dépôt ne dispose pas de la permission nécessaire pour effectuer cette activation automatiquement. Si le compte est sur GitHub Free, la publication Pages depuis un dépôt privé peut également nécessiter un plan prenant en charge Pages privé ; dans ce cas, il faut soit activer cette option sur le compte, soit rendre uniquement ce dépôt public. Le code reste compatible avec les deux scénarios.
+
 ## Fonctionnalités MVP
 
 - Lecture en continu de `cowrie.json` côté backend.
