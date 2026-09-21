@@ -6,7 +6,6 @@ Ce dépôt réunit plusieurs projets indépendants.
 | --- | --- | --- |
 | **Trueware** — boutique en ligne (inscription, connexion, panier, commande, admin) | `trueware/` | Application Flask + SQLite |
 | **Fiche de révision** *L'Appel de la forêt* | `index.html`, `styles.css`, `app.js` | Site statique publié sur GitHub Pages |
-| **Geometry Dash** — clone jouable | `geometry-dash.{html,css,js}` | Site statique publié sur GitHub Pages |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
 
 GitHub Pages ne sert que des fichiers statiques : seules les pages à la racine
@@ -26,29 +25,6 @@ python -m trueware.app        # http://127.0.0.1:5001
 ```
 
 Documentation complète, sécurité et déploiement : [`trueware/README.md`](trueware/README.md).
-
----
-
-## Geometry Dash
-
-Clone jouable en mode cube : trois niveaux, tremplins, orbes, scies, mode
-entraînement avec jalons, records conservés dans le navigateur, musique et
-effets générés par WebAudio. Une seule commande, le saut.
-
-Page : `geometry-dash.html` — aucune dépendance, tout est dessiné en Canvas 2D.
-
-La simulation tourne à pas de temps fixe et ne dépend donc pas de la fréquence
-d'affichage. Le même module est rechargé sous Node par un validateur qui
-explore l'ensemble des trajectoires possibles pour chaque niveau :
-
-```bash
-node tools/verify-levels.js
-```
-
-Il démontre que la fin est atteignable, mesure la tolérance de timing de chaque
-saut obligatoire et sort en erreur si l'une d'elles passe sous 40 ms — un
-niveau infranchissable ou injouable ne peut donc pas être publié par
-inadvertance.
 
 ---
 
