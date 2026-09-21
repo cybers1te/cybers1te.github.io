@@ -1,4 +1,4 @@
-name: Deploy London study guide
+name: Deploy static site
 
 on:
   push:
@@ -26,7 +26,10 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Prepare static site
-        run: mkdir _site && cp index.html styles.css app.js _site/
+        run: |
+          mkdir _site
+          cp index.html styles.css app.js _site/
+          cp geometry-dash.html geometry-dash.css geometry-dash.js _site/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

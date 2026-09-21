@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Geometry Dash — clone jouable</title>
+<meta name="description" content="Clone jouable de Geometry Dash : trois niveaux, tremplins, orbes, scies et mode entraînement. Un seul bouton, aucune dépendance.">
+<meta name="theme-color" content="#0a0c18">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%230a0c18"/><rect x="16" y="16" width="32" height="32" rx="7" fill="%233ad6ff"/><rect x="26" y="26" width="12" height="12" rx="3" fill="%230a0c18"/></svg>'>
+<link rel="stylesheet" href="geometry-dash.css">
+</head>
+<body>
+
+<header class="gd-top">
+  <a class="gd-brand" href="./">ÉTUDES<span>/</span>CLASSIQUES</a>
+  <nav class="gd-nav">
+    <a href="./">Fiche de révision</a>
+    <a class="on" href="geometry-dash.html">Geometry Dash</a>
+  </nav>
+</header>
+
+<main>
+  <section class="gd-hero">
+    <p class="gd-kick">UN BOUTON · TROIS NIVEAUX</p>
+    <h1>Geometry<br><em>Dash</em></h1>
+    <p class="gd-lead">Le cube avance tout seul. La seule commande est le saut.
+      Tout le reste — le rythme, la lecture du décor, la patience — dépend de vous.</p>
+  </section>
+
+  <section class="gd-stage">
+    <div class="gd-frame" id="gd-frame" tabindex="0" aria-label="Aire de jeu">
+      <canvas id="gd-canvas"></canvas>
+
+      <div class="gd-hud">
+        <div class="gd-hud-left">
+          <b id="gd-level-name">—</b>
+          <span id="gd-diff">—</span>
+        </div>
+        <div class="gd-hud-right">
+          <span>Tentative <b id="gd-attempts">0</b></span>
+          <span id="gd-pct">0 %</span>
+        </div>
+      </div>
+
+      <div class="gd-bar"><i id="gd-bar-fill"></i></div>
+
+      <div class="gd-msg" id="gd-msg">
+        <div>
+          <h2 id="gd-msg-title">Prêt ?</h2>
+          <p id="gd-msg-sub"></p>
+        </div>
+      </div>
+
+      <p class="gd-touch">Touchez l'écran pour sauter</p>
+    </div>
+
+    <div class="gd-controls">
+      <button type="button" class="gd-btn" id="gd-restart">Recommencer <kbd>R</kbd></button>
+      <button type="button" class="gd-btn" id="gd-practice" aria-pressed="false">Entraînement <kbd>P</kbd></button>
+      <button type="button" class="gd-btn" id="gd-mute">Son actif <kbd>M</kbd></button>
+      <button type="button" class="gd-btn" id="gd-full">Plein écran</button>
+    </div>
+
+    <div class="gd-levels" id="gd-levels"></div>
+  </section>
+
+  <section class="gd-cols">
+    <div>
+      <p class="gd-kick">COMMANDES</p>
+      <h2>Un seul bouton</h2>
+      <dl class="gd-keys">
+        <dt>Espace · ↑ · W · clic · toucher</dt><dd>Sauter. Maintenir enchaîne les sauts dès l'atterrissage.</dd>
+        <dt>R</dt><dd>Relancer la tentative immédiatement.</dd>
+        <dt>P</dt><dd>Mode entraînement : des jalons sont posés automatiquement et la mort y renvoie.</dd>
+        <dt>Z · X</dt><dd>En entraînement, poser ou retirer un jalon à la main.</dd>
+        <dt>M</dt><dd>Couper ou rétablir le son.</dd>
+      </dl>
+    </div>
+    <div>
+      <p class="gd-kick">LE DÉCOR</p>
+      <h2>Ce qui vous attend</h2>
+      <ul class="gd-legend">
+        <li><span class="sw sw-spike"></span><b>Pointes</b> — mortelles au contact. La zone de collision est plus petite que le dessin.</li>
+        <li><span class="sw sw-block"></span><b>Blocs</b> — on atterrit dessus, on meurt en les percutant de côté ou par dessous.</li>
+        <li><span class="sw sw-saw"></span><b>Scies</b> — à demi enterrées, elles se sautent ; au plafond, elles interdisent de sauter.</li>
+        <li><span class="sw sw-pad"></span><b>Tremplins</b> — se déclenchent seuls et propulsent bien plus haut qu'un saut.</li>
+        <li><span class="sw sw-orb"></span><b>Orbes</b> — donnent un saut supplémentaire en plein vol, si vous appuyez au bon moment.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="gd-records">
+    <p class="gd-kick">PROGRESSION</p>
+    <h2>Vos records</h2>
+    <p class="gd-note">Enregistrés dans ce navigateur uniquement. Le mode entraînement ne compte pas.</p>
+    <table>
+      <thead><tr><th>Niveau</th><th>Difficulté</th><th>Longueur</th><th>Record</th></tr></thead>
+      <tbody id="gd-records"></tbody>
+    </table>
+  </section>
+
+  <section class="gd-note-box">
+    <p class="gd-kick">SOUS LE CAPOT</p>
+    <h2>Des niveaux prouvés franchissables</h2>
+    <p>La simulation tourne à pas de temps fixe et ne dépend pas de la fréquence
+      d'affichage : deux parties identiques donnent exactement le même résultat.
+      Un validateur (<code>tools/verify-levels.js</code>) rejoue chaque niveau en
+      explorant toutes les trajectoires possibles. Il démontre que la fin est
+      atteignable et mesure la tolérance de chaque saut obligatoire ; un niveau
+      dont un saut descendrait sous 40 ms est rejeté.</p>
+  </section>
+</main>
+
+<footer class="gd-foot">
+  <span>Clone d'entraînement, sans lien avec RobTop Games.</span>
+  <span>Canvas 2D · WebAudio · aucune dépendance</span>
+</footer>
+
+<script src="geometry-dash.js"></script>
+</body>
+</html>
