@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Commande{% endblock %}
+
+{% block body %}
+<section class="wrap">
+  <header class="page-head">
+    <p class="kick">Étape finale</p>
+    <h1>Livraison et validation</h1>
+    <p class="lead">Boutique de démonstration : aucun moyen de paiement n'est demandé ni traité.
+      La commande est enregistrée en base et le stock est décrémenté.</p>
+  </header>
+
+  <div class="cart">
+    <form class="checkout" method="post" action="{{ url_for('checkout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <fieldset>
+        <legend>Adresse de livraison</legend>
+        <label>Destinataire
+          <input name="ship_name" value="{{ form.ship_name }}" required maxlength="160" autocomplete="name">
+        </label>
+        <label>Adresse
+          <input name="ship_address" value="{{ form.ship_address }}" required maxlength="160" autocomplete="street-address">
+        </label>
+        <div class="row">
+          <label>Code postal
+            <input name="ship_zip" value="{{ form.ship_zip }}" required maxlength="16" autocomplete="postal-code">
+          </label>
+          <label>Ville
+            <input name="ship_city" value="{{ form.ship_city }}" required maxlength="80" autocomplete="address-level2">
+          </label>
+        </div>
+        <label>Pays
+          <input name="ship_country" value="{{ form.ship_country }}" required maxlength="60" autocomplete="country-name">
+        </label>
+      </fieldset>
+      <p class="note">Facturé à {{ user.email }}</p>
+      <button class="btn btn-primary btn-big">Valider la commande — {{ cart.total | eur }}</button>
+    </form>
+
+    <aside class="summary">
+      <h2>{{ cart.count }} article{{ 's' if cart.count != 1 }}</h2>
+      <ul class="summary-lines">
+        {% for line in cart.lines %}
+          <li><span>{{ line.qty }} × {{ line.product.name }}</span><b>{{ line.total | eur }}</b></li>
+        {% endfor %}
+      </ul>
+      <dl>
+        <dt>Sous-total</dt><dd>{{ cart.subtotal | eur }}</dd>
+        <dt>Livraison</dt><dd>{{ 'Offerte' if cart.shipping == 0 else cart.shipping | eur }}</dd>
+      </dl>
+      <p class="summary-total"><span>Total</span><b>{{ cart.total | eur }}</b></p>
+      <a class="linkish" href="{{ url_for('cart') }}">Modifier le panier</a>
+    </aside>
+  </div>
+</section>
+{% endblock %}

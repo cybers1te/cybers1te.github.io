@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if p else 'Nouveau produit' }} · Administration{% endblock %}
+
+{% block body %}
+<section class="wrap narrow">
+  <header class="page-head">
+    <p class="kick">Administration</p>
+    <h1>{{ p.name if p else 'Nouveau produit' }}</h1>
+  </header>
+
+  <form class="panel form-grid" method="post"
+        action="{{ url_for('admin_product_form', pid=p.id) if p else url_for('admin_product_form') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>Nom
+      <input name="name" value="{{ form.get('name', '') }}" required maxlength="120">
+    </label>
+    <div class="row">
+      <label>Identifiant d'URL
+        <input name="slug" value="{{ form.get('slug', '') }}" required pattern="[a-z0-9]+(-[a-z0-9]+)*"
+               placeholder="clavier-norvik-k87">
+        <small>Minuscules, chiffres et tirets.</small>
+      </label>
+      <label>Marque
+        <input name="brand" value="{{ form.get('brand', 'Trueware') }}" maxlength="60">
+      </label>
+    </div>
+    <div class="row">
+      <label>Famille
+        <select name="category_id" required>
+          {% for c in cats %}
+            <option value="{{ c.id }}" {% if form.get('category_id') | string == c.id | string %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Stock
+        <input type="number" name="stock" value="{{ form.get('stock', 0) }}" min="0" required>
+      </label>
+    </div>
+    <div class="row">
+      <label>Prix (€)
+        <input name="price" required inputmode="decimal" value="{{ form.get('price', '') }}">
+      </label>
+      <label>Prix barré (€, facultatif)
+        <input name="compare" inputmode="decimal" value="{{ form.get('compare', '') }}">
+      </label>
+    </div>
+    <label>Résumé
+      <input name="summary" value="{{ form.get('summary', '') }}" maxlength="300">
+    </label>
+    <label>Description
+      <textarea name="description" rows="5" maxlength="4000">{{ form.get('description', '') }}</textarea>
+    </label>
+    <label>Caractéristiques
+      <textarea name="specs" rows="6" maxlength="2000"
+                placeholder="Format|87 touches&#10;Switchs|Tactiles, 55 g">{{ form.get('specs', '') }}</textarea>
+      <small>Une par ligne, au format <code>Clé|Valeur</code>.</small>
+    </label>
+    <label>Badge
+      <input name="badge" value="{{ form.get('badge', '') }}" maxlength="40" placeholder="Best-seller">
+    </label>
+    <div class="checks">
+      <label class="check">
+        <input type="checkbox" name="featured" {% if form.get('featured') %}checked{% endif %}> Mettre en avant
+      </label>
+      <label class="check">
+        <input type="checkbox" name="active" {% if form.get('active') %}checked{% endif %}> En vente
+      </label>
+    </div>
+
+    <div class="done-cta">
+      <a class="btn btn-outline" href="{{ url_for('admin_products') }}">Annuler</a>
+      <button class="btn btn-primary">{{ 'Enregistrer' if p else 'Créer le produit' }}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

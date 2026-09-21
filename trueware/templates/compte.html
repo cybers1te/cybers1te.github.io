@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "macros.html" import stars %}
+{% block title %}Mon compte{% endblock %}
+
+{% block body %}
+<section class="wrap">
+  <header class="page-head">
+    <p class="kick">Mon compte</p>
+    <h1>{{ user.name }}</h1>
+    <p class="lead">{{ user.email }}{% if user.is_admin %} · <b>administrateur</b>{% endif %}</p>
+  </header>
+
+  <div class="account">
+    <div class="account-main">
+      <div class="panel">
+        <h2>Mes commandes</h2>
+        {% if orders %}
+          <table class="table">
+            <thead><tr><th>Référence</th><th>Date</th><th>Articles</th><th>Total</th><th>État</th></tr></thead>
+            <tbody>
+              {% for o in orders %}
+                <tr>
+                  <td><a href="{{ url_for('order_done', reference=o.reference) }}">{{ o.reference }}</a></td>
+                  <td>{{ o.created_at[:10] }}</td>
+                  <td>{{ o.lines }}</td>
+                  <td>{{ o.total_cents | eur }}</td>
+                  <td><span class="status-pill sm">{{ o.status }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="note">Aucune commande pour l'instant.
+            <a href="{{ url_for('catalogue') }}">Voir le catalogue</a></p>
+        {% endif %}
+      </div>
+
+      {% if my_reviews %}
+      <div class="panel">
+        <h2>Mes avis</h2>
+        <ul class="review-list">
+          {% for r in my_reviews %}
+            <li>
+              <div class="review-head">
+                <b><a href="{{ url_for('product', slug=r.slug) }}">{{ r.name }}</a></b>
+                {{ stars(r.rating) }}
+                <time datetime="{{ r.created_at }}">{{ r.created_at[:10] }}</time>
+              </div>
+              {% if r.body %}<p>{{ r.body }}</p>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="account-side">
+      <div class="panel">
+        <h2>Coordonnées</h2>
+        <form method="post" action="{{ url_for('account') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="form" value="profile">
+          <label>Nom <input name="name" value="{{ user.name }}" required minlength="2" maxlength="60"></label>
+          <label>Adresse <input name="address" value="{{ user.address }}" maxlength="160"></label>
+          <div class="row">
+            <label>Code postal <input name="zip" value="{{ user.zip }}" maxlength="16"></label>
+            <label>Ville <input name="city" value="{{ user.city }}" maxlength="80"></label>
+          </div>
+          <label>Pays <input name="country" value="{{ user.country }}" maxlength="60"></label>
+          <button class="btn btn-sm btn-primary">Enregistrer</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Mot de passe</h2>
+        <form method="post" action="{{ url_for('account') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="form" value="password">
+          <label>Mot de passe actuel
+            <input type="password" name="current" required autocomplete="current-password"></label>
+          <label>Nouveau mot de passe
+            <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+          <label>Confirmation
+            <input type="password" name="password2" required minlength="8" autocomplete="new-password"></label>
+          <button class="btn btn-sm btn-outline">Changer</button>
+        </form>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}

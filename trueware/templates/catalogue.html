@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "macros.html" import product_card %}
+{% block title %}{{ active_cat.name if active_cat else 'Catalogue' }}{% endblock %}
+
+{% block body %}
+<section class="wrap">
+  <header class="page-head">
+    <p class="kick">Catalogue</p>
+    <h1>{{ active_cat.name if active_cat else 'Tout le matériel' }}</h1>
+    <p class="lead">{{ active_cat.tagline if active_cat else 'Les ' ~ total ~ ' références en vente, filtrables par famille et par prix.' }}</p>
+  </header>
+
+  <form class="filters" method="get" action="{{ url_for('catalogue') }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Nom ou marque…" aria-label="Recherche">
+    <select name="categorie" aria-label="Famille">
+      <option value="">Toutes les familles</option>
+      {% for c in categories %}
+        <option value="{{ c.slug }}" {% if cat == c.slug %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <select name="tri" aria-label="Tri">
+      <option value="pertinence" {% if sort == 'pertinence' %}selected{% endif %}>Pertinence</option>
+      <option value="prix-croissant" {% if sort == 'prix-croissant' %}selected{% endif %}>Prix croissant</option>
+      <option value="prix-decroissant" {% if sort == 'prix-decroissant' %}selected{% endif %}>Prix décroissant</option>
+      <option value="nouveautes" {% if sort == 'nouveautes' %}selected{% endif %}>Nouveautés</option>
+      <option value="note" {% if sort == 'note' %}selected{% endif %}>Mieux notés</option>
+    </select>
+    <button class="btn btn-sm btn-primary">Filtrer</button>
+    {% if q or cat or sort != 'pertinence' %}
+      <a class="linkish" href="{{ url_for('catalogue') }}">Réinitialiser</a>
+    {% endif %}
+  </form>
+
+  <p class="count">{{ total }} produit{{ 's' if total != 1 }}{% if q %} pour « {{ q }} »{% endif %}</p>
+
+  {% if products %}
+    <div class="grid grid-3">{% for p in products %}{{ product_card(p) }}{% endfor %}</div>
+
+    {% if pages > 1 %}
+      <nav class="pager" aria-label="Pages">
+        {% for n in range(1, pages + 1) %}
+          <a href="{{ url_for('catalogue', q=q or None, categorie=cat or None, tri=sort, page=n) }}"
+             class="{{ 'on' if n == page }}">{{ n }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty">
+      <h3>Aucun produit ne correspond</h3>
+      <p>Essayez un autre terme ou retirez les filtres.</p>
+      <a class="btn btn-outline" href="{{ url_for('catalogue') }}">Voir tout le catalogue</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

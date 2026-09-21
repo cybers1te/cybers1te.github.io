@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Administration{% endblock %}
+
+{% block body %}
+<section class="wrap">
+  <header class="page-head">
+    <p class="kick">Administration</p>
+    <h1>Tableau de bord</h1>
+  </header>
+
+  <nav class="subnav">
+    <a href="{{ url_for('admin_home') }}" class="on">Vue d'ensemble</a>
+    <a href="{{ url_for('admin_products') }}">Produits</a>
+    <a href="{{ url_for('admin_orders') }}">Commandes</a>
+    <a href="{{ url_for('admin_product_form') }}" class="btn btn-sm btn-primary">Nouveau produit</a>
+  </nav>
+
+  <div class="kpis">
+    <div><span>Chiffre d'affaires</span><b>{{ stats.revenue | eur }}</b></div>
+    <div><span>Commandes</span><b>{{ stats.orders }}</b></div>
+    <div><span>À préparer</span><b>{{ stats.pending }}</b></div>
+    <div><span>Produits en vente</span><b>{{ stats.products }}</b></div>
+    <div><span>Comptes clients</span><b>{{ stats.users }}</b></div>
+  </div>
+
+  <div class="admin-grid">
+    <div class="panel">
+      <h2>Commandes récentes</h2>
+      {% if recent %}
+        <table class="table">
+          <thead><tr><th>Référence</th><th>Client</th><th>Total</th><th>État</th></tr></thead>
+          <tbody>
+            {% for o in recent %}
+              <tr>
+                <td><a href="{{ url_for('order_done', reference=o.reference) }}">{{ o.reference }}</a></td>
+                <td>{{ o.email }}</td>
+                <td>{{ o.total_cents | eur }}</td>
+                <td><span class="status-pill sm">{{ o.status }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <a class="linkish" href="{{ url_for('admin_orders') }}">Toutes les commandes →</a>
+      {% else %}
+        <p class="note">Aucune commande enregistrée.</p>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2>Stock faible</h2>
+      {% if low %}
+        <table class="table">
+          <thead><tr><th>Produit</th><th>Stock</th><th></th></tr></thead>
+          <tbody>
+            {% for p in low %}
+              <tr>
+                <td>{{ p.name }}</td>
+                <td><b class="{{ 'danger' if p.stock == 0 }}">{{ p.stock }}</b></td>
+                <td><a class="linkish" href="{{ url_for('admin_product_form', pid=p.id) }}">Modifier</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="note">Tous les stocks sont au-dessus de 10 unités.</p>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2>Meilleures ventes</h2>
+      {% if top %}
+        <table class="table">
+          <thead><tr><th>Produit</th><th>Unités</th><th>CA</th></tr></thead>
+          <tbody>
+            {% for t in top %}
+              <tr><td>{{ t.name }}</td><td>{{ t.units }}</td><td>{{ t.revenue | eur }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="note">Pas encore de vente.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

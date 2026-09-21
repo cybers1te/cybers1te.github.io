@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+
+{% block body %}
+<section class="wrap narrow">
+  <div class="auth">
+    <header class="page-head">
+      <p class="kick">Connexion</p>
+      <h1>Accéder à mon compte</h1>
+    </header>
+    <form method="post" action="{{ url_for('login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="suivant" value="{{ suivant }}">
+      <label>Adresse e-mail
+        <input type="email" name="email" value="{{ email }}" required autocomplete="email" autofocus>
+      </label>
+      <label>Mot de passe
+        <input type="password" name="password" required autocomplete="current-password">
+      </label>
+      <button class="btn btn-primary btn-big">Se connecter</button>
+    </form>
+    <p class="note">Pas encore de compte ? <a href="{{ url_for('register') }}">Créer un compte</a></p>
+  </div>
+</section>
+{% endblock %}

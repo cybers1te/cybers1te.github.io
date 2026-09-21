@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Créer un compte{% endblock %}
+
+{% block body %}
+<section class="wrap narrow">
+  <div class="auth">
+    <header class="page-head">
+      <p class="kick">Inscription</p>
+      <h1>Créer mon compte</h1>
+      <p class="lead">Un compte permet de conserver son panier, de suivre ses commandes et de
+        publier des avis.</p>
+    </header>
+    <form method="post" action="{{ url_for('register') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Nom
+        <input name="name" value="{{ form.name }}" required minlength="2" maxlength="60" autocomplete="name" autofocus>
+      </label>
+      <label>Adresse e-mail
+        <input type="email" name="email" value="{{ form.email }}" required maxlength="160" autocomplete="email">
+      </label>
+      <label>Mot de passe
+        <input type="password" name="password" required minlength="8" autocomplete="new-password">
+        <small>8 caractères minimum.</small>
+      </label>
+      <label>Confirmation
+        <input type="password" name="password2" required minlength="8" autocomplete="new-password">
+      </label>
+      <button class="btn btn-primary btn-big">Créer mon compte</button>
+    </form>
+    <p class="note">Déjà client ? <a href="{{ url_for('login') }}">Se connecter</a></p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Commandes · Administration{% endblock %}
+
+{% block body %}
+<section class="wrap">
+  <header class="page-head">
+    <p class="kick">Administration</p>
+    <h1>Commandes</h1>
+  </header>
+
+  <nav class="subnav">
+    <a href="{{ url_for('admin_home') }}">Vue d'ensemble</a>
+    <a href="{{ url_for('admin_products') }}">Produits</a>
+    <a href="{{ url_for('admin_orders') }}" class="on">Commandes</a>
+  </nav>
+
+  <nav class="chips">
+    <a href="{{ url_for('admin_orders') }}" class="{{ 'on' if not status }}">Toutes</a>
+    {% for s in order_statuses %}
+      <a href="{{ url_for('admin_orders', statut=s) }}" class="{{ 'on' if status == s }}">{{ s }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="panel">
+    {% if orders %}
+      <table class="table">
+        <thead>
+          <tr><th>Référence</th><th>Date</th><th>Client</th><th>Articles</th><th>Total</th><th>État</th></tr>
+        </thead>
+        <tbody>
+          {% for o in orders %}
+            <tr>
+              <td><a href="{{ url_for('order_done', reference=o.reference) }}">{{ o.reference }}</a></td>
+              <td>{{ o.created_at[:10] }}</td>
+              <td>{{ o.client }}<br><small class="muted">{{ o.email }}</small></td>
+              <td>{{ o.lines }}</td>
+              <td>{{ o.total_cents | eur }}</td>
+              <td>
+                <form method="post" action="{{ url_for('admin_order_status', oid=o.id) }}" class="status-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="retour" value="{{ url_for('admin_orders', statut=status or None) }}">
+                  <select name="status" aria-label="État de la commande {{ o.reference }}">
+                    {% for s in order_statuses %}
+                      <option value="{{ s }}" {% if o.status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-sm btn-outline">OK</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="note">Aucune commande{{ ' avec cet état' if status }}.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

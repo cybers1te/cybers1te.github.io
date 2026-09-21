@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Matériel informatique{% endblock %} · {{ shop_name }}</title>
+<meta name="description" content="{% block description %}Trueware, boutique de matériel informatique : périphériques, composants, écrans, audio, réseau et stockage.{% endblock %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='trueware.css') }}">
+<link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+
+<header class="top">
+  <div class="top-in">
+    <a class="logo" href="{{ url_for('home') }}">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-word">true<b>ware</b></span>
+    </a>
+
+    <form class="search" method="get" action="{{ url_for('catalogue') }}" role="search">
+      <input type="search" name="q" value="{{ request.args.get('q', '') }}"
+             placeholder="Rechercher un produit, une marque…" aria-label="Rechercher">
+      <button class="btn btn-sm btn-primary">Chercher</button>
+    </form>
+
+    <nav class="top-nav">
+      <a href="{{ url_for('catalogue') }}" {% if current_path == '/catalogue' %}class="on"{% endif %}>Catalogue</a>
+      {% if user %}
+        {% if user.is_admin %}<a href="{{ url_for('admin_home') }}" class="admin-link">Admin</a>{% endif %}
+        <a href="{{ url_for('account') }}" {% if current_path == '/compte' %}class="on"{% endif %}>Compte</a>
+        <form method="post" action="{{ url_for('logout') }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="linkish">Déconnexion</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('login') }}">Connexion</a>
+        <a href="{{ url_for('register') }}" class="btn btn-sm btn-outline">Créer un compte</a>
+      {% endif %}
+      <a class="cart-link" href="{{ url_for('cart') }}" aria-label="Panier">
+        Panier{% if cart_count %} <span class="badge">{{ cart_count }}</span>{% endif %}
+      </a>
+    </nav>
+  </div>
+
+  <div class="catbar">
+    <div class="catbar-in">
+      {% for c in categories %}
+        <a href="{{ url_for('catalogue', categorie=c.slug) }}"
+           {% if request.args.get('categorie') == c.slug %}class="on"{% endif %}>{{ c.name }}</a>
+      {% endfor %}
+      <span class="catbar-note">Livraison offerte dès 100&nbsp;€</span>
+    </div>
+  </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flashes" role="status">
+      {% for cat, msg in messages %}
+        <p class="flash flash-{{ cat }}">{{ msg }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<main id="main">{% block body %}{% endblock %}</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <span class="logo-word">true<b>ware</b></span>
+      <p>Matériel informatique choisi pièce par pièce. Boutique de démonstration : aucun paiement réel n'est traité.</p>
+    </div>
+    <div>
+      <h4>Catalogue</h4>
+      {% for c in categories %}<a href="{{ url_for('catalogue', categorie=c.slug) }}">{{ c.name }}</a>{% endfor %}
+    </div>
+    <div>
+      <h4>Compte</h4>
+      {% if user %}
+        <a href="{{ url_for('account') }}">Mes commandes</a>
+        <a href="{{ url_for('cart') }}">Mon panier</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Connexion</a>
+        <a href="{{ url_for('register') }}">Inscription</a>
+      {% endif %}
+      <a href="{{ url_for('catalogue', tri='nouveautes') }}">Nouveautés</a>
+    </div>
+    <div>
+      <h4>Informations</h4>
+      <span>Livraison offerte dès 100&nbsp;€</span>
+      <span>Retour sous 30 jours</span>
+      <span>Garantie constructeur</span>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <span>© {{ shop_name }}</span>
+    <span>Flask · SQLite · sans dépendance externe</span>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='trueware.js') }}" defer></script>
+</body>
+</html>

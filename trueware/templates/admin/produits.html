@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Produits · Administration{% endblock %}
+
+{% block body %}
+<section class="wrap">
+  <header class="page-head">
+    <p class="kick">Administration</p>
+    <h1>Produits</h1>
+  </header>
+
+  <nav class="subnav">
+    <a href="{{ url_for('admin_home') }}">Vue d'ensemble</a>
+    <a href="{{ url_for('admin_products') }}" class="on">Produits</a>
+    <a href="{{ url_for('admin_orders') }}">Commandes</a>
+    <a href="{{ url_for('admin_product_form') }}" class="btn btn-sm btn-primary">Nouveau produit</a>
+  </nav>
+
+  <form class="filters" method="get" action="{{ url_for('admin_products') }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Nom ou marque…" aria-label="Recherche">
+    <button class="btn btn-sm btn-outline">Chercher</button>
+    {% if q %}<a class="linkish" href="{{ url_for('admin_products') }}">Tout afficher</a>{% endif %}
+  </form>
+
+  <div class="panel">
+    <table class="table">
+      <thead>
+        <tr><th>Produit</th><th>Famille</th><th>Prix</th><th>Stock</th><th>Avis</th><th>État</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+          <tr class="{{ 'dim' if not p.active }}">
+            <td>
+              <b>{{ p.name }}</b><br>
+              <small class="muted">{{ p.brand }} · {{ p.slug }}</small>
+            </td>
+            <td>{{ p.cat_name }}</td>
+            <td>{{ p.price_cents | eur }}</td>
+            <td><b class="{{ 'danger' if p.stock == 0 else ('warn' if p.stock <= 10) }}">{{ p.stock }}</b></td>
+            <td>{{ p.review_count or 0 }}{% if p.rating %} · {{ p.rating }}★{% endif %}</td>
+            <td>{{ 'En vente' if p.active else 'Retiré' }}</td>
+            <td class="row-actions">
+              <a class="linkish" href="{{ url_for('admin_product_form', pid=p.id) }}">Modifier</a>
+              <form method="post" action="{{ url_for('admin_product_toggle', pid=p.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="retour" value="{{ url_for('admin_products', q=q or None) }}">
+                <button class="linkish {{ 'danger' if p.active }}">{{ 'Retirer' if p.active else 'Remettre' }}</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

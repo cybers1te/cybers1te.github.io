@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "macros.html" import product_card, stars %}
+{% block title %}Matériel informatique choisi pièce par pièce{% endblock %}
+
+{% block body %}
+<section class="hero">
+  <div class="hero-in">
+    <div class="hero-text">
+      <p class="kick">{{ stats.products }} références · {{ stats.cats }} familles</p>
+      <h1>Le matériel<br><em>qui tient</em> ses<br>promesses.</h1>
+      <p class="lead">Périphériques, composants, écrans et réseau sélectionnés sur des critères
+        mesurables : construction, endurance, service après-vente. Pas de superlatifs, des fiches
+        techniques complètes.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="{{ url_for('catalogue') }}">Explorer le catalogue</a>
+        {% if not user %}
+          <a class="btn btn-outline" href="{{ url_for('register') }}">Créer un compte</a>
+        {% endif %}
+      </div>
+      <ul class="hero-points">
+        <li><b>Livraison offerte</b> dès 100&nbsp;€</li>
+        <li><b>Stock réel</b> affiché à l'unité</li>
+        <li><b>30 jours</b> pour changer d'avis</li>
+      </ul>
+    </div>
+    <div class="hero-panel">
+      <p class="panel-label">Sélection de la semaine</p>
+      {% for p in featured[:3] %}
+        <a class="mini" href="{{ url_for('product', slug=p.slug) }}">
+          <span class="mini-art">{{ product_art(p.slug, p.cat_slug, 96) }}</span>
+          <span class="mini-txt">
+            <b>{{ p.name }}</b>
+            <small>{{ p.brand }}</small>
+          </span>
+          <span class="mini-price">{{ p.price_cents | eur }}</span>
+        </a>
+      {% endfor %}
+      <a class="panel-more" href="{{ url_for('catalogue') }}">Tout le catalogue →</a>
+    </div>
+  </div>
+</section>
+
+<section class="wrap">
+  <div class="cats">
+    {% for c in categories %}
+      <a class="cat" href="{{ url_for('catalogue', categorie=c.slug) }}">
+        <b>{{ c.name }}</b>
+        <span>{{ c.tagline }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% if deals %}
+<section class="wrap">
+  <header class="sec-head">
+    <div><p class="kick">Bons plans</p><h2>Prix en baisse</h2></div>
+    <a class="linkish" href="{{ url_for('catalogue', tri='prix-croissant') }}">Trier par prix →</a>
+  </header>
+  <div class="grid grid-3">{% for p in deals %}{{ product_card(p) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+<section class="wrap">
+  <header class="sec-head">
+    <div><p class="kick">Sélection</p><h2>Mis en avant</h2></div>
+    <a class="linkish" href="{{ url_for('catalogue') }}">Voir tout →</a>
+  </header>
+  <div class="grid grid-3">{% for p in featured %}{{ product_card(p) }}{% endfor %}</div>
+</section>
+
+<section class="wrap">
+  <header class="sec-head">
+    <div><p class="kick">Derniers arrivages</p><h2>Nouveautés</h2></div>
+    <a class="linkish" href="{{ url_for('catalogue', tri='nouveautes') }}">Par date →</a>
+  </header>
+  <div class="grid grid-4">{% for p in fresh %}{{ product_card(p) }}{% endfor %}</div>
+</section>
+
+<section class="wrap">
+  <div class="promise">
+    <div><span class="num">01</span><h3>Fiches complètes</h3><p>Chaque produit détaille ses caractéristiques mesurables, pas seulement ses arguments commerciaux.</p></div>
+    <div><span class="num">02</span><h3>Stock honnête</h3><p>La quantité affichée est celle de la base : elle diminue dès qu'une commande est validée.</p></div>
+    <div><span class="num">03</span><h3>Avis vérifiés</h3><p>Seuls les comptes connectés publient un avis, un seul par produit et par personne.</p></div>
+  </div>
+</section>
+{% endblock %}

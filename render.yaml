@@ -17,3 +17,32 @@ services:
         value: "0"
       - key: REFRESH_SECONDS
         value: "15"
+
+  - type: web
+    name: trueware
+    runtime: python
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: pip install -r trueware/requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT trueware.wsgi:app
+    autoDeploy: true
+    envVars:
+      - key: TRUEWARE_DB
+        value: /var/data/trueware.db
+      - key: TRUEWARE_DATA_DIR
+        value: /var/data
+      - key: TRUEWARE_HTTPS
+        value: "1"
+      - key: TRUEWARE_SECRET_KEY
+        generateValue: true
+      # À renseigner dans le tableau de bord Render ; sans cela un mot de passe
+      # aléatoire est écrit dans /var/data/trueware_admin.txt au premier démarrage.
+      - key: TRUEWARE_ADMIN_EMAIL
+        sync: false
+      - key: TRUEWARE_ADMIN_PASSWORD
+        sync: false
+    disk:
+      name: trueware-data
+      mountPath: /var/data
+      sizeGB: 1

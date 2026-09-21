@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Commande {{ order.reference }}{% endblock %}
+
+{% block body %}
+<section class="wrap narrow">
+  <div class="done">
+    <p class="kick">Commande enregistrée</p>
+    <h1>Merci !</h1>
+    <p class="lead">Votre commande <b>{{ order.reference }}</b> est enregistrée et son stock réservé.</p>
+    <p class="status-pill">{{ order.status }}</p>
+  </div>
+
+  <div class="panel">
+    <h2>Détail</h2>
+    <table class="table">
+      <thead><tr><th>Article</th><th>Qté</th><th>Prix unitaire</th><th>Total</th></tr></thead>
+      <tbody>
+        {% for i in items %}
+          <tr>
+            <td><a href="{{ url_for('product', slug=i.slug) }}">{{ i.name }}</a></td>
+            <td>{{ i.qty }}</td>
+            <td>{{ i.unit_price_cents | eur }}</td>
+            <td>{{ (i.unit_price_cents * i.qty) | eur }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="3">Sous-total</td><td>{{ order.subtotal_cents | eur }}</td></tr>
+        <tr><td colspan="3">Livraison</td><td>{{ 'Offerte' if order.shipping_cents == 0 else order.shipping_cents | eur }}</td></tr>
+        <tr class="grand"><td colspan="3">Total</td><td>{{ order.total_cents | eur }}</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Livraison</h2>
+    <address>
+      {{ order.ship_name }}<br>
+      {{ order.ship_address }}<br>
+      {{ order.ship_zip }} {{ order.ship_city }}<br>
+      {{ order.ship_country }}
+    </address>
+    <p class="note">Passée le {{ order.created_at[:10] }} · facturée à {{ order.email }}</p>
+  </div>
+
+  <div class="done-cta">
+    <a class="btn btn-outline" href="{{ url_for('account') }}">Mes commandes</a>
+    <a class="btn btn-primary" href="{{ url_for('catalogue') }}">Continuer mes achats</a>
+  </div>
+</section>
+{% endblock %}

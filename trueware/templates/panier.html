@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Panier{% endblock %}
+
+{% block body %}
+<section class="wrap">
+  <header class="page-head">
+    <p class="kick">Panier</p>
+    <h1>{{ cart.count }} article{{ 's' if cart.count != 1 }}</h1>
+  </header>
+
+  {% if cart.lines %}
+  <div class="cart">
+    <div class="cart-lines">
+      {% for line in cart.lines %}
+        <article class="line">
+          <a class="line-art" href="{{ url_for('product', slug=line.product.slug) }}">
+            {{ product_art(line.product.slug, line.product.cat_slug, 120) }}
+          </a>
+          <div class="line-txt">
+            <p class="card-brand">{{ line.product.brand }}</p>
+            <h3><a href="{{ url_for('product', slug=line.product.slug) }}">{{ line.product.name }}</a></h3>
+            <p class="line-unit">{{ line.product.price_cents | eur }} l'unité · {{ line.product.stock }} en stock</p>
+          </div>
+          <form class="line-qty" method="post" action="{{ url_for('cart_update') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="product_id" value="{{ line.product.id }}">
+            <input type="number" name="qty" value="{{ line.qty }}" min="1"
+                   max="{{ [line.product.stock, 10] | min }}" aria-label="Quantité">
+            <button class="btn btn-sm btn-outline">Mettre à jour</button>
+          </form>
+          <div class="line-end">
+            <b>{{ line.total | eur }}</b>
+            <form method="post" action="{{ url_for('cart_update') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="product_id" value="{{ line.product.id }}">
+              <input type="hidden" name="action" value="supprimer">
+              <button class="linkish danger">Retirer</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    <aside class="summary">
+      <h2>Récapitulatif</h2>
+      <dl>
+        <dt>Sous-total</dt><dd>{{ cart.subtotal | eur }}</dd>
+        <dt>Livraison</dt>
+        <dd>{{ 'Offerte' if cart.shipping == 0 else cart.shipping | eur }}</dd>
+      </dl>
+      {% if cart.shipping %}
+        <p class="nudge">Encore {{ (free_from - cart.subtotal) | eur }} pour la livraison offerte.</p>
+      {% endif %}
+      <p class="summary-total"><span>Total</span><b>{{ cart.total | eur }}</b></p>
+      <a class="btn btn-primary btn-big" href="{{ url_for('checkout') }}">
+        {{ 'Passer la commande' if user else 'Se connecter et commander' }}
+      </a>
+      <a class="linkish" href="{{ url_for('catalogue') }}">Continuer mes achats</a>
+    </aside>
+  </div>
+  {% else %}
+    <div class="empty">
+      <h3>Votre panier est vide</h3>
+      <p>Parcourez le catalogue pour y ajouter du matériel.</p>
+      <a class="btn btn-primary" href="{{ url_for('catalogue') }}">Voir le catalogue</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

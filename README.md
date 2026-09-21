@@ -1,4 +1,34 @@
-# Cowrie Watch
+# cybers1te.github.io
+
+Ce dépôt réunit plusieurs projets indépendants.
+
+| Projet | Emplacement | Nature |
+| --- | --- | --- |
+| **Trueware** — boutique en ligne (inscription, connexion, panier, commande, admin) | `trueware/` | Application Flask + SQLite |
+| **Fiche de révision** *L'Appel de la forêt* | `index.html`, `styles.css`, `app.js` | Site statique publié sur GitHub Pages |
+| **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
+
+GitHub Pages ne sert que des fichiers statiques : seules les pages à la racine
+sont publiées sur <https://cybers1te.github.io/>. Les deux applications Flask
+demandent un hébergeur capable d'exécuter Python (voir `render.yaml`).
+
+## Trueware
+
+Boutique de matériel informatique : catalogue de 26 produits, recherche et
+filtres, fiches détaillées, avis clients, panier persistant, commande avec
+décrémentation du stock, compte client et back-office.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r trueware/requirements.txt
+python -m trueware.app        # http://127.0.0.1:5001
+```
+
+Documentation complète, sécurité et déploiement : [`trueware/README.md`](trueware/README.md).
+
+---
+
+## Cowrie Watch
 
 Dashboard de surveillance pour les logs JSON Lines de [Cowrie](https://github.com/cowrie/cowrie). Le dépôt contient à la fois une version complète Flask/SQLite et une version frontend statique publiable sur GitHub Pages.
 
