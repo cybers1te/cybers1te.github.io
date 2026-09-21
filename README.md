@@ -1,30 +1,55 @@
 # cybers1te.github.io
 
-Ce dépôt réunit plusieurs projets indépendants.
+Le site publié sur <https://cybers1te.github.io/> est **Trueware**, une boutique
+de matériel informatique.
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **Trueware** — boutique en ligne (inscription, connexion, panier, commande, admin) | `trueware/` | Application Flask + SQLite |
-| **Fiche de révision** *L'Appel de la forêt* | `index.html`, `styles.css`, `app.js` | Site statique publié sur GitHub Pages |
+| **Trueware** — version navigateur (le site publié) | `index.html`, `trueware.{js,css}`, `trueware-catalog.js` | Site statique |
+| **Trueware** — version serveur complète | `trueware/` | Application Flask + SQLite |
+| **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
-
-GitHub Pages ne sert que des fichiers statiques : seules les pages à la racine
-sont publiées sur <https://cybers1te.github.io/>. Les deux applications Flask
-demandent un hébergeur capable d'exécuter Python (voir `render.yaml`).
 
 ## Trueware
 
-Boutique de matériel informatique : catalogue de 26 produits, recherche et
-filtres, fiches détaillées, avis clients, panier persistant, commande avec
-décrémentation du stock, compte client et back-office.
+Catalogue de 26 produits en 6 familles, recherche et filtres, fiches détaillées
+avec caractéristiques et avis, panier, **inscription et connexion**, commande
+avec décrémentation du stock, compte client et administration.
+
+### Deux versions, un seul catalogue
+
+GitHub Pages ne sert que des fichiers statiques : il ne peut exécuter ni Python
+ni base de données. Le dépôt contient donc deux versions du même magasin.
+
+**Version navigateur** — celle qui est en ligne. Tout s'exécute côté client et
+les données (comptes, panier, commandes, avis, stocks) vivent dans le
+`localStorage` de l'appareil. Rien n'est envoyé nulle part. Les mots de passe
+sont dérivés par PBKDF2-SHA256 via WebCrypto avant stockage, mais **un compte
+local ne protège rien** : quiconque a accès à l'appareil peut le lire. Le site
+l'affiche clairement.
+
+**Version serveur** (`trueware/`) — Flask + SQLite, avec sessions signées,
+jetons anti-CSRF, limitation des tentatives de connexion, vraie base partagée
+et administration réservée aux comptes administrateurs. Voir
+[`trueware/README.md`](trueware/README.md).
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
 pip install -r trueware/requirements.txt
-python -m trueware.app        # http://127.0.0.1:5001
+python -m trueware.app          # http://127.0.0.1:5001
+python -m pytest trueware/tests -q
 ```
 
-Documentation complète, sécurité et déploiement : [`trueware/README.md`](trueware/README.md).
+### Génération des fichiers statiques
+
+Le catalogue et la feuille de style du site statique sont **dérivés** du paquet
+Python, pour éviter toute divergence :
+
+```bash
+python3 tools/build-static.py   # écrit trueware-catalog.js, trueware.css, favicon.svg
+```
+
+Le workflow GitHub Pages relance cette commande et la suite de tests à chaque
+déploiement : le site publié est toujours construit depuis la source.
 
 ---
 

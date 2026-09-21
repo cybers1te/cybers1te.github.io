@@ -1,4 +1,4 @@
-name: Deploy London study guide
+name: Deploy Trueware (version statique)
 
 on:
   push:
@@ -23,14 +23,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r trueware/requirements.txt
+
+      # Le catalogue et la feuille de style du site statique sont dérivés du
+      # paquet trueware/ : on les régénère ici pour qu'ils ne puissent pas
+      # diverger de la source Python.
+      - name: Regenerate static assets
+        run: python3 tools/build-static.py
+
+      - name: Run tests
+        run: |
+          pip install pytest
+          python -m pytest trueware/tests -q
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
       - name: Prepare static site
-        run: mkdir _site && cp index.html styles.css app.js _site/
+        run: |
+          mkdir _site
+          cp index.html trueware.css trueware-static.css trueware.js \
+             trueware-catalog.js favicon.svg _site/
+          cp london.html styles.css app.js _site/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
