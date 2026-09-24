@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Page Auditor",
+  "version": "1.0.0",
+  "description": "Analyse défensive de la page courante : repère mineurs, iframes cachées, formulaires détournés et code obfusqué, puis les neutralise localement.",
+  "permissions": ["scripting", "activeTab"],
+  "action": {
+    "default_title": "Auditer cette page",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

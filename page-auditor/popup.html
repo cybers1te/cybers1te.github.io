@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171b22; --line: #262c37; --text: #e7ebf0;
+    --muted: #97a1b0; --high: #ff5f56; --medium: #ffbd2e; --low: #6fb3ff;
+    --ok: #35c46b; --accent: #6fb3ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    width: 380px; margin: 0; font: 13px/1.45 system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  header {
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 8px;
+  }
+  header b { font-size: 14px; }
+  header .sub { color: var(--muted); font-size: 11px; margin-left: auto; }
+  .bar { display: flex; gap: 6px; padding: 10px 14px; }
+  .chip {
+    flex: 1; text-align: center; padding: 8px 4px; border-radius: 8px;
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  .chip .n { font-size: 18px; font-weight: 700; display: block; }
+  .chip.high .n { color: var(--high); }
+  .chip.medium .n { color: var(--medium); }
+  .chip.low .n { color: var(--low); }
+  .chip small { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+  #list { max-height: 340px; overflow: auto; padding: 4px 14px 14px; }
+  .item {
+    border: 1px solid var(--line); border-left-width: 3px; border-radius: 8px;
+    padding: 8px 10px; margin-top: 8px; background: var(--panel);
+  }
+  .item.high { border-left-color: var(--high); }
+  .item.medium { border-left-color: var(--medium); }
+  .item.low { border-left-color: var(--low); }
+  .item .k {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--muted);
+  }
+  .item .m { margin: 2px 0 4px; }
+  .item .d {
+    font: 11px/1.4 ui-monospace, monospace; color: var(--muted);
+    word-break: break-all; background: #0c0f13; padding: 4px 6px; border-radius: 6px;
+  }
+  .empty { color: var(--muted); padding: 24px 14px; text-align: center; }
+  .empty.ok { color: var(--ok); }
+  footer { padding: 10px 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); font-weight: 600; cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: #06121f; border-color: transparent; }
+  button:disabled { opacity: .45; cursor: default; }
+  .note { padding: 0 14px 12px; color: var(--muted); font-size: 11px; }
+</style>
+</head>
+<body>
+  <header>
+    <b>Page Auditor</b>
+    <span class="sub" id="host"></span>
+  </header>
+
+  <div class="bar">
+    <div class="chip high"><span class="n" id="c-high">0</span><small>Élevé</small></div>
+    <div class="chip medium"><span class="n" id="c-medium">0</span><small>Moyen</small></div>
+    <div class="chip low"><span class="n" id="c-low">0</span><small>Faible</small></div>
+  </div>
+
+  <div id="list"><div class="empty">Analyse en cours…</div></div>
+
+  <p class="note">Détecteur heuristique : signale du suspect, ne certifie rien.
+    « Neutraliser » n'agit que sur cet onglet — le site distant n'est pas modifié.</p>
+
+  <footer>
+    <button id="rescan">Réanalyser</button>
+    <button id="clean" class="primary" disabled>Tout neutraliser</button>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

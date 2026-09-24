@@ -9,6 +9,7 @@ de matériel informatique.
 | **Trueware** — version serveur complète | `trueware/` | Application Flask + SQLite |
 | **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
+| **Page Auditor** — analyse défensive de la page courante | `page-auditor/` | Extension Chrome (Manifest V3), voir [`page-auditor/README.md`](page-auditor/README.md) |
 
 ## Trueware
 
