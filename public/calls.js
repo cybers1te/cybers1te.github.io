@@ -53,9 +53,10 @@ function candidateData(c) {
 /**
  * onChange(call)       l'appel en cours a changé (ou vient de se terminer) ;
  * onRinging(list)      liste des appels entrants qui sonnent ;
- * onLog(cid, payload)  l'appelant consigne l'appel terminé dans la conversation.
+ * onLog(cid, payload)  l'appelant consigne l'appel terminé dans la conversation ;
+ * screen(incoming)     faux pour refuser d'office un appel (personne bloquée).
  */
-export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog, onError }) {
+export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog, onError, screen }) {
   const ice = [...DEFAULT_ICE, ...(Array.isArray(iceServers) ? iceServers : [])];
   let call = null;
   const ringing = new Map(); // id -> appel entrant
@@ -291,7 +292,8 @@ export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog
           if (ringing.has(d.id) || dismissed.has(d.id)) continue;
           const inc = { id: d.id, ...data, seenAt: now };
           ringing.set(d.id, inc);
-          if (call) { decline(d.id); continue; } // déjà en ligne : occupé
+          // Déjà en ligne (occupé), ou appel d'une personne bloquée.
+          if (call || (screen && !screen(inc))) { decline(d.id); continue; }
           setTimeout(() => {
             if (ringing.get(d.id) !== inc) return;
             dismissed.add(d.id);

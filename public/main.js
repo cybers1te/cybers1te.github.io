@@ -30,6 +30,12 @@ const HISTORY = 200;          // messages chargés par conversation
 const RUN_GAP = 5 * 60 * 1000; // deux messages d'une même personne à moins de 5 min forment un bloc
 const TYPING_MS = 6000;        // durée d'affichage de « … écrit » après un signal
 const TYPING_EVERY = 3000;     // on signale sa saisie au plus toutes les 3 s
+const MAX_DESC = 300;          // description d'un groupe
+const DEFAULT_PERMS = { send: 'all', info: 'all', add: 'all' };
+const FOREVER = Date.UTC(9999, 0, 1); // sourdine « toujours »
+const MUTE_CHOICES = [['1 heure', 3600e3], ['8 heures', 8 * 3600e3], ['1 semaine', 7 * 864e5], ['Toujours', 0]];
+const SILENCE_CHOICES = [['15 minutes', 15 * 60e3], ['1 heure', 3600e3], ['8 heures', 8 * 3600e3],
+  ['24 heures', 864e5], ['7 jours', 7 * 864e5]];
 
 // Projet fictif utilisé avec les émulateurs locaux (npm run dev, puis
 // http://127.0.0.1:5000/?emulateurs).
@@ -95,6 +101,23 @@ const ICONS = {
   down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
   bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2.2 2.2 0 0 0 4 0"/>',
   download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',
+  settings: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>',
+  bellOff: '<path d="M8.6 5.4A6 6 0 0 1 18 11v4.2M6 11v5.5l-1.5 2h13M10 20.5a2.2 2.2 0 0 0 4 0M4 4l16 16"/>',
+  users: '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M15.5 5.6a3.2 3.2 0 0 1 0 5.8M17.5 14.2a5.5 5.5 0 0 1 3 4.8"/>',
+  userPlus: '<circle cx="10" cy="8.5" r="3.2"/><path d="M4 19a6 6 0 0 1 12 0M18.5 8v6M15.5 11h6"/>',
+  edit: '<path d="M5 19h3.5l9.7-9.7a2.1 2.1 0 0 0-3-3L5.5 16z"/><path d="M13.8 7.7l2.5 2.5"/>',
+  shield: '<path d="M12 3.8l6.5 2.4v5.3c0 4-2.7 7.3-6.5 8.7-3.8-1.4-6.5-4.7-6.5-8.7V6.2z"/>',
+  ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+  hush: '<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M9.5 7.8l5 4.4M14.5 7.8l-5 4.4"/>',
+  message: '<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  chevron: '<path d="M9.5 5.5l6.5 6.5-6.5 6.5"/>',
+  star: '<path d="M12 4.5l2.3 4.7 5.2.8-3.8 3.6.9 5.2L12 16.4l-4.6 2.4.9-5.2-3.8-3.6 5.2-.8z"/>',
+  palette: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.1-1.6-1.1-2.7 0-.9.7-1.6 1.6-1.6h2.2a4 4 0 0 0 4-4c0-3.9-3.8-7-8.5-7z"/><circle cx="8" cy="11.5" r=".9"/><circle cx="10.8" cy="7.6" r=".9"/><circle cx="15.3" cy="8.2" r=".9"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  volume: '<path d="M4.5 9.5h3l4.5-4v13l-4.5-4h-3z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+  eye: '<path d="M2.8 12s3.4-6.5 9.2-6.5 9.2 6.5 9.2 6.5-3.4 6.5-9.2 6.5S2.8 12 2.8 12z"/><circle cx="12" cy="12" r="2.8"/>',
 };
 
 function icon(name) {
@@ -290,6 +313,7 @@ const state = {
   messagesReady: false,
   filter: '',
   authMode: 'login',
+  settings: { blocked: new Set(), muted: {} }, // settings/{uid} : réglages privés
 };
 
 const people = new Map();   // uid -> { name, username, publicKey } | 'pending'
@@ -303,7 +327,9 @@ const typingSeen = new Map(); // 'cid/uid' -> dernier signal de saisie reçu
 const typingUntil = new Map(); // 'cid/uid' -> fin d'affichage de « … écrit »
 const lastSeenMsg = new Map(); // cid -> dernier message déjà signalé (notifications)
 const announcedCalls = new Set();
-const unsub = { profile: null, convs: null, msgs: null };
+const restrictions = new Map(); // uid -> fin de la privation de parole (groupe ouvert)
+const revealed = new Set();   // messages de personnes bloquées affichés quand même
+const unsub = { profile: null, convs: null, msgs: null, settings: null, restr: null };
 let convsInit = false;
 let calls = null;           // appels (calls.js), si le navigateur les gère
 let callLayer = null;       // écran d'appel
@@ -313,6 +339,9 @@ let lastTypingSent = 0;
 let pendingProfile = null;  // pseudo choisi à l'inscription, réservé dès la connexion
 let claiming = false;
 let ui = null;              // éléments de l'interface principale
+let panel = null;           // fenêtre d'infos ouverte : { cid, render }
+let wakeTimer = null;       // fin d'une sourdine ou d'une privation de parole
+let knownIds = new Set();   // conversations de l'instantané précédent
 
 // Chiffrement : `vault` est la clé privée déverrouillée du compte connecté.
 // `secret` garde le mot de passe tapé à la connexion le temps de déverrouiller
@@ -347,6 +376,13 @@ function teardown() {
   typingUntil.clear();
   lastSeenMsg.clear();
   announcedCalls.clear();
+  restrictions.clear();
+  revealed.clear();
+  if (panel && panel.dlg.open) panel.dlg.close();
+  panel = null;
+  clearTimeout(wakeTimer);
+  knownIds = new Set();
+  state.settings = { blocked: new Set(), muted: {} };
   convsInit = false;
   lastTypingSent = 0;
   for (const k of Object.keys(unsub)) {
@@ -373,6 +409,24 @@ function teardown() {
 
 const me = () => (state.user ? state.user.uid : null);
 
+/* Préférences propres à cet appareil (sons, aperçu, thème). */
+function pref(key, fallback) {
+  try { return localStorage.getItem('mm-' + key) || fallback; } catch { return fallback; }
+}
+
+function setPref(key, value) {
+  try { localStorage.setItem('mm-' + key, value); } catch { /* stockage indisponible */ }
+}
+
+const soundsOn = () => pref('sons', 'oui') === 'oui';
+const previewOn = () => pref('apercu', 'oui') === 'oui';
+
+function applyTheme() {
+  const theme = pref('theme', 'auto');
+  if (theme === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+}
+
 function person(uid) {
   const p = people.get(uid);
   return p && p !== 'pending' ? p : null;
@@ -388,6 +442,8 @@ function scheduleRender() {
     renderConvList();
     renderChatHead();
     renderMessages();
+    renderGate();
+    if (panel) panel.render();
   });
 }
 
@@ -411,10 +467,10 @@ function ensurePeople(uids) {
 /* Contenu en clair d'un message (ou de l'aperçu d'une conversation, qui porte
    le même identifiant) : { state, kind, text, payload }.
      state : 'ok' | 'legacy' (envoyé avant le chiffrement) | 'pending' | 'error'
-     kind  : 'text' | 'image' | 'audio' | 'call'
+     kind  : 'text' | 'image' | 'audio' | 'call' | 'event' (vie du groupe)
    Déchiffre à la demande et redessine ensuite. */
 const LOCKED = { state: 'error', kind: 'text', text: '' };
-const RICH_KINDS = ['image', 'audio', 'call'];
+const RICH_KINDS = ['image', 'audio', 'call', 'event'];
 
 function readPayload(v, raw) {
   if (v !== 2) return { state: 'ok', kind: 'text', text: raw };
@@ -470,13 +526,92 @@ function callLabel(p, mine) {
   return kind + (mine ? ' sans réponse' : ' manqué');
 }
 
+const nameOf = (uid) => (person(uid) || {}).name || '…';
+
+function joinNames(names) {
+  return names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' et ' + names[names.length - 1];
+}
+
+const fmtUntil = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+/* « 15:30 », « demain 15:30 » ou « lun. 29 sept., 15:30 ». */
+function untilText(t) {
+  const day = startOfDay(t);
+  const today = startOfDay(Date.now());
+  if (day === today) return fmtTime.format(t);
+  if (day === today + 864e5) return 'demain ' + fmtTime.format(t);
+  return fmtUntil.format(t);
+}
+
+function permsText(p) {
+  if (!p || typeof p !== 'object') return '';
+  const only = [];
+  if (p.send === 'admins') only.push('écrire');
+  if (p.info === 'admins') only.push('modifier les infos');
+  if (p.add === 'admins') only.push('ajouter des membres');
+  return only.length ? 'seuls les admins peuvent ' + joinNames(only) : 'tous les membres peuvent tout faire';
+}
+
+/* Événement de la vie d'un groupe (ajout, départ, rôle…), écrit du point de
+   vue de chacun : « Alice a ajouté Bob », « Tu as quitté le groupe ». Ces
+   textes évitent les accords de genre. */
+function eventText(p, author) {
+  const mine = author === me();
+  const who = mine ? 'Tu' : nameOf(author);
+  const has = who + (mine ? ' as ' : ' a ');
+  const targets = (Array.isArray(p.targets) ? p.targets : []).filter((t) => typeof t === 'string').slice(0, 20);
+  const target = targets[0];
+  const toMe = target === me();
+  const clip = (t) => [...String(t || '')].slice(0, MAX_TITLE).join('');
+  const names = joinNames(targets.map((t) => (t === me() ? 'toi' : nameOf(t))));
+  switch (p.e) {
+    case 'create':
+      return has + 'créé le groupe « ' + clip(p.title) + ' »' + (targets.length ? ' avec ' + names : '');
+    case 'add':
+      return targets.length === 1 && toMe ? who + ' t\'a fait entrer dans le groupe' : has + 'ajouté ' + names;
+    case 'remove':
+      return toMe ? who + ' t\'a fait sortir du groupe' : has + 'retiré ' + names + ' du groupe';
+    case 'leave':
+      return has + 'quitté le groupe' + (typeof p.heir === 'string'
+        ? ' · ' + (p.heir === me() ? 'tu as' : nameOf(p.heir) + ' a') + ' maintenant les droits d\'admin' : '');
+    case 'promote':
+      return toMe ? who + ' t\'a donné les droits d\'admin' : has + 'donné les droits d\'admin à ' + names;
+    case 'demote':
+      if (target === author) return has + 'renoncé à ' + (mine ? 'tes' : 'ses') + ' droits d\'admin';
+      return toMe ? who + ' t\'a retiré les droits d\'admin' : has + 'retiré les droits d\'admin à ' + names;
+    case 'claim':
+      return has + 'repris les droits d\'admin du groupe';
+    case 'silence': {
+      const until = Number(p.until) ? ' jusqu\'à ' + untilText(Number(p.until)) : '';
+      return (toMe ? who + ' t\'a retiré la parole' : has + 'retiré la parole à ' + names) + until;
+    }
+    case 'unsilence':
+      return toMe ? who + ' t\'a rendu la parole' : has + 'rendu la parole à ' + names;
+    case 'title':
+      return has + 'renommé le groupe « ' + clip(p.title) + ' »';
+    case 'description':
+      return has + 'modifié la description du groupe';
+    case 'perms':
+      return has + 'modifié les réglages : ' + permsText(p.perms);
+    default:
+      return 'Le groupe a été modifié';
+  }
+}
+
+/* Cet événement me concerne directement (on m'a ajouté, retiré la parole…). */
+function eventForMe(p) {
+  return Array.isArray(p.targets) && p.targets.includes(me())
+    && ['create', 'add', 'promote', 'demote', 'silence', 'unsilence'].includes(p.e);
+}
+
 /* Résumé d'une ligne : aperçu de la liste, notifications. */
-function summary(c, mine) {
+function summary(c, mine, author) {
   if (c.state === 'pending') return '…';
   if (c.state === 'error') return '🔒 Message illisible';
   if (c.kind === 'image') return '📷 Photo' + (c.text ? ' · ' + c.text : '');
   if (c.kind === 'audio') return '🎤 Message vocal (' + Media.formatDuration(c.payload.duration) + ')';
   if (c.kind === 'call') return '📞 ' + callLabel(c.payload, mine);
+  if (c.kind === 'event') return eventText(c.payload, author);
   return c.text;
 }
 
@@ -512,7 +647,8 @@ function mediaUrl(cid, mid, p) {
 /* « … écrit » : membres dont un signal de saisie est récent. */
 function typers(conv) {
   const now = Date.now();
-  return conv.members.filter((uid) => uid !== me() && (typingUntil.get(conv.id + '/' + uid) || 0) > now);
+  return conv.members.filter((uid) => uid !== me() && !isBlocked(uid)
+    && (typingUntil.get(conv.id + '/' + uid) || 0) > now);
 }
 
 function typingText(conv) {
@@ -561,11 +697,77 @@ function activeConv() {
   return state.convs.find((c) => c.id === state.activeId) || null;
 }
 
+/* Rôles et réglages d'un groupe, comme dans firestore.rules. Un groupe créé
+   avant l'arrivée des admins n'a ni `admins` ni `perms` : son créateur en est
+   l'admin, et chaque membre peut tout faire. */
+const adminsOf = (conv) => (Array.isArray(conv.admins) ? conv.admins : [conv.createdBy]);
+const isAdmin = (conv, uid = me()) => adminsOf(conv).includes(uid);
+const permOf = (conv, what) => (conv.perms && conv.perms[what]) || 'all';
+const can = (conv, what) => conv.type === 'group' && (permOf(conv, what) === 'all' || isAdmin(conv));
+const isOwner = (conv, uid) => conv.createdBy === uid && conv.members.includes(uid);
+const orphan = (conv) => conv.type === 'group' && !conv.members.some((u) => adminsOf(conv).includes(u));
+
+const isBlocked = (uid) => state.settings.blocked.has(uid);
+
+function mutedUntil(cid) {
+  const v = state.settings.muted[cid];
+  return typeof v === 'number' && v > Date.now() ? v : 0;
+}
+const isMuted = (cid) => mutedUntil(cid) > 0;
+
+/* Privé de parole dans le groupe ouvert : fin de la privation, sinon 0. */
+function silencedUntil(uid) {
+  const t = restrictions.get(uid) || 0;
+  return t > Date.now() ? t : 0;
+}
+
+/* Contacts : les personnes avec qui on partage déjà une conversation. */
+function contacts() {
+  const uids = new Set(state.convs.flatMap((c) => c.members));
+  uids.delete(me());
+  return [...uids].filter((u) => person(u) && !isBlocked(u))
+    .sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'fr'));
+}
+
+/* Réveille l'interface à la fin de la sourdine ou de la privation de parole
+   la plus proche. */
+function scheduleWake() {
+  clearTimeout(wakeTimer);
+  const now = Date.now();
+  const ends = [...Object.values(state.settings.muted), ...restrictions.values()]
+    .filter((t) => typeof t === 'number' && t > now && t < FOREVER);
+  if (!ends.length) return;
+  wakeTimer = setTimeout(() => {
+    scheduleRender();
+    updateTitle();
+    scheduleWake();
+  }, Math.min(Math.min(...ends) - now + 500, 864e5));
+}
+
 /* ======================================================================== */
 /* Démarrage                                                                */
 /* ======================================================================== */
 
+/* Sur mobile, le clavier réduit la zone visible sans toujours réduire la
+   page (iOS, anciens Android) : la hauteur de l'interface suit donc la zone
+   réellement visible, pour que la zone de saisie reste au-dessus du clavier. */
+function fitViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const fit = () => {
+    if (Math.abs(vv.scale - 1) > 0.01) return; // zoom au doigt : on ne touche à rien
+    document.documentElement.style.setProperty('--app-h', Math.round(vv.height) + 'px');
+    // iOS fait défiler toute la page pour montrer le champ : on la remet en place.
+    if (vv.offsetTop > 0 && window.scrollY > 0) window.scrollTo(0, 0);
+  };
+  vv.addEventListener('resize', fit);
+  vv.addEventListener('scroll', fit);
+  fit();
+}
+
 async function start() {
+  applyTheme();
+  fitViewport();
   if (!configured && !emulate) {
     renderSetup();
     return;
@@ -1206,7 +1408,7 @@ function startMain() {
         logo(),
         h('button', {
           class: 'btn icon primary', type: 'button', title: 'Nouvelle conversation',
-          'aria-label': 'Nouvelle conversation', onclick: openNewConversation,
+          'aria-label': 'Nouvelle conversation', onclick: () => openNewConversation(),
         }, icon('plus'))),
       h('div', { class: 'side-search' }, icon('search'), search),
       ui.notice,
@@ -1228,6 +1430,7 @@ function startMain() {
       onChange: onCallChange,
       onRinging,
       onLog: (cid, payload) => sendRich(cid, payload).catch(() => {}),
+      screen: (incoming) => !isBlocked(incoming.caller),
       onError: (err) => {
         if (err && err.code === 'permission-denied') {
           toast('Les appels demandent les nouvelles règles Firestore : republie firestore.rules (guide, étape 4).', 'error');
@@ -1237,6 +1440,19 @@ function startMain() {
     calls.watch();
   }
 
+  // Réglages privés : personnes bloquées, conversations en sourdine.
+  unsub.settings = F.onSnapshot(F.doc(db, 'settings', me()), (snap) => {
+    const d = snap.exists() ? snap.data() : {};
+    state.settings = {
+      blocked: new Set(Array.isArray(d.blocked) ? d.blocked : []),
+      muted: d.muted && typeof d.muted === 'object' ? d.muted : {},
+    };
+    ensurePeople(state.settings.blocked);
+    scheduleWake();
+    scheduleRender();
+    updateTitle();
+  }, () => { /* règles pas encore publiées : aucun réglage */ });
+
   unsub.convs = F.onSnapshot(
     F.query(F.collection(db, 'conversations'), F.where('members', 'array-contains', me())),
     (snap) => {
@@ -1244,11 +1460,17 @@ function startMain() {
         .map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }))
         .sort((a, b) => ts(b.updatedAt) - ts(a.updatedAt));
       state.convsReady = true;
+      const ids = new Set(state.convs.map((c) => c.id));
+      // Retiré du groupe ouvert (ou parti depuis un autre appareil).
+      if (state.activeId && knownIds.has(state.activeId) && !ids.has(state.activeId)) showGone();
+      knownIds = ids;
       ensurePeople(new Set(state.convs.flatMap((c) => c.members)));
       trackActivity();
       renderConvList();
       renderChatHead();
       renderMessages();
+      renderGate();
+      if (panel) panel.render();
       markRead(activeConv());
       updateTitle();
     },
@@ -1261,13 +1483,13 @@ function renderMe() {
   if (!ui || !state.profile) return;
   const p = state.profile;
   ui.me.replaceChildren(
-    h('button', { class: 'me-btn', type: 'button', onclick: openProfile, title: 'Mon profil' },
+    h('button', { class: 'me-btn', type: 'button', onclick: openSettings, title: 'Mon profil et paramètres' },
       avatar(p.uid, p.name, 'sm'),
       h('span', { class: 'me-txt' }, h('b', { text: p.name }), h('small', { text: '@' + p.username }))),
     h('button', {
-      class: 'btn icon ghost', type: 'button', title: 'Se déconnecter', 'aria-label': 'Se déconnecter',
-      onclick: logout,
-    }, icon('logout')));
+      class: 'btn icon ghost', type: 'button', title: 'Paramètres', 'aria-label': 'Paramètres',
+      onclick: openSettings,
+    }, icon('settings')));
 }
 
 /* Invitation à activer les notifications, tant qu'on n'a ni accepté, ni
@@ -1332,23 +1554,30 @@ function trackActivity() {
   convsInit = true;
 }
 
+/* Nouveau message : son discret si l'onglet est visible, notification sinon.
+   Rien pour une conversation en sourdine ou une personne bloquée ; pour la
+   vie d'un groupe, seulement ce qui me concerne (on m'a ajouté…). */
 async function announce(conv, lm) {
+  if (isMuted(conv.id) || isBlocked(lm.uid)) return;
+  const c = await decryptContent(conv.id, lm);
+  if (c.kind === 'event' && c.state === 'ok' && !eventForMe(c.payload)) return;
   if (!document.hidden) {
-    Notify.blip();
+    if (soundsOn()) Notify.blip();
     return;
   }
-  const c = await decryptContent(conv.id, lm);
   const who = person(lm.uid) || await fetchPerson(lm.uid).catch(() => null);
   const group = conv.type === 'group';
+  const text = summary(c, false, lm.uid);
   Notify.notify(group ? conv.title : (who ? who.name : 'message-me'), {
-    body: (group && who ? who.name + ' : ' : '') + summary(c, false),
+    body: !previewOn() ? 'Nouveau message'
+      : c.kind === 'event' ? text : (group && who ? who.name + ' : ' : '') + text,
     tag: 'conv-' + conv.id,
     hash: '#/c/' + encodeURIComponent(conv.id),
   });
 }
 
 function updateTitle() {
-  const n = state.convs.filter(isUnread).length;
+  const n = state.convs.filter((c) => isUnread(c) && !isMuted(c.id)).length;
   document.title = (n ? '(' + n + ') ' : '') + 'message-me';
 }
 
@@ -1361,8 +1590,11 @@ function renderConvList() {
   if (!state.convs.length) {
     ui.list.replaceChildren(h('div', { class: 'list-empty' },
       h('p', { text: 'Aucune conversation pour l\'instant.' }),
-      h('button', { class: 'btn primary sm', type: 'button', onclick: openNewConversation },
-        icon('plus'), 'Écrire à quelqu\'un')));
+      h('div', { class: 'row-actions' },
+        h('button', { class: 'btn primary sm', type: 'button', onclick: () => openNewConversation('dm') },
+          icon('plus'), 'Écrire à quelqu\'un'),
+        h('button', { class: 'btn ghost sm', type: 'button', onclick: () => openNewConversation('group') },
+          icon('users'), 'Créer un groupe'))));
     return;
   }
   const q = state.filter;
@@ -1382,15 +1614,20 @@ function renderConvList() {
     const typing = typingText(c);
     if (typing) {
       preview = typing;
+    } else if (c.type === 'dm' && isBlocked(otherUid(c))) {
+      preview = '🚫 Personne bloquée';
+    } else if (lm && lm.uid !== me() && isBlocked(lm.uid)) {
+      preview = 'Message masqué';
     } else if (lm) {
       const p = content(c.id, lm);
-      const who = p.kind === 'call' ? ''
+      const who = p.kind === 'call' || p.kind === 'event' ? ''
         : lm.uid === me() ? 'Toi : '
-          : (c.type === 'group' ? ((person(lm.uid) || {}).name || '…') + ' : ' : '');
-      preview = who + summary(p, lm.uid === me()).replace(/\s+/g, ' ');
+          : (c.type === 'group' ? nameOf(lm.uid) + ' : ' : '');
+      preview = who + summary(p, lm.uid === me(), lm.uid).replace(/\s+/g, ' ');
     }
+    const muted = isMuted(c.id);
     return h('a', {
-      class: 'conv' + (unread ? ' unread' : ''),
+      class: 'conv' + (unread ? ' unread' : '') + (muted ? ' muted' : ''),
       href: '#/c/' + encodeURIComponent(c.id),
       'aria-current': c.id === state.activeId ? 'page' : null,
     },
@@ -1398,6 +1635,7 @@ function renderConvList() {
     h('span', { class: 'conv-txt' },
       h('span', { class: 'conv-top' },
         h('b', { class: 'conv-title', text: convTitle(c) }),
+        muted ? h('span', { class: 'conv-flag', title: 'En sourdine', 'aria-label': 'en sourdine' }, icon('bellOff')) : null,
         h('time', { text: listTime(ts(lm ? lm.at : c.updatedAt)) })),
       h('span', { class: 'conv-bottom' },
         h('span', { class: 'conv-preview' + (typing ? ' typing' : ''), text: preview }),
@@ -1419,13 +1657,19 @@ function openConversation(id) {
   if (ui.composer && ui.composer.cleanup) ui.composer.cleanup();
   if (id !== state.activeId) {
     rowCache.clear();
+    revealed.clear();
     Media.player.stop();
+    if (panel && panel.dlg.open) panel.dlg.close();
   }
+  if (unsub.restr) unsub.restr();
+  unsub.restr = null;
+  restrictions.clear();
   state.activeId = id;
   state.messages = [];
   state.messagesReady = false;
   ui.shell.dataset.view = id ? 'chat' : 'list';
-  ui.head = ui.log = ui.logIn = ui.composer = ui.jump = null;
+  ui.head = ui.log = ui.logIn = ui.composer = ui.jump = ui.gate = null;
+  ui.closed = false;
   renderConvList();
 
   if (!id) {
@@ -1433,8 +1677,11 @@ function openConversation(id) {
       h('span', { class: 'chat-empty-art' }, icon('chats')),
       h('h2', { text: 'Choisis une conversation' }),
       h('p', { text: 'Ou démarres-en une avec le pseudo de quelqu\'un.' }),
-      h('button', { class: 'btn primary', type: 'button', onclick: openNewConversation },
-        icon('plus'), 'Nouvelle conversation'),
+      h('div', { class: 'row-actions center-actions' },
+        h('button', { class: 'btn primary', type: 'button', onclick: () => openNewConversation('dm') },
+          icon('plus'), 'Nouvelle conversation'),
+        h('button', { class: 'btn ghost', type: 'button', onclick: () => openNewConversation('group') },
+          icon('users'), 'Nouveau groupe')),
       state.profile ? h('p', { class: 'fineprint' }, 'Ton pseudo à partager : ',
         h('b', { text: '@' + state.profile.username })) : null));
     return;
@@ -1449,11 +1696,22 @@ function openConversation(id) {
     onclick: () => ui.log.scrollTo({ top: ui.log.scrollHeight, behavior: 'smooth' }),
   }, icon('down'));
   ui.composer = buildComposer(id);
-  ui.chat.replaceChildren(ui.head, ui.log, ui.jump, ui.composer);
+  ui.gate = h('div', { class: 'gate', hidden: true, role: 'status' });
+  ui.chat.replaceChildren(ui.head, ui.log, ui.jump, ui.gate, ui.composer);
   renderChatHead();
   renderMessages();
+  renderGate();
   markRead(activeConv());
-  if (!coarse) ui.composer.querySelector('textarea').focus();
+  if (!coarse && !ui.composer.hidden) ui.composer.querySelector('textarea').focus();
+
+  // Membres privés de parole (groupes).
+  unsub.restr = F.onSnapshot(F.collection(db, 'conversations', id, 'restrictions'), (snap) => {
+    if (state.activeId !== id) return;
+    restrictions.clear();
+    for (const d of snap.docs) restrictions.set(d.id, ts(d.data().until));
+    scheduleWake();
+    scheduleRender();
+  }, () => { /* règles pas encore publiées */ });
 
   unsub.msgs = F.onSnapshot(
     F.query(F.collection(db, 'conversations', id, 'messages'), F.orderBy('createdAt'), F.limitToLast(HISTORY)),
@@ -1473,15 +1731,42 @@ function openConversation(id) {
       state.messagesReady = true;
       state.messages = [];
       if (err.code === 'permission-denied') {
-        ui.logIn.replaceChildren(h('div', { class: 'log-note' },
-          h('h3', { text: 'Conversation introuvable' }),
-          h('p', { text: 'Elle n\'existe pas, ou tu n\'en fais pas partie.' }),
-          h('a', { class: 'btn ghost sm', href: '#/' }, 'Retour')));
-        ui.composer.hidden = true;
+        closeChat('Conversation introuvable', 'Elle n\'existe pas, ou tu n\'en fais pas partie.');
       } else {
         toast(describe(err), 'error');
       }
     });
+}
+
+/* La conversation ouverte n'est plus accessible : message à la place. */
+function closeChat(title, text) {
+  if (!ui || !ui.logIn) return;
+  if (unsub.msgs) unsub.msgs();
+  unsub.msgs = null;
+  if (ui.composer && ui.composer.cleanup) ui.composer.cleanup();
+  if (panel && panel.dlg.open) panel.dlg.close();
+  ui.closed = true;
+  state.messages = [];
+  state.messagesReady = true;
+  ui.logIn.replaceChildren(h('div', { class: 'log-note' },
+    h('h3', { text: title }),
+    h('p', { text }),
+    h('a', { class: 'btn ghost sm', href: '#/' }, 'Retour')));
+  renderGate();
+}
+
+function showGone() {
+  closeChat('Tu ne fais plus partie de ce groupe',
+    'Un admin t\'en a retiré, ou tu l\'as quitté depuis un autre appareil.');
+}
+
+function headSubtitle(conv) {
+  const typing = typingText(conv);
+  if (typing) return typing;
+  if (conv.type !== 'group') return convSubtitle(conv);
+  const others = conv.members.filter((u) => u !== me()).map(nameOf);
+  return conv.members.length + (conv.members.length > 1 ? ' membres' : ' membre') +
+    (others.length ? ' · ' + others.join(', ') : '');
 }
 
 function renderChatHead() {
@@ -1493,25 +1778,65 @@ function renderChatHead() {
       h('b', { text: state.convsReady ? '' : 'Chargement…' })));
     return;
   }
+  const dm = conv.type !== 'group';
+  const callable = dm && calls && !isBlocked(otherUid(conv));
+  const infoLabel = dm ? 'Infos du contact' : 'Infos du groupe';
   ui.head.replaceChildren(...[back,
+    h('button', {
+      class: 'chat-id-btn', type: 'button', title: infoLabel, 'aria-label': infoLabel + ' : ' + convTitle(conv),
+      onclick: () => openInfo(),
+    },
     convAvatar(conv),
-    h('div', { class: 'chat-id' },
-      h('b', { text: convTitle(conv) }),
-      h('small', { text: convSubtitle(conv) })),
-    conv.type !== 'group' && calls ? h('button', {
+    h('span', { class: 'chat-id' },
+      h('b', {}, h('span', { text: convTitle(conv) }), isMuted(conv.id) ? icon('bellOff') : null),
+      h('small', { class: typingText(conv) ? 'typing' : null, text: headSubtitle(conv) }))),
+    callable ? h('button', {
       class: 'btn icon ghost', type: 'button', title: 'Appel vocal', 'aria-label': 'Appel vocal',
       onclick: () => startCall(conv, false),
     }, icon('phone')) : null,
-    conv.type !== 'group' && calls ? h('button', {
+    callable ? h('button', {
       class: 'btn icon ghost', type: 'button', title: 'Appel vidéo', 'aria-label': 'Appel vidéo',
       onclick: () => startCall(conv, true),
     }, icon('video')) : null,
-    conv.type === 'group'
-      ? h('button', {
-        class: 'btn icon ghost', type: 'button', title: 'Quitter le groupe', 'aria-label': 'Quitter le groupe',
-        onclick: () => leaveGroup(conv),
-      }, icon('leave'))
-      : null].filter(Boolean));
+    h('button', {
+      class: 'btn icon ghost', type: 'button', title: infoLabel, 'aria-label': infoLabel,
+      onclick: () => openInfo(),
+    }, icon('info'))].filter(Boolean));
+}
+
+/* Pourquoi on ne peut pas écrire ici (bloqué, privé de parole, écriture
+   réservée aux admins), ou null. */
+function gateReason(conv) {
+  if (!conv) return null;
+  if (conv.type !== 'group') {
+    const other = otherUid(conv);
+    if (!isBlocked(other)) return null;
+    return {
+      text: 'Tu as bloqué ' + nameOf(other) + ' : plus aucun message ni appel de sa part.',
+      action: ['Débloquer', () => setBlocked(other, false)],
+    };
+  }
+  const until = silencedUntil(me());
+  if (until) return { text: '🔇 Un admin t\'a retiré la parole jusqu\'à ' + untilText(until) + '.' };
+  if (!can(conv, 'send')) return { text: 'Seuls les admins peuvent écrire dans ce groupe.' };
+  return null;
+}
+
+function renderGate() {
+  if (!ui || !ui.gate || !ui.composer) return;
+  if (ui.closed) {
+    ui.gate.hidden = true;
+    ui.composer.hidden = true;
+    return;
+  }
+  const r = gateReason(activeConv());
+  ui.gate.hidden = !r;
+  ui.composer.hidden = Boolean(r);
+  if (!r) return;
+  ui.gate.replaceChildren(...[
+    h('p', { text: r.text }),
+    r.action ? h('button', { class: 'btn ghost sm', type: 'button', onclick: r.action[1] }, r.action[0]) : null,
+  ].filter(Boolean));
 }
 
 function typingRow(conv) {
@@ -1524,7 +1849,7 @@ function typingRow(conv) {
 }
 
 function renderMessages() {
-  if (!ui || !ui.logIn) return;
+  if (!ui || !ui.logIn || ui.closed) return;
   const conv = activeConv();
   const cid = state.activeId;
   const log = ui.log;
@@ -1548,12 +1873,14 @@ function renderMessages() {
   const msgs = state.messages.map((m) => ({ ...m, t: ts(m.createdAt) || Date.now(), c: content(cid, m) }));
   msgs.sort((a, b) => a.t - b.t);
 
+  const solo = (m) => m.c.kind === 'call' || m.c.kind === 'event';
+
   // Dernier de mes messages lu par l'autre personne (discussion à deux).
   let seenId = null;
   if (conv && !group) {
     const other = otherUid(conv);
     const readAt = conv.lastRead ? ts(conv.lastRead[other]) : 0;
-    const mine = msgs.filter((m) => m.uid === me() && m.c.kind !== 'call');
+    const mine = msgs.filter((m) => m.uid === me() && !solo(m));
     const lastMine = mine[mine.length - 1];
     if (lastMine && !lastMine.pending && readAt && readAt >= lastMine.t) seenId = lastMine.id;
   }
@@ -1564,9 +1891,11 @@ function renderMessages() {
     nodes.push(h('p', { class: 'log-hint', text: 'Seuls les ' + HISTORY + ' derniers messages sont affichés.' }));
   }
   // Deux messages forment un bloc s'ils viennent de la même personne, le même
-  // jour, à moins de RUN_GAP d'écart ; un journal d'appel coupe les blocs.
-  const joins = (a, b) => a && b && a.uid === b.uid && a.c.kind !== 'call' && b.c.kind !== 'call'
+  // jour, à moins de RUN_GAP d'écart ; un journal d'appel ou un événement du
+  // groupe coupe les blocs.
+  const joins = (a, b) => a && b && a.uid === b.uid && !solo(a) && !solo(b)
     && Math.abs(b.t - a.t) <= RUN_GAP && startOfDay(a.t) === startOfDay(b.t);
+  const mentioned = [];
   let prevDay = null;
   msgs.forEach((m, i) => {
     const day = startOfDay(m.t);
@@ -1581,9 +1910,13 @@ function renderMessages() {
       mine: m.uid === me(),
       group,
       seen: m.id === seenId,
+      // Dans un groupe, les messages d'une personne bloquée sont masqués.
+      masked: group && m.uid !== me() && isBlocked(m.uid) && !revealed.has(m.id),
     };
-    const sig = [m.c.state, m.c.kind, m.c.text, f.first, f.last, f.mine, group, f.seen, m.pending,
-      fmtTime.format(m.t), author ? author.name : ''].join('\u0001');
+    const event = m.c.kind === 'event' && m.c.state === 'ok';
+    if (event && Array.isArray(m.c.payload.targets)) mentioned.push(...m.c.payload.targets);
+    const sig = [m.c.state, m.c.kind, event ? eventText(m.c.payload, m.uid) : m.c.text, f.first, f.last,
+      f.mine, group, f.seen, f.masked, m.pending, fmtTime.format(m.t), author ? author.name : ''].join('\u0001');
     let hit = rowCache.get(m.id);
     if (!hit || hit.sig !== sig) {
       hit = { sig, node: messageRow(cid, conv, m, m.c, f, author) };
@@ -1591,6 +1924,7 @@ function renderMessages() {
     }
     nodes.push(hit.node);
   });
+  ensurePeople(new Set(mentioned.filter((u) => typeof u === 'string')));
   const typing = typingRow(conv);
   if (typing) nodes.push(typing);
   ui.logIn.replaceChildren(...nodes);
@@ -1609,6 +1943,12 @@ function renderMessages() {
 }
 
 function messageRow(cid, conv, m, c, f, author) {
+  if (c.kind === 'event' && c.state === 'ok') {
+    return h('div', { class: 'msg system' },
+      h('p', { class: 'sys-note' },
+        h('span', { text: eventText(c.payload, m.uid) }),
+        h('time', { text: m.pending ? 'Envoi…' : fmtTime.format(m.t) })));
+  }
   if (c.kind === 'call' && c.state === 'ok') {
     const p = c.payload;
     const missed = p.status !== 'ended';
@@ -1624,7 +1964,13 @@ function messageRow(cid, conv, m, c, f, author) {
 
   const readable = c.state === 'ok' || c.state === 'legacy';
   let bubble;
-  if (readable && c.kind === 'image') {
+  if (f.masked) {
+    bubble = h('div', { class: 'bubble masked' }, 'Message d\'une personne bloquée · ',
+      h('button', {
+        class: 'linkish', type: 'button',
+        onclick: () => { revealed.add(m.id); scheduleRender(); },
+      }, 'Afficher'));
+  } else if (readable && c.kind === 'image') {
     bubble = photoBubble(cid, m, c);
   } else if (readable && c.kind === 'audio') {
     bubble = voiceBubble(cid, m, c);
@@ -1642,12 +1988,19 @@ function messageRow(cid, conv, m, c, f, author) {
       (m.pending ? ' pending' : ''),
   },
   f.group && !f.mine ? (f.last ? avatar(m.uid, author ? author.name : '?', 'xs') : h('span', { class: 'avatar-gap' })) : null,
-  h('div', { class: 'msg-body' },
-    f.group && !f.mine && f.first ? h('span', { class: 'author', text: author ? author.name : '…' }) : null,
-    bubble,
-    f.last ? h('span', { class: 'meta' },
-      m.pending ? 'Envoi…' : fmtTime.format(m.t),
-      f.seen ? ' · Vu' : '') : null));
+  h('div', {
+    class: 'msg-body',
+    // Un appui sur la bulle affiche son heure (pas d'infobulle sur mobile).
+    onclick: (e) => {
+      if (e.target.closest('a, button, .voice-wave')) return;
+      e.currentTarget.parentElement.classList.toggle('show-meta');
+    },
+  },
+  f.group && !f.mine && f.first ? h('span', { class: 'author', text: author ? author.name : '…' }) : null,
+  bubble,
+  h('span', { class: 'meta' + (f.last ? '' : ' on-tap') },
+    m.pending ? 'Envoi…' : fmtTime.format(m.t),
+    f.seen ? ' · Vu' : '')));
 }
 
 function photoBubble(cid, m, c) {
@@ -1736,7 +2089,13 @@ function updateJump() {
   if (!ui || !ui.jump || !ui.log) return;
   const far = ui.log.scrollHeight - ui.log.scrollTop - ui.log.clientHeight > 300;
   ui.jump.hidden = !far;
-  if (!far) ui.jump.classList.remove('fresh');
+  if (!far) {
+    ui.jump.classList.remove('fresh');
+    return;
+  }
+  // Juste au-dessus de la zone de saisie, quelle que soit sa hauteur.
+  const below = ui.chat.getBoundingClientRect().bottom - ui.log.getBoundingClientRect().bottom;
+  ui.jump.style.bottom = Math.round(below + 14) + 'px';
 }
 
 function buildComposer(cid) {
@@ -1779,14 +2138,15 @@ function buildComposer(cid) {
   let recTimer = null;
 
   function sync() {
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 168) + 'px';
-    const left = MAX_TEXT - ta.value.length;
-    count.textContent = left < 200 ? String(left) : '';
+    // Boutons d'abord : la largeur du champ en dépend, et sa hauteur de sa largeur.
     const ready = Boolean(ta.value.trim()) || Boolean(attached);
     send.disabled = !ready;
     send.hidden = voice && !ready;
     mic.hidden = !voice || ready;
+    const left = MAX_TEXT - ta.value.length;
+    count.textContent = left < 200 ? String(left) : '';
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight + 2, 168) + 'px'; // + bordures
   }
 
   function clearAttachment(revoke = true) {
@@ -1874,7 +2234,7 @@ function buildComposer(cid) {
       const url = URL.createObjectURL(v.blob);
       await sendRich(cid, { t: 'audio', mime: v.mime, duration: v.duration, wave: v.wave, size: v.blob.size }, v.blob, url);
     } catch (err) {
-      toast('Message vocal non envoyé : ' + (err.userMessage || describe(err)), 'error');
+      toast('Message vocal non envoyé : ' + sendFailure(err, cid), 'error');
     }
   }
 
@@ -1890,7 +2250,7 @@ function buildComposer(cid) {
         drafts.delete(cid);
         clearAttachment(false); // l'URL locale sert à afficher la photo pendant l'envoi
         sendRich(cid, { t: 'image', caption: text, mime: a.mime, w: a.w, h: a.h, size: a.blob.size }, a.blob, a.url)
-          .catch((err) => toast('Photo non envoyée : ' + (err.userMessage || describe(err)), 'error'));
+          .catch((err) => toast('Photo non envoyée : ' + sendFailure(err, cid), 'error'));
         return;
       }
       if (!text) return;
@@ -1898,7 +2258,7 @@ function buildComposer(cid) {
       drafts.delete(cid);
       sync();
       sendMessage(cid, text).catch((err) => {
-        toast('Message non envoyé : ' + (err.userMessage || describe(err)), 'error');
+        toast('Message non envoyé : ' + sendFailure(err, cid), 'error');
         if (!ta.value) { ta.value = text; sync(); }
       });
     },
@@ -2015,6 +2375,17 @@ function conversationFor(cid) {
   return conv;
 }
 
+function sendFailure(err, cid) {
+  if (err.userMessage) return err.userMessage;
+  const conv = state.convs.find((c) => c.id === cid);
+  if (err.code === 'permission-denied' && conv) {
+    return conv.type === 'group'
+      ? 'tu ne peux pas écrire dans ce groupe pour le moment.'
+      : 'cette personne ne reçoit pas tes messages (elle t\'a peut-être bloqué).';
+  }
+  return describe(err);
+}
+
 async function sendMessage(cid, text) {
   const conv = conversationFor(cid);
   const enc = await E2E.encryptMessage(text, await memberKeys(conv), cid, me());
@@ -2025,8 +2396,8 @@ async function sendMessage(cid, text) {
 
 /* Photo, message vocal ou journal d'appel : enveloppe chiffrée (v2). Un
    fichier est chiffré avec sa propre clé, qui ne voyage que dans l'enveloppe. */
-async function sendRich(cid, payload, blob = null, localUrl = null) {
-  const conv = conversationFor(cid);
+async function sendRich(cid, payload, blob = null, localUrl = null, fresh = null) {
+  const conv = fresh || conversationFor(cid);
   const msg = F.doc(F.collection(db, 'conversations', cid, 'messages'));
   const key = cid + '/' + msg.id;
   let full = payload;
@@ -2052,18 +2423,263 @@ function markRead(conv) {
     .catch(() => markedRead.delete(conv.id));
 }
 
-async function leaveGroup(conv) {
-  if (!window.confirm('Quitter le groupe « ' + conv.title + ' » ? Tu ne verras plus ses messages.')) return;
-  if (unsub.msgs) unsub.msgs();
-  unsub.msgs = null;
+/* ------------------------------------------------------------------------ */
+/* Groupes : membres, rôles, réglages                                       */
+/* ------------------------------------------------------------------------ */
+
+/* Chaque changement du groupe est suivi d'un événement chiffré dans la
+   conversation (« Alice a ajouté Bob »), pour les membres à jour : le
+   groupe est relu d'abord. Sans droit d'écrire, pas d'événement. */
+async function postEvent(cid, payload) {
   try {
-    await F.updateDoc(F.doc(db, 'conversations', conv.id), { members: F.arrayRemove(me()) });
+    const snap = await F.getDoc(F.doc(db, 'conversations', cid));
+    if (!snap.exists() || !vault) return;
+    const conv = { id: cid, ...snap.data() };
+    if (!conv.members.includes(me()) || !can(conv, 'send') || silencedUntil(me())) return;
+    await sendRich(cid, { t: 'event', ...payload }, null, null, conv);
+  } catch {
+    // L'événement n'est qu'une trace : le changement lui-même est fait.
+  }
+}
+
+/* Écriture de la liste des admins. Un ancien groupe n'a pas de champ
+   `admins` : on l'écrit en entier plutôt que de le modifier. */
+function adminsChange(conv, add, remove) {
+  if (Array.isArray(conv.admins)) return add ? F.arrayUnion(add) : F.arrayRemove(remove);
+  const list = adminsOf(conv).filter((u) => u !== remove);
+  return add ? [...list, add] : list;
+}
+
+const groupRef = (conv) => F.doc(db, 'conversations', conv.id);
+
+/* Pseudos -> comptes, avec des messages d'erreur clairs. */
+async function lookupUsernames(usernames) {
+  const self = state.profile.username;
+  const wanted = [...new Set(usernames.map(normalizeUsername).filter(Boolean))];
+  if (wanted.includes(self)) throw userError('C\'est ton propre pseudo : indique celui de quelqu\'un d\'autre.');
+  const bad = wanted.find((u) => !USERNAME_RE.test(u));
+  if (bad) throw userError('« ' + bad + ' » n\'est pas un pseudo valide.');
+  const snaps = await Promise.all(wanted.map((u) => F.getDoc(F.doc(db, 'usernames', u))));
+  const missing = wanted.filter((u, i) => !snaps[i].exists());
+  if (missing.length) {
+    throw userError((missing.length > 1 ? 'Pseudos introuvables : ' : 'Pseudo introuvable : ') +
+      missing.map((u) => '@' + u).join(', ') + '.');
+  }
+  const uids = snaps.map((d) => d.data().uid);
+  await Promise.all(uids.map((u) => (person(u) ? null : fetchPerson(u).catch(() => null))));
+  return uids;
+}
+
+/* Ajoute des membres, un par un (les règles vérifient à chaque ajout que la
+   personne n'a pas bloqué l'auteur). Rend { added, failed }. */
+async function addToGroup(ref, uids) {
+  const results = await Promise.allSettled(uids.map((u) => F.updateDoc(ref, { members: F.arrayUnion(u) })));
+  const added = uids.filter((u, i) => results[i].status === 'fulfilled');
+  const failed = uids.filter((u, i) => results[i].status === 'rejected');
+  if (failed.length) {
+    toast(joinNames(failed.map(nameOf)) + (failed.length > 1 ? ' n\'ont' : ' n\'a') +
+      ' pas pu être ajouté au groupe (paramètres de confidentialité).', 'error');
+  }
+  return { added, failed };
+}
+
+async function createGroup({ title, description, uids }) {
+  const uid = me();
+  if (!uids.length) throw userError('Ajoute au moins une personne au groupe.');
+  if (uids.length + 1 > MAX_MEMBERS) throw userError('Un groupe compte au plus ' + MAX_MEMBERS + ' membres.');
+  let name = [...title.trim()].slice(0, MAX_TITLE).join('');
+  if (!name) {
+    const all = [state.profile.name, ...uids.map(nameOf)];
+    name = [...(all.length > 3 ? all.slice(0, 3).join(', ') + ' et ' + (all.length - 3) + ' autres' : all.join(', '))]
+      .slice(0, MAX_TITLE).join('');
+  }
+  const ref = F.doc(F.collection(db, 'conversations'));
+  await F.setDoc(ref, {
+    type: 'group', members: [uid], admins: [uid], perms: { ...DEFAULT_PERMS },
+    title: name, description: [...description.trim()].slice(0, MAX_DESC).join(''),
+    createdBy: uid, createdAt: F.serverTimestamp(), updatedAt: F.serverTimestamp(),
+    lastMessage: null, lastRead: {},
+  });
+  const { added } = await addToGroup(ref, uids);
+  await postEvent(ref.id, { e: 'create', title: name, targets: added });
+  return ref.id;
+}
+
+async function addMembers(conv, uids) {
+  const fresh = uids.filter((u) => !conv.members.includes(u));
+  if (!fresh.length) throw userError('Ces personnes font déjà partie du groupe.');
+  if (conv.members.length + fresh.length > MAX_MEMBERS) {
+    throw userError('Un groupe compte au plus ' + MAX_MEMBERS + ' membres.');
+  }
+  const { added } = await addToGroup(groupRef(conv), fresh);
+  if (added.length) {
+    await postEvent(conv.id, { e: 'add', targets: added });
+    toast(added.length > 1 ? added.length + ' personnes ajoutées.' : nameOf(added[0]) + ' fait maintenant partie du groupe.', 'success');
+  }
+}
+
+async function removeMember(conv, uid) {
+  const ok = await confirmSheet({
+    title: 'Retirer ' + nameOf(uid) + ' ?',
+    text: nameOf(uid) + ' ne verra plus les nouveaux messages de « ' + conv.title + ' ».',
+    confirm: 'Retirer du groupe',
+  });
+  if (!ok) return;
+  await F.updateDoc(groupRef(conv), { members: F.arrayRemove(uid), admins: adminsChange(conv, null, uid) });
+  F.deleteDoc(F.doc(db, 'conversations', conv.id, 'restrictions', uid)).catch(() => {});
+  await postEvent(conv.id, { e: 'remove', targets: [uid] });
+}
+
+async function setAdmin(conv, uid, on) {
+  await F.updateDoc(groupRef(conv), { admins: on ? adminsChange(conv, uid) : adminsChange(conv, null, uid) });
+  await postEvent(conv.id, { e: on ? 'promote' : 'demote', targets: [uid] });
+}
+
+async function claimAdmin(conv) {
+  await F.updateDoc(groupRef(conv), { admins: [me()] });
+  await postEvent(conv.id, { e: 'claim' });
+}
+
+async function silence(conv, uid, ms) {
+  const until = Date.now() + ms;
+  await F.setDoc(F.doc(db, 'conversations', conv.id, 'restrictions', uid), {
+    until: F.Timestamp.fromMillis(until), by: me(), at: F.serverTimestamp(),
+  });
+  await postEvent(conv.id, { e: 'silence', targets: [uid], until });
+}
+
+async function unsilence(conv, uid) {
+  await F.deleteDoc(F.doc(db, 'conversations', conv.id, 'restrictions', uid));
+  await postEvent(conv.id, { e: 'unsilence', targets: [uid] });
+}
+
+async function updateInfo(conv, title, description) {
+  const t = [...title.trim()].slice(0, MAX_TITLE).join('');
+  const d = [...description.trim()].slice(0, MAX_DESC).join('');
+  if (!t) throw userError('Le nom du groupe ne peut pas être vide.');
+  if (t === conv.title && d === (conv.description || '')) return;
+  await F.updateDoc(groupRef(conv), { title: t, description: d });
+  if (t !== conv.title) await postEvent(conv.id, { e: 'title', title: t });
+  if (d !== (conv.description || '')) await postEvent(conv.id, { e: 'description' });
+}
+
+async function updatePerms(conv, what, value) {
+  const perms = { ...DEFAULT_PERMS, ...(conv.perms || {}), [what]: value };
+  await F.updateDoc(groupRef(conv), { perms });
+  await postEvent(conv.id, { e: 'perms', perms });
+}
+
+async function leaveGroup(conv) {
+  const ok = await confirmSheet({
+    title: 'Quitter « ' + conv.title + ' » ?',
+    text: 'Tu ne verras plus ses messages. Un membre devra t\'y ajouter pour revenir.',
+    confirm: 'Quitter le groupe',
+  });
+  if (!ok) return;
+  const rest = conv.members.filter((u) => u !== me());
+  const change = { members: F.arrayRemove(me()) };
+  let heir = null;
+  if (isAdmin(conv)) {
+    const others = adminsOf(conv).filter((u) => u !== me() && rest.includes(u));
+    // Dernier admin : il passe la main au membre le plus ancien.
+    if (!others.length && rest.length) {
+      heir = rest[0];
+      change.admins = [heir];
+    } else {
+      change.admins = adminsChange(conv, null, me());
+    }
+  }
+  await postEvent(conv.id, { e: 'leave', ...(heir ? { heir } : {}) });
+  if (panel && panel.dlg.open) panel.dlg.close();
+  // On quitte la conversation avant de quitter le groupe : pas d'écran
+  // « Tu ne fais plus partie de ce groupe » pour son propre départ.
+  location.hash = '#/';
+  route();
+  try {
+    await F.updateDoc(groupRef(conv), change);
     toast('Tu as quitté « ' + conv.title + ' ».', 'info');
-    location.hash = '#/';
   } catch (err) {
     toast(describe(err), 'error');
-    openConversation(conv.id);
   }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Blocage et sourdine (réglages privés : settings/{uid})                   */
+/* ------------------------------------------------------------------------ */
+
+const settingsRef = () => F.doc(db, 'settings', me());
+
+async function setBlocked(uid, on) {
+  if (on) {
+    const ok = await confirmSheet({
+      title: 'Bloquer ' + nameOf(uid) + ' ?',
+      text: 'Cette personne ne pourra plus t\'écrire en privé, t\'appeler ni t\'ajouter à un groupe. ' +
+        'Dans les groupes en commun, ses messages seront masqués. Elle n\'est pas prévenue.',
+      confirm: 'Bloquer',
+    });
+    if (!ok) return;
+  }
+  try {
+    await F.setDoc(settingsRef(), { blocked: on ? F.arrayUnion(uid) : F.arrayRemove(uid) }, { merge: true });
+    toast(on ? nameOf(uid) + ' est bloqué·e.' : nameOf(uid) + ' est débloqué·e.', 'success');
+  } catch (err) {
+    toast(err.code === 'permission-denied'
+      ? 'Le blocage demande les nouvelles règles Firestore : republie firestore.rules (guide, étape 4).'
+      : describe(err), 'error');
+  }
+}
+
+/* until : date de fin en millisecondes, FOREVER, ou 0 pour réactiver. */
+async function setMuted(cid, until) {
+  try {
+    if (until) await F.setDoc(settingsRef(), { muted: { [cid]: until } }, { merge: true });
+    else await F.updateDoc(settingsRef(), { ['muted.' + cid]: F.deleteField() });
+  } catch (err) {
+    toast(err.code === 'permission-denied'
+      ? 'La sourdine demande les nouvelles règles Firestore : republie firestore.rules (guide, étape 4).'
+      : describe(err), 'error');
+  }
+}
+
+function muteLabel(cid) {
+  const until = mutedUntil(cid);
+  if (!until) return 'Notifications activées';
+  return until >= FOREVER ? 'En sourdine' : 'En sourdine jusqu\'à ' + untilText(until);
+}
+
+function chooseMute(cid) {
+  if (isMuted(cid)) {
+    setMuted(cid, 0);
+    return;
+  }
+  menu('Mettre en sourdine', MUTE_CHOICES.map(([label, ms]) => ({
+    label, icon: 'bellOff', onclick: () => setMuted(cid, ms ? Date.now() + ms : FOREVER),
+  })), 'Plus de son ni de notification pour cette conversation. Les appels sonnent toujours.');
+}
+
+/* Discussion à deux avec quelqu'un (créée au besoin). */
+async function openDirect(uid) {
+  const members = [me(), uid].sort();
+  const cid = 'dm_' + members.join('_');
+  if (!state.convs.some((c) => c.id === cid)) {
+    const ref = F.doc(db, 'conversations', cid);
+    try {
+      await F.setDoc(ref, {
+        type: 'dm', members, title: '', createdBy: me(), createdAt: F.serverTimestamp(),
+        updatedAt: F.serverTimestamp(), lastMessage: null, lastRead: {},
+      });
+    } catch (err) {
+      // Elle existe déjà (la liste n'était pas encore chargée) : on l'ouvre.
+      const existing = err.code === 'permission-denied' ? await F.getDoc(ref).catch(() => null) : null;
+      if (!existing || !existing.exists()) {
+        throw err.code === 'permission-denied'
+          ? userError('Impossible d\'écrire à cette personne pour le moment.') : err;
+      }
+    }
+  }
+  if (panel && panel.dlg.open) panel.dlg.close();
+  location.hash = '#/c/' + encodeURIComponent(cid);
+  return cid;
 }
 
 /* ======================================================================== */
@@ -2080,7 +2696,8 @@ async function startCall(conv, video) {
   try {
     await calls.start(conv.id, otherUid(conv), video);
   } catch (err) {
-    toast('Appel impossible : ' + describe(err), 'error');
+    toast('Appel impossible : ' + (err && err.code === 'permission-denied'
+      ? 'cette personne ne peut pas recevoir ton appel.' : describe(err)), 'error');
   }
 }
 
@@ -2277,8 +2894,8 @@ async function logout() {
 /* Fenêtres                                                                 */
 /* ======================================================================== */
 
-function modal(title, body) {
-  const dlg = h('dialog', { class: 'modal', 'aria-label': title },
+function modal(title, body, cls = '') {
+  const dlg = h('dialog', { class: 'modal ' + cls, 'aria-label': title },
     h('header', { class: 'modal-head' },
       h('h2', { text: title }),
       h('button', {
@@ -2292,30 +2909,447 @@ function modal(title, body) {
   return dlg;
 }
 
-function openNewConversation() {
+/* Menu d'actions (feuille en bas de l'écran sur mobile). */
+function menu(title, items, note = '') {
+  const dlg = modal(title, h('div', { class: 'menu' },
+    note ? h('p', { class: 'menu-note', text: note }) : null,
+    items.filter(Boolean).map((it) => h('button', {
+      class: 'menu-item' + (it.danger ? ' danger' : ''), type: 'button',
+      onclick: () => { dlg.close(); it.onclick(); },
+    }, icon(it.icon), h('span', { class: 'menu-txt' }, h('b', { text: it.label }),
+      it.sub ? h('small', { text: it.sub }) : null)))), 'menu-dlg');
+  return dlg;
+}
+
+/* Demande de confirmation : rend une promesse (vrai si confirmé). */
+function confirmSheet({ title, text, confirm, danger = true }) {
+  return new Promise((resolve) => {
+    let answer = false;
+    const dlg = modal(title, h('div', { class: 'form' },
+      h('p', { class: 'confirm-text', text }),
+      h('div', { class: 'row-actions end' },
+        h('button', { class: 'btn ghost', type: 'button', onclick: () => dlg.close() }, 'Annuler'),
+        h('button', {
+          class: 'btn ' + (danger ? 'danger' : 'primary'), type: 'button',
+          onclick: () => { answer = true; dlg.close(); },
+        }, confirm))), 'confirm-dlg');
+    dlg.addEventListener('close', () => resolve(answer));
+  });
+}
+
+const run = (job) => Promise.resolve(job).catch((err) => toast(err.userMessage || describe(err), 'error'));
+
+function actionTile(iconName, label, onclick, cls = '') {
+  return h('button', { class: 'action ' + cls, type: 'button', onclick },
+    h('span', { class: 'action-ic' }, icon(iconName)), h('span', { text: label }));
+}
+
+function section(title, ...kids) {
+  return h('section', { class: 'info-sec' }, h('h4', {}, title), ...kids);
+}
+
+/* Petit sélecteur à boutons (Tous / Admins, thème…). */
+function segmented(label, options, value, onpick, disabled = false) {
+  return h('div', { class: 'seg', role: 'group', 'aria-label': label },
+    options.map(([v, text]) => h('button', {
+      type: 'button', 'aria-pressed': String(v === value), disabled,
+      onclick: () => { if (v !== value) onpick(v); },
+    }, text)));
+}
+
+/* ------------------------------------------------------------------------ */
+/* Infos d'une conversation : groupe (membres, rôles, réglages) ou contact  */
+/* ------------------------------------------------------------------------ */
+
+function openInfo() {
+  const conv = activeConv();
+  if (!conv) return;
+  const body = h('div', { class: 'info' });
+  const dlg = modal(conv.type === 'group' ? 'Infos du groupe' : 'Infos du contact', body, 'info-dlg');
+  let sig = '';
+  const view = { dlg, cid: conv.id, render: () => {
+    const c = activeConv();
+    if (!c || c.id !== view.cid) return;
+    // Redessine seulement si quelque chose a changé (on ne remplace pas un
+    // bouton sous le doigt à chaque signal « … écrit »).
+    const next = infoSig(c);
+    if (next === sig) return;
+    sig = next;
+    const top = dlg.scrollTop;
+    body.replaceChildren(...(c.type === 'group' ? groupInfo(c) : directInfo(c)).filter(Boolean));
+    dlg.scrollTop = top;
+  } };
+  panel = view;
+  dlg.addEventListener('close', () => { if (panel === view) panel = null; });
+  view.render();
+}
+
+function infoSig(conv) {
+  const uids = conv.type === 'group' ? conv.members : [otherUid(conv)];
+  return JSON.stringify([conv.title, conv.description, conv.members, conv.admins, conv.perms, conv.createdBy,
+    mutedUntil(conv.id), uids.map((u) => [nameOf(u), (person(u) || {}).username, isBlocked(u), silencedUntil(u)]),
+    state.convs.length, Boolean(calls)]);
+}
+
+function roleOf(conv, uid) {
+  if (isOwner(conv, uid)) return 'Propriétaire';
+  if (isAdmin(conv, uid)) return 'Admin';
+  return '';
+}
+
+function badges(conv, uid) {
+  const out = [];
+  const role = roleOf(conv, uid);
+  if (role) out.push(h('span', { class: 'badge accent', text: role }));
+  const until = silencedUntil(uid);
+  if (until) out.push(h('span', { class: 'badge', title: 'Privé de parole', text: '🔇 ' + untilText(until) }));
+  if (isBlocked(uid)) out.push(h('span', { class: 'badge danger', text: 'Bloqué·e' }));
+  return out;
+}
+
+function groupInfo(conv) {
+  const n = conv.members.length;
+  const admin = isAdmin(conv);
+  const muted = isMuted(conv.id);
+  const order = (u) => (u === me() ? 0 : isOwner(conv, u) ? 1 : isAdmin(conv, u) ? 2 : 3);
+  const members = [...conv.members].sort((a, b) => order(a) - order(b) || nameOf(a).localeCompare(nameOf(b), 'fr'));
+  const perm = (what, label) => h('div', { class: 'perm' },
+    h('span', { text: label }),
+    segmented(label, [['all', 'Tous'], ['admins', 'Admins']], permOf(conv, what),
+      (v) => run(updatePerms(conv, what, v)), !admin));
+
+  return [
+    h('div', { class: 'info-hero' },
+      convAvatar(conv, 'lg'),
+      h('h3', { text: conv.title }),
+      h('p', { class: 'info-sub', text: 'Groupe · ' + n + (n > 1 ? ' membres' : ' membre') }),
+      conv.description
+        ? h('p', { class: 'info-desc' }, richText(conv.description))
+        : can(conv, 'info')
+          ? h('button', { class: 'linkish', type: 'button', onclick: () => openEditInfo(conv) }, 'Ajouter une description')
+          : null,
+      muted ? h('p', { class: 'info-flag' }, icon('bellOff'), muteLabel(conv.id)) : null),
+    h('div', { class: 'info-actions' },
+      can(conv, 'info') ? actionTile('edit', 'Modifier', () => openEditInfo(conv)) : null,
+      can(conv, 'add') && n < MAX_MEMBERS ? actionTile('userPlus', 'Ajouter', () => openAddMembers(conv)) : null,
+      actionTile(muted ? 'bell' : 'bellOff', muted ? 'Réactiver' : 'Sourdine', () => chooseMute(conv.id)),
+      actionTile('leave', 'Quitter', () => run(leaveGroup(conv)), 'danger')),
+    orphan(conv)
+      ? h('div', { class: 'callout' },
+        h('p', { text: 'Ce groupe n\'a plus d\'admin : un membre peut reprendre ce rôle.' }),
+        h('button', { class: 'btn primary sm', type: 'button', onclick: () => run(claimAdmin(conv)) },
+          icon('shield'), 'Reprendre les droits d\'admin'))
+      : null,
+    section('Réglages du groupe',
+      perm('send', 'Envoyer des messages'),
+      perm('info', 'Modifier les infos'),
+      perm('add', 'Ajouter des membres'),
+      admin ? null : h('p', { class: 'fineprint', text: 'Seuls les admins peuvent changer ces réglages.' })),
+    section(h('span', {}, 'Membres ', h('span', { class: 'count-badge', text: String(n) })),
+      can(conv, 'add') && n < MAX_MEMBERS
+        ? h('button', { class: 'member add', type: 'button', onclick: () => openAddMembers(conv) },
+          h('span', { class: 'avatar sm add-ic' }, icon('userPlus')), h('b', { text: 'Ajouter des membres' }))
+        : null,
+      members.map((uid) => h('button', {
+        class: 'member', type: 'button', onclick: () => openMemberMenu(conv, uid),
+        'aria-label': nameOf(uid) + (uid === me() ? ' (toi)' : '') + (roleOf(conv, uid) ? ', ' + roleOf(conv, uid) : ''),
+      },
+      avatar(uid, nameOf(uid), 'sm'),
+      h('span', { class: 'member-txt' },
+        h('b', {}, nameOf(uid), uid === me() ? h('small', { text: ' (toi)' }) : null),
+        h('small', { text: (person(uid) || {}).username ? '@' + person(uid).username : '' })),
+      h('span', { class: 'badges' }, badges(conv, uid)),
+      icon('chevron')))),
+    h('div', { class: 'info-foot' },
+      h('button', { class: 'btn danger-ghost block', type: 'button', onclick: () => run(leaveGroup(conv)) },
+        icon('leave'), 'Quitter le groupe'),
+      h('p', { class: 'fineprint', text: '🔒 Les messages sont chiffrés de bout en bout. Le nom, la description ' +
+        'et la liste des membres ne le sont pas.' })),
+  ];
+}
+
+function directInfo(conv) {
+  const uid = otherUid(conv);
+  const p = person(uid) || {};
+  const blocked = isBlocked(uid);
+  const muted = isMuted(conv.id);
+  const callable = calls && !blocked;
+  const shared = state.convs.filter((c) => c.type === 'group' && c.members.includes(uid));
+  const close = () => { if (panel) panel.dlg.close(); };
+  return [
+    h('div', { class: 'info-hero' },
+      avatar(uid, nameOf(uid), 'lg'),
+      h('h3', { text: nameOf(uid) }),
+      p.username ? h('p', { class: 'info-sub', text: '@' + p.username }) : null,
+      blocked ? h('p', { class: 'info-flag danger' }, icon('ban'), 'Tu as bloqué cette personne') : null,
+      muted ? h('p', { class: 'info-flag' }, icon('bellOff'), muteLabel(conv.id)) : null),
+    h('div', { class: 'info-actions' },
+      callable ? actionTile('phone', 'Appeler', () => { close(); startCall(conv, false); }) : null,
+      callable ? actionTile('video', 'Vidéo', () => { close(); startCall(conv, true); }) : null,
+      actionTile(muted ? 'bell' : 'bellOff', muted ? 'Réactiver' : 'Sourdine', () => chooseMute(conv.id)),
+      p.username ? actionTile('copy', 'Copier le pseudo', () => navigator.clipboard.writeText('@' + p.username)
+        .then(() => toast('Pseudo copié.', 'success'))
+        .catch(() => toast('Son pseudo : @' + p.username, 'info'))) : null),
+    shared.length
+      ? section('Groupes en commun',
+        shared.map((g) => h('a', { class: 'member', href: '#/c/' + encodeURIComponent(g.id), onclick: close },
+          convAvatar(g, 'sm'),
+          h('span', { class: 'member-txt' }, h('b', { text: g.title }),
+            h('small', { text: g.members.length + ' membres' })),
+          icon('chevron'))))
+      : null,
+    h('div', { class: 'info-foot' },
+      blocked
+        ? h('button', { class: 'btn ghost block', type: 'button', onclick: () => setBlocked(uid, false) },
+          icon('ban'), 'Débloquer ' + nameOf(uid))
+        : h('button', { class: 'btn danger-ghost block', type: 'button', onclick: () => setBlocked(uid, true) },
+          icon('ban'), 'Bloquer ' + nameOf(uid)),
+      h('p', { class: 'fineprint', text: 'Bloquer empêche cette personne de t\'écrire en privé, de t\'appeler et ' +
+        'de t\'ajouter à un groupe. Elle n\'est pas prévenue.' })),
+  ];
+}
+
+function openMemberMenu(conv, uid) {
+  const self = uid === me();
+  const admin = isAdmin(conv);
+  const name = nameOf(uid);
+  const items = [];
+  if (!self) items.push({ label: 'Envoyer un message', icon: 'message', onclick: () => run(openDirect(uid)) });
+  if (admin && !self) {
+    if (!isAdmin(conv, uid)) {
+      items.push({ label: 'Donner les droits d\'admin', sub: 'Gérer les membres et les réglages', icon: 'shield',
+        onclick: () => run(setAdmin(conv, uid, true)) });
+    } else if (!isOwner(conv, uid)) {
+      items.push({ label: 'Retirer les droits d\'admin', icon: 'shield', onclick: () => run(setAdmin(conv, uid, false)) });
+    }
+    if (!isAdmin(conv, uid) && !isOwner(conv, uid)) {
+      items.push(silencedUntil(uid)
+        ? { label: 'Rendre la parole', sub: 'Privé de parole jusqu\'à ' + untilText(silencedUntil(uid)),
+          icon: 'message', onclick: () => run(unsilence(conv, uid)) }
+        : { label: 'Retirer la parole…', sub: 'Mute temporaire : lit le groupe sans pouvoir y écrire',
+          icon: 'hush', onclick: () => chooseSilence(conv, uid) });
+    }
+    if (!isOwner(conv, uid)) {
+      items.push({ label: 'Retirer du groupe', icon: 'leave', danger: true, onclick: () => run(removeMember(conv, uid)) });
+    }
+  }
+  if (self && admin && adminsOf(conv).some((u) => u !== me() && conv.members.includes(u))) {
+    items.push({ label: 'Renoncer à mes droits d\'admin', icon: 'shield', onclick: () => run(setAdmin(conv, uid, false)) });
+  }
+  if (self) items.push({ label: 'Quitter le groupe', icon: 'leave', danger: true, onclick: () => run(leaveGroup(conv)) });
+  if (!self) {
+    items.push(isBlocked(uid)
+      ? { label: 'Débloquer ' + name, icon: 'ban', onclick: () => setBlocked(uid, false) }
+      : { label: 'Bloquer ' + name, icon: 'ban', danger: true, onclick: () => setBlocked(uid, true) });
+  }
+  const p = person(uid) || {};
+  menu(name + (self ? ' (toi)' : ''), items, [p.username ? '@' + p.username : '', roleOf(conv, uid)].filter(Boolean).join(' · '));
+}
+
+function chooseSilence(conv, uid) {
+  const name = nameOf(uid);
+  menu('Retirer la parole à ' + name, SILENCE_CHOICES.map(([label, ms]) => ({
+    label, icon: 'hush', onclick: () => run(silence(conv, uid, ms)),
+  })), name + ' pourra lire le groupe mais plus y écrire, jusqu\'à la fin du délai (ou jusqu\'à ce qu\'un admin lui rende la parole).');
+}
+
+function openEditInfo(conv) {
   const error = formError();
-  const who = h('input', {
-    name: 'who', required: true, autocapitalize: 'none', spellcheck: 'false', autocomplete: 'off',
-    placeholder: '@pseudo',
-  });
-  const title = h('input', { name: 'title', maxlength: MAX_TITLE, placeholder: 'ex. Week-end à Lyon' });
-  const titleField = field('Nom du groupe (facultatif)', title);
-  titleField.hidden = true;
-  const submit = h('button', { class: 'btn primary', type: 'submit' }, 'Démarrer');
-
-  const parse = () => [...new Set(who.value.split(/[\s,;]+/).map(normalizeUsername).filter(Boolean))];
-  who.addEventListener('input', () => {
-    const n = parse().length;
-    titleField.hidden = n < 2;
-    submit.textContent = n < 2 ? 'Démarrer' : 'Créer le groupe';
-  });
-
+  const title = h('input', { name: 'title', required: true, maxlength: MAX_TITLE, value: conv.title });
+  const desc = h('textarea', { name: 'description', rows: 3, maxlength: MAX_DESC, placeholder: 'De quoi parle ce groupe ?' });
+  desc.value = conv.description || '';
+  const save = h('button', { class: 'btn primary', type: 'submit' }, 'Enregistrer');
   const form = h('form', {
     class: 'form', novalidate: true,
     onsubmit: (e) => {
       e.preventDefault();
       showError(error, '');
-      busy(submit, () => createConversation(parse(), title.value.trim()))
+      busy(save, () => updateInfo(conv, title.value, desc.value))
+        .then(() => dlg.close())
+        .catch((err) => showError(error, err.userMessage || describe(err)));
+    },
+  },
+  field('Nom du groupe', title),
+  field('Description', desc, 'Visible par tous les membres. 300 caractères au plus.'),
+  error,
+  h('div', { class: 'row-actions end' },
+    h('button', { class: 'btn ghost', type: 'button', onclick: () => dlg.close() }, 'Annuler'),
+    save));
+  const dlg = modal('Modifier le groupe', form);
+  title.focus();
+}
+
+/* Choix de personnes : par pseudo, ou parmi ses contacts. */
+function peoplePicker({ exclude = [], max = MAX_MEMBERS - 1, onChange = () => {} } = {}) {
+  const picked = [];
+  const error = formError();
+  const chips = h('div', { class: 'chips', hidden: true });
+  const input = h('input', {
+    name: 'who', autocapitalize: 'none', spellcheck: 'false', autocomplete: 'off', enterkeyhint: 'done',
+    placeholder: '@pseudo', 'aria-label': 'Ajouter par pseudo',
+  });
+  const addBtn = h('button', { class: 'btn ghost sm', type: 'button' }, icon('plus'), 'Ajouter');
+  const list = h('div', { class: 'pick-list' });
+
+  function draw() {
+    chips.hidden = !picked.length;
+    chips.replaceChildren(...picked.map((u) => h('span', { class: 'chip' },
+      avatar(u, nameOf(u), 'xs'), h('span', { text: nameOf(u) }),
+      h('button', {
+        type: 'button', 'aria-label': 'Retirer ' + nameOf(u),
+        onclick: () => toggle(u),
+      }, icon('close')))));
+    const people = contacts().filter((u) => !exclude.includes(u));
+    list.replaceChildren(...(people.length
+      ? [h('p', { class: 'pick-head', text: 'Tes contacts' }), ...people.map((u) => h('button', {
+        class: 'member pick', type: 'button', 'aria-pressed': String(picked.includes(u)), onclick: () => toggle(u),
+      },
+      avatar(u, nameOf(u), 'sm'),
+      h('span', { class: 'member-txt' }, h('b', { text: nameOf(u) }),
+        h('small', { text: '@' + ((person(u) || {}).username || '') })),
+      h('span', { class: 'tick' }, icon('check'))))]
+      : [h('p', { class: 'fineprint', text: 'Ajoute des personnes par leur pseudo.' })]));
+    onChange(picked.slice());
+  }
+
+  function toggle(u) {
+    showError(error, '');
+    const i = picked.indexOf(u);
+    if (i >= 0) picked.splice(i, 1);
+    else if (picked.length >= max) showError(error, 'Un groupe compte au plus ' + MAX_MEMBERS + ' membres.');
+    else picked.push(u);
+    draw();
+  }
+
+  async function addTyped() {
+    const names = input.value.split(/[\s,;]+/).filter(Boolean);
+    if (!names.length) return;
+    showError(error, '');
+    try {
+      const uids = await busy(addBtn, () => lookupUsernames(names));
+      for (const u of uids) {
+        if (exclude.includes(u)) throw userError(nameOf(u) + ' fait déjà partie du groupe.');
+        if (isBlocked(u)) throw userError('Tu as bloqué ' + nameOf(u) + ' : débloque cette personne d\'abord.');
+      }
+      for (const u of uids) if (!picked.includes(u)) toggle(u);
+      input.value = '';
+    } catch (err) {
+      showError(error, err.userMessage || describe(err));
+    }
+  }
+
+  addBtn.addEventListener('click', addTyped);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addTyped(); }
+  });
+  draw();
+  return {
+    el: h('div', { class: 'picker' }, chips,
+      h('div', { class: 'picker-add' }, input, addBtn), error, list),
+    picked: () => picked.slice(),
+    input,
+  };
+}
+
+function openAddMembers(conv) {
+  const submit = h('button', { class: 'btn primary', type: 'button', disabled: true }, 'Ajouter');
+  const picker = peoplePicker({
+    exclude: conv.members,
+    max: MAX_MEMBERS - conv.members.length,
+    onChange: (list) => {
+      submit.disabled = !list.length;
+      submit.textContent = list.length > 1 ? 'Ajouter ' + list.length + ' personnes' : 'Ajouter';
+    },
+  });
+  submit.addEventListener('click', () => {
+    busy(submit, () => addMembers(conv, picker.picked()))
+      .then(() => dlg.close())
+      .catch((err) => toast(err.userMessage || describe(err), 'error'));
+  });
+  const dlg = modal('Ajouter au groupe', h('div', { class: 'form' },
+    picker.el,
+    h('div', { class: 'row-actions end sticky-actions' },
+      h('button', { class: 'btn ghost', type: 'button', onclick: () => dlg.close() }, 'Annuler'),
+      submit)));
+  if (!coarse) picker.input.focus();
+}
+
+/* ------------------------------------------------------------------------ */
+/* Nouvelle conversation : discussion à deux ou groupe                       */
+/* ------------------------------------------------------------------------ */
+
+function openNewConversation(mode = 'dm') {
+  const body = h('div', { class: 'new-conv' });
+  const dlg = modal('Nouvelle conversation', body);
+  const draw = (m) => {
+    const tabs = h('div', { class: 'tabs', role: 'tablist' },
+      h('button', { class: 'tab', role: 'tab', type: 'button', 'aria-selected': String(m === 'dm'), onclick: () => draw('dm') },
+        'Discussion'),
+      h('button', { class: 'tab', role: 'tab', type: 'button', 'aria-selected': String(m === 'group'), onclick: () => draw('group') },
+        'Groupe'));
+    body.replaceChildren(tabs, m === 'dm' ? directForm(dlg) : groupForm(dlg));
+    const first = body.querySelector('input');
+    if (first && !coarse) first.focus();
+  };
+  draw(mode);
+}
+
+function directForm(dlg) {
+  const error = formError();
+  const who = h('input', {
+    name: 'who', required: true, autocapitalize: 'none', spellcheck: 'false', autocomplete: 'off',
+    placeholder: '@pseudo', enterkeyhint: 'go',
+  });
+  const submit = h('button', { class: 'btn primary', type: 'submit' }, 'Écrire');
+  const people = contacts();
+  return h('form', {
+    class: 'form', novalidate: true,
+    onsubmit: (e) => {
+      e.preventDefault();
+      showError(error, '');
+      busy(submit, async () => {
+        if (!who.value.trim()) throw userError('Indique le pseudo de la personne.');
+        const [uid] = await lookupUsernames([who.value]);
+        await openDirect(uid);
+        dlg.close();
+      }).catch((err) => showError(error, err.userMessage || describe(err)));
+    },
+  },
+  field('Pseudo de la personne', who),
+  error,
+  h('div', { class: 'row-actions end' }, submit),
+  people.length
+    ? h('div', { class: 'pick-list' }, h('p', { class: 'pick-head', text: 'Tes contacts' }),
+      people.map((u) => h('button', {
+        class: 'member', type: 'button',
+        onclick: () => run(openDirect(u).then(() => dlg.close())),
+      },
+      avatar(u, nameOf(u), 'sm'),
+      h('span', { class: 'member-txt' }, h('b', { text: nameOf(u) }),
+        h('small', { text: '@' + ((person(u) || {}).username || '') })),
+      icon('chevron'))))
+    : null,
+  h('p', { class: 'fineprint' }, 'Ton pseudo : ', h('b', { text: '@' + state.profile.username }),
+    ' — partage-le pour qu\'on puisse t\'écrire.'));
+}
+
+function groupForm(dlg) {
+  const error = formError();
+  const title = h('input', { name: 'title', maxlength: MAX_TITLE, placeholder: 'ex. Week-end à Lyon' });
+  const desc = h('textarea', { name: 'description', rows: 2, maxlength: MAX_DESC, placeholder: 'Facultatif' });
+  const submit = h('button', { class: 'btn primary', type: 'submit', disabled: true }, 'Créer le groupe');
+  const picker = peoplePicker({
+    onChange: (list) => {
+      submit.disabled = !list.length;
+      submit.textContent = list.length ? 'Créer le groupe (' + (list.length + 1) + ' membres)' : 'Créer le groupe';
+    },
+  });
+  return h('form', {
+    class: 'form', novalidate: true,
+    onsubmit: (e) => {
+      e.preventDefault();
+      showError(error, '');
+      busy(submit, () => createGroup({ title: title.value, description: desc.value, uids: picker.picked() }))
         .then((cid) => {
           dlg.close();
           location.hash = '#/c/' + encodeURIComponent(cid);
@@ -2323,86 +3357,26 @@ function openNewConversation() {
         .catch((err) => showError(error, err.userMessage || describe(err)));
     },
   },
-  field('Avec qui ?', who, 'Un pseudo pour une discussion à deux, plusieurs (séparés par des espaces) pour un groupe.'),
-  titleField,
+  field('Nom du groupe', title, 'Facultatif : sinon, les prénoms des membres.'),
+  field('Description', desc),
+  h('div', { class: 'field' }, h('span', { class: 'field-label', text: 'Membres' }), picker.el),
+  h('p', { class: 'fineprint', text: 'Tu en seras l\'admin. Membres, rôles et réglages se gèrent ensuite dans les infos du groupe.' }),
   error,
-  h('div', { class: 'row-actions end' },
+  h('div', { class: 'row-actions end sticky-actions' },
     h('button', { class: 'btn ghost', type: 'button', onclick: () => dlg.close() }, 'Annuler'),
-    submit),
-  h('p', { class: 'fineprint' }, 'Ton pseudo : ', h('b', { text: '@' + state.profile.username }),
-    ' — partage-le pour qu\'on puisse t\'écrire.'));
-
-  const dlg = modal('Nouvelle conversation', form);
-  who.focus();
+    submit));
 }
 
-async function createConversation(usernames, title) {
-  const fail = (message) => Object.assign(new Error(message), { userMessage: message });
-  const self = state.profile.username;
-  const wanted = usernames.filter((u) => u !== self);
-  if (!wanted.length) {
-    throw fail(usernames.length ? 'Tu ne peux pas t\'écrire à toi-même : indique le pseudo de quelqu\'un d\'autre.'
-      : 'Indique au moins un pseudo.');
-  }
-  const bad = wanted.find((u) => !USERNAME_RE.test(u));
-  if (bad) throw fail('« ' + bad + ' » n\'est pas un pseudo valide.');
-  if (wanted.length + 1 > MAX_MEMBERS) throw fail('Un groupe compte au plus ' + MAX_MEMBERS + ' membres.');
+/* ------------------------------------------------------------------------ */
+/* Paramètres : profil, notifications, apparence, confidentialité, sécurité */
+/* ------------------------------------------------------------------------ */
 
-  const snaps = await Promise.all(wanted.map((u) => F.getDoc(F.doc(db, 'usernames', u))));
-  const missing = wanted.filter((u, i) => !snaps[i].exists());
-  if (missing.length) {
-    throw fail((missing.length > 1 ? 'Pseudos introuvables : ' : 'Pseudo introuvable : ') +
-      missing.map((u) => '@' + u).join(', ') + '.');
-  }
-  const uids = snaps.map((s) => s.data().uid);
-  const uid = me();
-  const base = {
-    createdBy: uid,
-    createdAt: F.serverTimestamp(),
-    updatedAt: F.serverTimestamp(),
-    lastMessage: null,
-    lastRead: {},
-  };
-
-  if (uids.length === 1) {
-    const members = [uid, uids[0]].sort();
-    const cid = 'dm_' + members.join('_');
-    if (state.convs.some((c) => c.id === cid)) return cid;
-    const ref = F.doc(db, 'conversations', cid);
-    try {
-      await F.setDoc(ref, { ...base, type: 'dm', members, title: '' });
-    } catch (err) {
-      // Elle existe déjà (la liste n'était pas encore chargée) : on l'ouvre.
-      const existing = err.code === 'permission-denied' ? await F.getDoc(ref).catch(() => null) : null;
-      if (!existing || !existing.exists()) throw err;
-    }
-    return cid;
-  }
-
-  const names = await Promise.all(uids.map(async (u) => {
-    const s = await F.getDoc(F.doc(db, 'users', u));
-    const p = s.exists() ? s.data() : { name: '?', username: '' };
-    people.set(u, p);
-    return p.name;
-  }));
-  let groupTitle = title;
-  if (!groupTitle) {
-    const all = [state.profile.name, ...names];
-    groupTitle = all.length > 3 ? all.slice(0, 3).join(', ') + ' et ' + (all.length - 3) + ' autres'
-      : all.join(', ');
-  }
-  groupTitle = [...groupTitle].slice(0, MAX_TITLE).join('');
-  const ref = F.doc(F.collection(db, 'conversations'));
-  await F.setDoc(ref, { ...base, type: 'group', members: [uid, ...uids], title: groupTitle });
-  return ref.id;
-}
-
-function openProfile() {
+function openSettings() {
   const p = state.profile;
   const error = formError();
-  const name = h('input', { name: 'name', required: true, maxlength: MAX_NAME, value: p.name });
-  const save = h('button', { class: 'btn primary', type: 'submit' }, 'Enregistrer');
-  const form = h('form', {
+  const name = h('input', { name: 'name', required: true, maxlength: MAX_NAME, value: p.name, autocomplete: 'nickname' });
+  const save = h('button', { class: 'btn primary sm', type: 'submit' }, 'Enregistrer');
+  const profile = h('form', {
     class: 'form', novalidate: true,
     onsubmit: (e) => {
       e.preventDefault();
@@ -2410,7 +3384,7 @@ function openProfile() {
       if (!n || n.length > MAX_NAME) return showError(error, 'Le nom affiché fait entre 1 et 40 caractères.');
       showError(error, '');
       busy(save, () => F.updateDoc(F.doc(db, 'users', p.uid), { name: n }))
-        .then(() => { toast('Profil mis à jour.', 'success'); dlg.close(); })
+        .then(() => toast('Profil mis à jour.', 'success'))
         .catch((err) => showError(error, describe(err)));
     },
   },
@@ -2418,30 +3392,76 @@ function openProfile() {
     avatar(p.uid, p.name, 'lg'),
     h('div', {},
       h('b', { text: '@' + p.username }),
-      h('small', { text: state.user.email || '' }))),
-  h('div', { class: 'row-actions' },
-    h('button', {
-      class: 'btn ghost sm', type: 'button',
-      onclick: () => navigator.clipboard.writeText('@' + p.username)
-        .then(() => toast('Pseudo copié.', 'success'))
-        .catch(() => toast('Copie impossible : ton pseudo est @' + p.username, 'info')),
-    }, icon('copy'), 'Copier mon pseudo'),
-    h('button', {
-      class: 'btn ghost sm', type: 'button', onclick: () => { dlg.close(); openChangePassword(); },
-    }, icon('mail'), 'Changer de mot de passe'),
-    h('button', {
-      class: 'btn ghost sm', type: 'button', onclick: () => { dlg.close(); openNewRecoveryCode(); },
-    }, 'Nouveau code de secours')),
-  h('p', { class: 'fineprint', text: '🔒 Tes messages, photos et messages vocaux sont chiffrés de bout en bout.' }),
-  notificationsSetting(),
-  field('Nom affiché', name),
-  error,
-  h('div', { class: 'row-actions end' },
-    h('button', { class: 'btn ghost', type: 'button', onclick: () => { dlg.close(); logout(); } },
-      icon('logout'), 'Se déconnecter'),
-    save));
+      h('small', { text: state.user.email || '' }),
+      h('button', {
+        class: 'linkish', type: 'button',
+        onclick: () => navigator.clipboard.writeText('@' + p.username)
+          .then(() => toast('Pseudo copié.', 'success'))
+          .catch(() => toast('Copie impossible : ton pseudo est @' + p.username, 'info')),
+      }, 'Copier mon pseudo'))),
+  h('div', { class: 'inline-field' }, field('Nom affiché', name), save),
+  error);
 
-  const dlg = modal('Mon profil', form);
+  const theme = h('div', {});
+  const drawTheme = () => theme.replaceChildren(h('div', { class: 'setting' },
+    icon('palette'),
+    h('span', { class: 'setting-txt' }, h('b', { text: 'Thème' }), h('small', { text: 'Sur cet appareil.' })),
+    segmented('Thème', [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']], pref('theme', 'auto'), (v) => {
+      setPref('theme', v);
+      applyTheme();
+      drawTheme();
+    })));
+  drawTheme();
+
+  const blocked = h('div', { class: 'blocked-list' });
+  const blockedCount = h('span', { class: 'count-badge' });
+  const drawBlocked = () => {
+    const uids = [...state.settings.blocked];
+    blockedCount.textContent = String(uids.length);
+    blockedCount.hidden = !uids.length;
+    blocked.replaceChildren(...(uids.length
+      ? uids.map((u) => h('div', { class: 'member static' },
+        avatar(u, nameOf(u), 'sm'),
+        h('span', { class: 'member-txt' }, h('b', { text: nameOf(u) }),
+          h('small', { text: (person(u) || {}).username ? '@' + person(u).username : '' })),
+        h('button', {
+          class: 'btn ghost sm', type: 'button',
+          onclick: () => setBlocked(u, false).then(drawBlocked),
+        }, 'Débloquer')))
+      : [h('p', { class: 'fineprint', text: 'Tu n\'as bloqué personne. Pour bloquer quelqu\'un, ouvre les infos de ' +
+        'votre discussion ou touche son nom dans la liste des membres d\'un groupe.' })]));
+  };
+  drawBlocked();
+
+  const dlg = modal('Paramètres', h('div', { class: 'settings' },
+    section('Profil', profile),
+    section('Notifications',
+      notificationsSetting(),
+      toggleSetting('volume', 'Sons', 'Petit son à l\'arrivée d\'un message.', 'sons'),
+      toggleSetting('eye', 'Aperçu des messages', 'Affiche le contenu dans les notifications.', 'apercu')),
+    section('Apparence', theme),
+    section(h('span', {}, 'Personnes bloquées ', blockedCount), blocked),
+    section('Sécurité',
+      h('p', { class: 'fineprint', text: '🔒 Tes messages, photos et messages vocaux sont chiffrés de bout en bout.' }),
+      h('div', { class: 'row-actions' },
+        h('button', {
+          class: 'btn ghost sm', type: 'button', onclick: () => { dlg.close(); openChangePassword(); },
+        }, icon('lock'), 'Changer de mot de passe'),
+        h('button', {
+          class: 'btn ghost sm', type: 'button', onclick: () => { dlg.close(); openNewRecoveryCode(); },
+        }, 'Nouveau code de secours'))),
+    h('div', { class: 'info-foot' },
+      h('button', { class: 'btn danger-ghost block', type: 'button', onclick: () => { dlg.close(); logout(); } },
+        icon('logout'), 'Se déconnecter'))), 'settings-dlg');
+}
+
+function toggleSetting(iconName, title, text, key) {
+  const input = h('input', { type: 'checkbox', role: 'switch', checked: pref(key, 'oui') === 'oui' });
+  input.addEventListener('change', () => setPref(key, input.checked ? 'oui' : 'non'));
+  return h('label', { class: 'setting toggle' },
+    icon(iconName),
+    h('span', { class: 'setting-txt' }, h('b', { text: title }), h('small', { text })),
+    input);
 }
 
 function notificationsSetting() {
@@ -2454,7 +3474,7 @@ function notificationsSetting() {
       default: 'Sois prévenu des nouveaux messages et des appels.',
       unsupported: 'Ce navigateur ne gère pas les notifications.',
     }[perm];
-    box.replaceChildren(
+    box.replaceChildren(...[
       icon('bell'),
       h('span', { class: 'setting-txt' },
         h('b', { text: 'Notifications' }),
@@ -2464,7 +3484,8 @@ function notificationsSetting() {
           class: 'btn primary sm', type: 'button',
           onclick: () => enableNotifications().then(draw),
         }, 'Activer')
-        : null);
+        : null,
+    ].filter(Boolean));
   };
   draw();
   return box;

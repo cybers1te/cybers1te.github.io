@@ -17,8 +17,17 @@ Inscription par e-mail avec un **pseudo** unique, discussions à deux ou en
 **photos** et **messages vocaux**, **appels audio et vidéo** (discussions à
 deux), **notifications** du navigateur pour les messages et les appels,
 indicateur « … écrit », non-lus et accusé de lecture « Vu », liens cliquables,
-thème clair/sombre, interface adaptée au mobile. Messages, photos et vocaux
-sont chiffrés de bout en bout.
+interface adaptée au mobile. Messages, photos et vocaux sont chiffrés de bout
+en bout.
+
+Groupes : nom et description, **admins** (propriétaire, nommer ou retirer un
+admin), ajout et retrait de membres, **privation de parole temporaire** (de
+15 minutes à 7 jours), réglages « qui peut écrire / modifier les infos /
+ajouter des membres », événements dans la conversation (« Alice a ajouté
+Bob »). Pour chacun : **blocage** (plus de message privé, d'appel ni d'ajout
+à un groupe ; messages masqués dans les groupes en commun), **sourdine** d'une
+conversation (1 h, 8 h, 1 semaine ou toujours), paramètres (sons, aperçu dans
+les notifications, thème clair/sombre/auto, personnes bloquées).
 
 ### Configuration : [FIREBASE.md](FIREBASE.md)
 
@@ -44,17 +53,20 @@ navigateur, qui parle directement à Firebase.
   (Web Crypto : ECDH P-256, HKDF, AES-GCM) : Firestore ne stocke que du texte
   chiffré, illisible même pour le propriétaire du projet. La clé privée de
   chaque compte est scellée par son mot de passe et par un code de secours
-  (PBKDF2-SHA-256), affiché une seule fois à l'inscription. Les noms, pseudos
-  et titres de groupe restent en clair.
+  (PBKDF2-SHA-256), affiché une seule fois à l'inscription. Les noms, pseudos,
+  noms, descriptions et membres des groupes restent en clair.
 
 ```text
 usernames/{pseudo}                   { uid }
 users/{uid}                          { name, username, createdAt, publicKey }
 keys/{uid}                           { v, publicKey, byPassword, byRecovery, updatedAt }
+settings/{uid}                       { blocked, muted }   (privé : bloqués, sourdines)
 conversations/{cid}                  { type, members, title, createdBy,
-                                       createdAt, updatedAt, lastMessage, lastRead, typing }
+                                       createdAt, updatedAt, lastMessage, lastRead, typing,
+                                       admins, perms, description }   (groupes)
 conversations/{cid}/messages/{mid}   { uid, enc, createdAt }
 conversations/{cid}/media/{mid}      { uid, data, createdAt }   (photo ou vocal chiffré)
+conversations/{cid}/restrictions/{uid} { until, by, at }   (membre privé de parole)
 calls/{callId}                       { cid, caller, callee, video, status, offer, answer, … }
 calls/{callId}/callerCandidates/*    candidats ICE (WebRTC)
 calls/{callId}/calleeCandidates/*
@@ -69,6 +81,9 @@ calls/{callId}/calleeCandidates/*
   Serveurs STUN publics par défaut, relais TURN facultatif (`iceServers`).
 - **Notifications** (`public/notify.js`, `public/sw.js`) : notifications du
   navigateur et sonneries synthétisées, tant qu'un onglet est ouvert.
+- **Groupes** : un groupe naît avec son seul créateur, qui y ajoute les
+  membres un par un ; les règles vérifient ainsi, à chaque ajout, que la
+  personne n'a pas bloqué celle qui l'ajoute.
 
 ### Développement local et tests
 
