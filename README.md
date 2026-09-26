@@ -14,8 +14,11 @@ messagerie en temps réel construite sur Firebase.
 
 Inscription par e-mail avec un **pseudo** unique, discussions à deux ou en
 **groupe** (jusqu'à 20 membres), messages synchronisés en temps réel,
-indicateur de non-lu et accusé de lecture « Vu », liens cliquables, thème
-clair/sombre, interface adaptée au mobile.
+**photos** et **messages vocaux**, **appels audio et vidéo** (discussions à
+deux), **notifications** du navigateur pour les messages et les appels,
+indicateur « … écrit », non-lus et accusé de lecture « Vu », liens cliquables,
+thème clair/sombre, interface adaptée au mobile. Messages, photos et vocaux
+sont chiffrés de bout en bout.
 
 ### Configuration : [FIREBASE.md](FIREBASE.md)
 
@@ -49,9 +52,23 @@ usernames/{pseudo}                   { uid }
 users/{uid}                          { name, username, createdAt, publicKey }
 keys/{uid}                           { v, publicKey, byPassword, byRecovery, updatedAt }
 conversations/{cid}                  { type, members, title, createdBy,
-                                       createdAt, updatedAt, lastMessage, lastRead }
+                                       createdAt, updatedAt, lastMessage, lastRead, typing }
 conversations/{cid}/messages/{mid}   { uid, enc, createdAt }
+conversations/{cid}/media/{mid}      { uid, data, createdAt }   (photo ou vocal chiffré)
+calls/{callId}                       { cid, caller, callee, video, status, offer, answer, … }
+calls/{callId}/callerCandidates/*    candidats ICE (WebRTC)
+calls/{callId}/calleeCandidates/*
 ```
+
+- **Photos et messages vocaux** (`public/media.js`) : redimensionnés ou
+  limités dans le navigateur, chiffrés avec leur propre clé AES-GCM, puis
+  rangés dans Firestore (≤ 1 Mo par document, sans Cloud Storage payant). La
+  clé du fichier ne voyage que dans l'enveloppe chiffrée du message (`enc` v2).
+- **Appels** (`public/calls.js`) : WebRTC de navigateur à navigateur ;
+  Firestore ne sert qu'à la mise en relation (offre, réponse, candidats ICE).
+  Serveurs STUN publics par défaut, relais TURN facultatif (`iceServers`).
+- **Notifications** (`public/notify.js`, `public/sw.js`) : notifications du
+  navigateur et sonneries synthétisées, tant qu'un onglet est ouvert.
 
 ### Développement local et tests
 
@@ -74,6 +91,10 @@ puis publie `public/` (et la fiche de révision) sur GitHub Pages depuis `main`.
 ```text
 public/index.html            Page unique de la messagerie
 public/main.js               Application (Auth, Firestore, interface)
+public/e2e.js                Chiffrement de bout en bout (Web Crypto)
+public/media.js              Photos (compression), messages vocaux (enregistrement, lecture)
+public/calls.js              Appels audio/vidéo (WebRTC + signalisation Firestore)
+public/notify.js, sw.js      Notifications du navigateur et sonneries
 public/style.css             Thème clair/sombre et mise en page responsive
 public/firebase-config.js    Configuration web du projet Firebase (à remplir)
 firestore.rules              Règles de sécurité de la base
