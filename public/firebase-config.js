@@ -11,10 +11,10 @@
 //
 // Guide pas à pas : FIREBASE.md, à la racine du dépôt.
 export const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyCa-ntPeleE_RuuIbIrwvHrEKRADGH_Wug",
+  authDomain: "message-me-5f32b.firebaseapp.com",
+  projectId: "message-me-5f32b",
+  storageBucket: "message-me-5f32b.firebasestorage.app",
+  messagingSenderId: "779050328472",
+  appId: "1:779050328472:web:78a9c4991919d3522a8bed"
 };
