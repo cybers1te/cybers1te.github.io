@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prospection</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="prospection.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./">
+    <img src="favicon.svg" alt="" width="32" height="32">
+    <span data-studio="name">Studio</span>
+  </a>
+  <span class="private">Outil privé · non référencé</span>
+</header>
+
+<main class="section tool">
+  <div class="section-head">
+    <p class="kicker">Prospection</p>
+    <h1>Un commerce, une minute, un message.</h1>
+    <p class="intro">Trouve un commerce sans site, remplis trois champs, copie le message
+      et envoie-le. La maquette jointe est générée à la volée : rien à publier.</p>
+  </div>
+
+  <form class="panel" id="tool" autocomplete="off">
+    <h2><span>1</span> Trouver</h2>
+    <div class="grid3">
+      <label>Métier<select name="metier" id="metier"></select></label>
+      <label>Ville<input name="ville" id="ville" maxlength="40" placeholder="ex. Lyon 7e"></label>
+      <label>Ton prénom<input name="prenom" id="prenom" maxlength="40"></label>
+    </div>
+    <p class="hint">
+      <a class="btn btn-ghost btn-small" id="maps" href="#" target="_blank" rel="noopener">Chercher sur Google Maps ↗</a>
+      <span>Ouvre les fiches une à une : celles <b>sans bouton « Site Web »</b> sont tes prospects.</span>
+    </p>
+
+    <h2><span>2</span> Personnaliser</h2>
+    <div class="grid3">
+      <label>Nom du commerce<input name="nom" id="nom" maxlength="40" placeholder="ex. Boulangerie Martin"></label>
+      <label>Formule proposée<select name="offre" id="offre"></select></label>
+      <label>Ton téléphone<input name="tel" id="tel" maxlength="20" inputmode="tel"></label>
+    </div>
+
+    <div class="out">
+      <div class="out-head"><h3>Lien de la maquette</h3>
+        <span><a class="btn btn-ghost btn-small" id="open" href="#" target="_blank" rel="noopener">Ouvrir ↗</a>
+        <button class="btn btn-small" type="button" data-copy="link">Copier</button></span></div>
+      <input id="link" readonly>
+    </div>
+    <div class="out">
+      <div class="out-head"><h3>E-mail</h3>
+        <span><a class="btn btn-ghost btn-small" id="mail" href="#">Ouvrir dans ma messagerie</a>
+        <button class="btn btn-small" type="button" data-copy="email">Copier</button></span></div>
+      <textarea id="email" rows="15" readonly></textarea>
+    </div>
+    <div class="out">
+      <div class="out-head"><h3>SMS, Instagram, Facebook</h3>
+        <button class="btn btn-small" type="button" data-copy="sms">Copier</button></div>
+      <textarea id="sms" rows="4" readonly></textarea>
+    </div>
+    <div class="out">
+      <div class="out-head"><h3>Au téléphone ou sur place</h3>
+        <button class="btn btn-small" type="button" data-copy="script">Copier</button></div>
+      <textarea id="script" rows="7" readonly></textarea>
+    </div>
+
+    <h2><span>3</span> Suivre</h2>
+    <p class="hint"><button class="btn btn-small" type="button" id="add">Ajouter ce commerce au suivi</button>
+      <span>Le suivi est gardé dans ce navigateur uniquement.</span></p>
+  </form>
+
+  <section class="panel">
+    <div class="stats" id="stats"></div>
+    <div class="table-wrap">
+      <table class="track">
+        <thead><tr><th>Commerce</th><th>Ville</th><th>Contacté le</th><th>Formule</th><th>Statut</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="empty">Aucun commerce suivi pour l'instant. Objectif du jour : 10.</p>
+  </section>
+</main>
+
+<p class="copied" id="copied" role="status" aria-live="polite" hidden>Copié ✓</p>
+
+<script src="config.js"></script>
+<script src="metiers.js"></script>
+<script src="prospection.js"></script>
+</body>
+</html>

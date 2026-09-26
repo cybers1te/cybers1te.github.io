@@ -6,6 +6,7 @@ messagerie en temps réel construite sur Firebase.
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
 | **message-me** — le site publié | `public/`, `firestore.rules`, `firebase.json` | Site statique + Firebase (Auth, Firestore) |
+| **Studio** — activité de sites vitrines | `studio/`, [STUDIO.md](STUDIO.md) | Site statique |
 | **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique |
 | **Trueware** — boutique | `trueware/` | Application Flask + SQLite |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
@@ -69,7 +70,8 @@ projet n'est touché, et il n'est pas nécessaire de remplir
 `public/firebase-config.js`.
 
 Le workflow GitHub Actions lance ces tests à chaque push et pull request,
-puis publie `public/` (et la fiche de révision) sur GitHub Pages depuis `main`.
+puis publie `public/` (avec la fiche de révision et `studio/`) sur GitHub Pages
+depuis `main`.
 
 ```text
 public/index.html            Page unique de la messagerie
@@ -80,6 +82,23 @@ firestore.rules              Règles de sécurité de la base
 firebase.json                Configuration Firebase CLI (règles, hébergement, émulateurs)
 tests/                       Tests des règles (node:test + @firebase/rules-unit-testing)
 ```
+
+## Studio
+
+Une activité prête à lancer : la création de sites vitrines pour commerces et
+artisans, publiée sur <https://cybers1te.github.io/studio/>. Chaque commerce
+reçoit une maquette de son futur site, générée à la volée, et ne paie qu'après
+l'avoir validée.
+
+- `studio/index.html` — page de vente : offre, tarifs, questions, formulaire
+  qui prépare un e-mail (aucune donnée stockée).
+- `studio/exemple/` — maquette personnalisée par l'URL
+  (`?metier=boulangerie&nom=…&ville=…`), six métiers dans `studio/metiers.js`.
+- `studio/prospection.html` — outil privé : recherche Google Maps, lien de
+  maquette et messages prêts à envoyer, suivi des contacts.
+- `studio/config.js` — le seul fichier à remplir (e-mail, nom, prix).
+
+Mise en route, prospection et démarches : [STUDIO.md](STUDIO.md).
 
 ## Trueware
 

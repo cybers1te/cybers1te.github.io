@@ -1,0 +1,98 @@
+/* Outil de prospection — complète style.css. */
+
+.private {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tool { max-width: 920px; padding-top: 24px; }
+.tool h1 { font-size: clamp(34px, 5vw, 52px); }
+.intro { color: var(--muted); font-size: 18px; margin-top: 16px; }
+
+.panel {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+}
+.panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  font-family: var(--sans);
+  font-size: 20px;
+}
+.panel h2:first-child { margin-top: 0; }
+.panel h2 span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 15px;
+}
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.panel label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.panel input, .panel select, .panel textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 16px;
+  font-weight: 400;
+}
+.panel textarea { resize: vertical; line-height: 1.5; font-size: 15px; }
+.panel input:focus, .panel select:focus, .panel textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.panel input[readonly], .panel textarea[readonly] { background: var(--surface-2); }
+.hint { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; color: var(--muted); font-size: 14px; }
+
+.out { display: grid; gap: 8px; }
+.out-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.out-head h3 { font-size: 15px; }
+.out-head span { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stats div { display: grid; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); color: var(--muted); font-size: 13px; }
+.stats b { color: var(--text); font-family: var(--serif); font-size: 28px; line-height: 1.1; }
+
+.table-wrap { overflow-x: auto; }
+.track { width: 100%; border-collapse: collapse; font-size: 14px; }
+.track th, .track td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.track th { color: var(--muted); font-weight: 600; font-size: 13px; }
+.track select { min-height: 36px; padding: 4px 8px; font-size: 14px; width: auto; }
+.del { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 13px; text-decoration: underline; }
+.del:hover { color: var(--accent-text); }
+.empty { color: var(--muted); font-size: 14px; }
+
+.copied {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .private { display: none; }
+  .panel { padding: 20px 16px; }
+  .grid3 { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}

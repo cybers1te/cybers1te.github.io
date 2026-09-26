@@ -72,6 +72,8 @@ jobs:
           cp -r public/. _site/
           # Fiche de révision « L'Appel de la forêt », publiée à côté.
           cp london.html styles.css app.js _site/
+          # Studio, l'activité de sites vitrines (voir STUDIO.md).
+          cp -r studio _site/studio
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

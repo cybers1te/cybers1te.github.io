@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sites vitrines pour commerces et artisans</title>
+<meta name="description" content="Un site internet clair et rapide pour votre commerce, en ligne en 72 heures. Maquette gratuite, prix fixe, sans abonnement obligatoire.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131211" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p class="setup" id="setup" hidden>
+  <b>Configuration requise.</b> Renseigne au moins ton e-mail dans
+  <code>studio/config.js</code> — le guide <code>STUDIO.md</code> explique tout.
+  Ce bandeau disparaît ensuite.
+</p>
+
+<header class="top">
+  <a class="brand" href="./">
+    <img src="favicon.svg" alt="" width="32" height="32">
+    <span data-studio="name">Studio</span>
+  </a>
+  <nav class="nav" aria-label="Sections">
+    <a href="#methode">Méthode</a>
+    <a href="#tarifs">Tarifs</a>
+    <a href="#questions">Questions</a>
+  </nav>
+  <a class="btn btn-small" href="#commande">Maquette gratuite</a>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="kicker">Sites vitrines · commerces &amp; artisans<span id="heroCity"></span></p>
+      <h1>Votre commerce en ligne <em>en&nbsp;72&nbsp;heures.</em></h1>
+      <p class="lead">Avant de pousser votre porte, vos clients vous cherchent sur leur
+        téléphone. Je crée un site clair et rapide qui leur donne vos horaires, votre
+        adresse et l'envie de venir.</p>
+      <div class="actions">
+        <a class="btn" href="#commande">Recevoir ma maquette gratuite</a>
+        <a class="btn btn-ghost" href="#tarifs">Voir les tarifs</a>
+      </div>
+      <ul class="reassure">
+        <li>Maquette offerte</li>
+        <li>Paiement après validation</li>
+        <li>Le site vous appartient</li>
+      </ul>
+    </div>
+
+    <figure class="showcase">
+      <div class="phone">
+        <iframe id="preview" src="exemple/?apercu&amp;metier=boulangerie" title="Exemple de site vitrine" tabindex="-1" aria-hidden="true"></iframe>
+      </div>
+      <figcaption>
+        <p>Essayez avec votre métier :</p>
+        <div class="chips" id="chips" role="group" aria-label="Métier affiché dans l'exemple"></div>
+        <a class="fullscreen" id="fullscreen" href="exemple/?metier=boulangerie">Ouvrir l'exemple en grand ↗</a>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="section">
+    <div class="features">
+      <article>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+        <h3>Pensé pour le téléphone</h3>
+        <p>C'est là que vos clients vous cherchent : tout est lisible et à portée de pouce.</p>
+      </article>
+      <article>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <h3>Ouvert ou fermé, d'un coup d'œil</h3>
+        <p>Horaires à jour, indication « ouvert maintenant » et itinéraire en un geste.</p>
+      </article>
+      <article>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>
+        <h3>Un bouton pour appeler</h3>
+        <p>Chaque visite peut devenir un appel, une réservation ou une commande.</p>
+      </article>
+      <article>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+        <h3>Il est à vous</h3>
+        <p>Nom de domaine à votre nom, fichiers remis, aucune plateforme qui vous retient.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="methode">
+    <div class="section-head">
+      <p class="kicker">Méthode</p>
+      <h2>Vous voyez votre site avant de payer.</h2>
+    </div>
+    <ol class="steps">
+      <li><h3>Vous présentez votre commerce</h3><p>Deux minutes avec le formulaire ci-dessous, ou un appel.</p></li>
+      <li><h3>Je prépare votre maquette</h3><p>Gratuite, sous 48&nbsp;h, avec vos couleurs, vos horaires et vos textes.</p></li>
+      <li><h3>Vous validez, je mets en ligne</h3><p>Acompte de 50&nbsp;% à la validation, puis mise en ligne sous 72&nbsp;h ou 7&nbsp;jours selon la formule.</p></li>
+      <li><h3>Vous réglez le solde</h3><p>Une fois le site en ligne et conforme à ce qui était prévu.</p></li>
+    </ol>
+  </section>
+
+  <section class="section" id="tarifs">
+    <div class="section-head">
+      <p class="kicker">Tarifs</p>
+      <h2>Un prix fixe, annoncé d'avance.</h2>
+    </div>
+    <div class="offers" id="offers"></div>
+    <p class="fineprint"><span id="vatNote"></span> Le nom de domaine (environ 10 à 15&nbsp;€ par an) est enregistré à votre nom ; il est inclus dans la formule Sérénité.</p>
+  </section>
+
+  <section class="section narrow" id="questions">
+    <div class="section-head">
+      <p class="kicker">Questions</p>
+      <h2>Ce qu'on me demande souvent</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Pourquoi la maquette est-elle gratuite&nbsp;?</summary>
+        <p>Parce qu'un site se juge sur pièce. Vous voyez le résultat avant de payer quoi que ce soit ; s'il ne vous plaît pas, vous ne me devez rien.</p>
+      </details>
+      <details>
+        <summary>Y a-t-il un abonnement&nbsp;?</summary>
+        <p>Non. Les formules Express et Vitrine se paient une seule fois et il n'y a pas de frais d'hébergement ; seul le nom de domaine coûte environ 10 à 15&nbsp;€ par an. La formule Sérénité est facultative et sans engagement.</p>
+      </details>
+      <details>
+        <summary>Le site m'appartient-il&nbsp;?</summary>
+        <p>Oui. Le nom de domaine est enregistré à votre nom et je vous remets tous les fichiers. Vous pouvez partir quand vous voulez, avec votre site.</p>
+      </details>
+      <details>
+        <summary>Pourrai-je changer mes horaires ou mes prix&nbsp;?</summary>
+        <p>Oui. Avec la formule Sérénité, un simple message suffit et c'est fait sous 48&nbsp;h. Sans formule, chaque modification est faite sur devis.</p>
+      </details>
+      <details>
+        <summary>Serai-je visible sur Google&nbsp;?</summary>
+        <p>Le site est construit pour être bien compris par Google (titres, descriptions, rapidité, affichage mobile) et la formule Vitrine inclut votre fiche Google. En revanche, personne ne peut honnêtement garantir la première place : méfiez-vous de ceux qui la promettent.</p>
+      </details>
+      <details>
+        <summary>Comment se passe le paiement&nbsp;?</summary>
+        <p>50&nbsp;% d'acompte quand vous validez la maquette, 50&nbsp;% à la mise en ligne, par virement ou par lien de paiement sécurisé. Une facture vous est remise à chaque règlement.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="section" id="commande">
+    <div class="order">
+      <div class="order-intro">
+        <p class="kicker">Maquette gratuite</p>
+        <h2>Parlez-moi de votre commerce.</h2>
+        <p>Je vous réponds sous 24&nbsp;h avec une première maquette ou quelques questions. Sans engagement.</p>
+        <div class="direct" id="direct"></div>
+      </div>
+
+      <form class="form" id="orderForm" novalidate>
+        <div class="row">
+          <label>Votre nom<input name="nom" autocomplete="name" required maxlength="80"></label>
+          <label>Nom du commerce<input name="commerce" autocomplete="organization" required maxlength="80"></label>
+        </div>
+        <div class="row">
+          <label>Activité<select name="metier" id="metierSelect"></select></label>
+          <label>Ville<input name="ville" autocomplete="address-level2" required maxlength="60"></label>
+        </div>
+        <div class="row">
+          <label>Téléphone ou e-mail<input name="contact" autocomplete="tel" required maxlength="100"></label>
+          <label>Formule envisagée<select name="formule" id="offerSelect"></select></label>
+        </div>
+        <label>Page existante <small>(Facebook, Instagram, fiche Google… facultatif)</small><input name="lien" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
+        <label>Message <small>(facultatif)</small><textarea name="message" rows="4" maxlength="2000" placeholder="Ce que vous aimeriez voir sur votre site, vos couleurs, vos produits…"></textarea></label>
+        <p class="form-error" id="formError" role="alert" hidden></p>
+        <button class="btn" type="submit">Envoyer ma demande</button>
+        <p class="form-note">Le bouton ouvre votre messagerie avec la demande déjà rédigée : ce site n'enregistre rien.</p>
+
+        <div class="sent" id="sent" hidden>
+          <p><b>Votre messagerie ne s'est pas ouverte&nbsp;?</b> Copiez ce message et envoyez-le à <a id="sentTo"></a>.</p>
+          <textarea id="sentBody" rows="8" readonly></textarea>
+          <button class="btn btn-ghost btn-small" type="button" id="copyBody">Copier le message</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="section narrow legal" id="mentions">
+    <h2>Mentions légales</h2>
+    <dl id="legal"></dl>
+    <p><b>Hébergement.</b> GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis.</p>
+    <p><b>Données personnelles.</b> Ce site ne dépose aucun cookie et n'utilise aucun outil de mesure d'audience. Le formulaire ne stocke rien : il prépare un e-mail que vous envoyez vous-même. Les informations reçues servent uniquement à répondre à votre demande et ne sont jamais cédées à des tiers.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <span id="footName"></span>
+  <a href="#mentions">Mentions légales</a>
+</footer>
+
+<noscript><p class="setup">Activez JavaScript pour voir les tarifs et envoyer une demande.</p></noscript>
+<script src="config.js"></script>
+<script src="metiers.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette de site vitrine</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="exemple.css">
+</head>
+<body>
+<div class="demo-bar" id="demoBar">
+  <p><b>Maquette</b> <span id="demoBy">préparée gratuitement</span> — ce commerce n'a pas encore ce site.</p>
+  <a href="../#commande" id="demoCta">Obtenir ce site →</a>
+</div>
+
+<header class="top">
+  <a class="brand" href="#" data-demo>
+    <span class="mono" id="mono" aria-hidden="true"></span>
+    <span id="brandName"></span>
+  </a>
+  <nav class="nav" aria-label="Sections">
+    <a href="#services" id="navServices">Services</a>
+    <a href="#horaires">Horaires</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <a class="btn btn-small" href="#" data-demo="appeler">Appeler</a>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-text">
+      <p class="kicker" id="kicker"></p>
+      <h1 id="title"></h1>
+      <p class="tagline" id="tagline"></p>
+      <p class="status" id="status"></p>
+      <div class="actions">
+        <a class="btn" href="#" data-demo="cta" id="cta"></a>
+        <a class="btn btn-ghost" href="#" data-demo="itineraire">Itinéraire</a>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <span class="art-letter" id="artLetter"></span>
+      <span class="art-note">Vos photos ici</span>
+    </div>
+  </section>
+
+  <section class="block" id="services">
+    <h2 id="sectionTitle"></h2>
+    <div class="cards" id="items"></div>
+  </section>
+
+  <section class="block split" id="horaires">
+    <div>
+      <h2>Horaires</h2>
+      <table class="hours" id="hours"></table>
+    </div>
+    <div>
+      <h2>Nous trouver</h2>
+      <p class="address" id="address"></p>
+      <div class="map" role="img" aria-label="Emplacement de la carte">
+        <span>Carte et itinéraire Google Maps</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="contact">
+    <h2>Une question&nbsp;? Parlons-en.</h2>
+    <p>Par téléphone, par e-mail ou directement sur place : nous vous répondons rapidement.</p>
+    <div class="actions">
+      <a class="btn btn-light" href="#" data-demo="appeler">Appeler</a>
+      <a class="btn btn-outline-light" href="#" data-demo="email">Écrire un e-mail</a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span id="footName"></span>
+  <span><a href="#" data-demo="mentions">Mentions légales</a> · Site réalisé par <a href="../" id="footStudio">Studio</a></span>
+</footer>
+
+<nav class="sticky" aria-label="Actions rapides">
+  <a href="#" data-demo="appeler">Appeler</a>
+  <a href="#" data-demo="itineraire">Itinéraire</a>
+</nav>
+
+<p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
+
+<script src="../config.js"></script>
+<script src="../metiers.js"></script>
+<script src="exemple.js"></script>
+</body>
+</html>
