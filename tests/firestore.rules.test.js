@@ -12,6 +12,7 @@ import {
 import {
   arrayRemove,
   arrayUnion,
+  Bytes,
   collection,
   deleteDoc,
   doc,
@@ -28,7 +29,9 @@ import {
 import {
   PASSWORD_ITERATIONS,
   RECOVERY_ITERATIONS,
+  encryptBlob,
   encryptMessage,
+  encryptPayload,
   generateIdentity,
   seal,
 } from '../public/e2e.js';
@@ -445,5 +448,183 @@ describe('messages', () => {
       { 'lastRead.alice': serverTimestamp() }));
     await assertFails(updateDoc(doc(db('mallory'), 'conversations', cid),
       { 'lastRead.mallory': serverTimestamp() }));
+  });
+});
+
+// Même écriture qu'une photo ou un message vocal de public/main.js : octets
+// chiffrés, message (enveloppe v2) et aperçu, ensemble.
+async function postMedia(fs, uid, cid, opts = {}) {
+  const members = opts.members || ['alice', 'bob'];
+  const msg = doc(collection(fs, 'conversations', cid, 'messages'));
+  const box = await encryptBlob(opts.bytes || new Uint8Array(2048).fill(7), cid, msg.id);
+  const enc = await encryptPayload(
+    { t: 'image', caption: '', mime: 'image/webp', w: 10, h: 10, key: box.key, iv: box.iv },
+    Object.fromEntries(members.map((m) => [m, ids[m].publicKey])), cid, uid);
+  const batch = writeBatch(fs);
+  if (!opts.noMedia) {
+    batch.set(doc(fs, 'conversations', cid, 'media', opts.mediaId || msg.id), {
+      uid, data: Bytes.fromUint8Array(opts.data || box.data), createdAt: serverTimestamp(), ...opts.media,
+    });
+  }
+  if (!opts.noMessage) {
+    batch.set(msg, { uid, enc, createdAt: serverTimestamp() });
+    batch.update(doc(fs, 'conversations', cid), {
+      lastMessage: { id: msg.id, uid, enc, at: serverTimestamp() },
+      updatedAt: serverTimestamp(),
+      ['lastRead.' + uid]: serverTimestamp(),
+    });
+  }
+  await batch.commit();
+  return msg.id;
+}
+
+describe('photos et messages vocaux', () => {
+  const cid = dmId('alice', 'bob');
+
+  beforeEach(() => createDm(db('alice'), 'alice', 'bob'));
+
+  test('un membre envoie un fichier chiffré avec son message', async () => {
+    const mid = await assertSucceeds(postMedia(db('alice'), 'alice', cid));
+    const media = await assertSucceeds(getDoc(doc(db('bob'), 'conversations', cid, 'media', mid)));
+    if (!(media.data().data instanceof Bytes)) throw new Error('octets attendus');
+    await assertFails(getDoc(doc(db('mallory'), 'conversations', cid, 'media', mid)));
+    await assertFails(getDocs(collection(db('mallory'), 'conversations', cid, 'media')));
+  });
+
+  test('un fichier sans son message, ou rattaché à un autre, est refusé', async () => {
+    await assertFails(postMedia(db('alice'), 'alice', cid, { noMessage: true }));
+    await assertFails(postMedia(db('alice'), 'alice', cid, { mediaId: 'autre' }));
+  });
+
+  test('on ne dépose pas de fichier au nom d\'un autre, ni chez des inconnus', async () => {
+    await assertFails(postMedia(db('alice'), 'alice', cid, { media: { uid: 'bob' } }));
+    await assertFails(postMedia(db('mallory'), 'mallory', cid));
+  });
+
+  test('taille maximale : 1 000 000 d\'octets chiffrés', async () => {
+    await assertSucceeds(postMedia(db('alice'), 'alice', cid, { data: new Uint8Array(1000000).fill(1) }));
+    await assertFails(postMedia(db('alice'), 'alice', cid, { data: new Uint8Array(1000001).fill(1) }));
+    await assertFails(postMedia(db('alice'), 'alice', cid, { data: new Uint8Array(8) }));
+  });
+
+  test('aucune métadonnée en clair à côté des octets chiffrés', async () => {
+    await assertFails(postMedia(db('alice'), 'alice', cid, { media: { mime: 'image/jpeg' } }));
+    await assertFails(postMedia(db('alice'), 'alice', cid, { media: { data: 'pas des octets' } }));
+  });
+
+  test('un fichier envoyé ne se modifie ni ne se supprime', async () => {
+    const mid = await postMedia(db('alice'), 'alice', cid);
+    const ref = doc(db('alice'), 'conversations', cid, 'media', mid);
+    await assertFails(updateDoc(ref, { data: Bytes.fromUint8Array(new Uint8Array(100)) }));
+    await assertFails(deleteDoc(ref));
+  });
+
+  test('enveloppe v2 sans fichier (journal d\'appel) acceptée, version inconnue refusée', async () => {
+    const recipients = { alice: ids.alice.publicKey, bob: ids.bob.publicKey };
+    const enc = await encryptPayload({ t: 'call', video: false, status: 'missed', duration: 0 }, recipients, cid, 'alice');
+    await assertSucceeds(post(db('alice'), 'alice', cid, '', { enc }));
+    await assertFails(post(db('alice'), 'alice', cid, '', { enc: { ...enc, v: 3 } }));
+  });
+});
+
+describe('« … écrit »', () => {
+  const cid = dmId('alice', 'bob');
+  const ref = (uid) => doc(db(uid), 'conversations', cid);
+
+  beforeEach(() => createDm(db('alice'), 'alice', 'bob'));
+
+  test('chacun signale seulement sa propre saisie, à l\'heure du serveur', async () => {
+    await assertSucceeds(updateDoc(ref('alice'), { 'typing.alice': serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('bob'), { 'typing.bob': serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('alice'), { 'typing.alice': serverTimestamp() }));
+    await assertFails(updateDoc(ref('alice'), { 'typing.bob': serverTimestamp() }));
+    await assertFails(updateDoc(ref('alice'), { 'typing.alice': Timestamp.fromMillis(0) }));
+    await assertFails(updateDoc(ref('mallory'), { 'typing.mallory': serverTimestamp() }));
+  });
+
+  test('la saisie ne sert pas à modifier autre chose', async () => {
+    await assertFails(updateDoc(ref('alice'), { 'typing.alice': serverTimestamp(), title: 'x' }));
+    await assertFails(updateDoc(ref('alice'), { typing: 'oui' }));
+  });
+});
+
+describe('appels', () => {
+  const cid = dmId('alice', 'bob');
+  const offer = { type: 'offer', sdp: 'v=0\r\no=- 1 2 IN IP4 127.0.0.1\r\n' };
+  const answer = { type: 'answer', sdp: 'v=0\r\no=- 3 4 IN IP4 127.0.0.1\r\n' };
+  const call = (over = {}) => ({
+    cid, caller: 'alice', callee: 'bob', video: true, status: 'ringing', offer, createdAt: serverTimestamp(), ...over,
+  });
+  const ref = (uid, id = 'appel1') => doc(db(uid), 'calls', id);
+
+  beforeEach(() => createDm(db('alice'), 'alice', 'bob'));
+
+  test('on appelle l\'autre membre d\'une discussion à deux', async () => {
+    await assertSucceeds(setDoc(ref('alice'), call()));
+    await assertSucceeds(getDoc(ref('bob')));
+    await assertFails(getDoc(ref('mallory')));
+  });
+
+  test('refuse un appel hors discussion à deux, usurpé ou mal formé', async () => {
+    const fs = db('alice');
+    const group = doc(collection(fs, 'conversations'));
+    await setDoc(group, newConversation(fs, 'alice', ['alice', 'bob', 'carol']));
+    await assertFails(setDoc(ref('alice', 'g'), call({ cid: group.id })));
+    await assertFails(setDoc(ref('alice', 'm'), call({ callee: 'mallory' })));
+    await assertFails(setDoc(ref('mallory', 'x'), call({ caller: 'mallory', callee: 'bob' })));
+    await assertFails(setDoc(ref('bob', 'u'), call()));
+    await assertFails(setDoc(ref('alice', 's'), call({ status: 'accepted' })));
+    await assertFails(setDoc(ref('alice', 'o'), call({ offer: { type: 'answer', sdp: 'x' } })));
+    await assertFails(setDoc(ref('alice', 't'), call({ createdAt: Timestamp.fromMillis(0) })));
+    await assertFails(setDoc(ref('alice', 'e'), call({ answer })));
+  });
+
+  test('l\'appelé voit les appels qui lui sonnent, et seulement les siens', async () => {
+    await setDoc(ref('alice'), call());
+    const ringing = await assertSucceeds(getDocs(query(collection(db('bob'), 'calls'),
+      where('callee', '==', 'bob'), where('status', '==', 'ringing'))));
+    if (ringing.size !== 1) throw new Error('attendu 1 appel');
+    await assertFails(getDocs(collection(db('bob'), 'calls')));
+    await assertFails(getDocs(query(collection(db('mallory'), 'calls'), where('callee', '==', 'bob'))));
+  });
+
+  test('décrocher puis raccrocher', async () => {
+    await setDoc(ref('alice'), call());
+    await assertFails(updateDoc(ref('alice'), { status: 'accepted', answer, answeredAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref('bob'), { status: 'accepted', answer: offer, answeredAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('bob'), { status: 'accepted', answer, answeredAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref('bob'), { status: 'ended', endedAt: serverTimestamp(), endedBy: 'alice' }));
+    await assertSucceeds(updateDoc(ref('alice'), { status: 'ended', endedAt: serverTimestamp(), endedBy: 'alice' }));
+    await assertFails(updateDoc(ref('bob'), { status: 'accepted', answer, answeredAt: serverTimestamp() }));
+  });
+
+  test('refuser (appelé) ou renoncer (appelant), seulement pendant la sonnerie', async () => {
+    await setDoc(ref('alice', 'a'), call());
+    await assertFails(updateDoc(ref('alice', 'a'), { status: 'declined', endedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('bob', 'a'), { status: 'declined', endedAt: serverTimestamp() }));
+    await setDoc(ref('alice', 'b'), call());
+    await assertFails(updateDoc(ref('bob', 'b'), { status: 'missed', endedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref('alice', 'b'), { status: 'missed', endedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref('bob', 'b'), { status: 'accepted', answer, answeredAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref('mallory', 'b'), { status: 'ended', endedAt: serverTimestamp(), endedBy: 'mallory' }));
+  });
+
+  test('candidats ICE : chacun écrit les siens, les deux les lisent', async () => {
+    await setDoc(ref('alice'), call());
+    const cand = { candidate: 'candidate:1 1 udp 2122260223 192.168.1.2 50000 typ host', sdpMid: '0',
+      sdpMLineIndex: 0, usernameFragment: 'abcd' };
+    await assertSucceeds(setDoc(doc(db('alice'), 'calls', 'appel1', 'callerCandidates', 'c1'), cand));
+    await assertSucceeds(setDoc(doc(db('bob'), 'calls', 'appel1', 'calleeCandidates', 'c1'), cand));
+    await assertFails(setDoc(doc(db('bob'), 'calls', 'appel1', 'callerCandidates', 'c2'), cand));
+    await assertFails(setDoc(doc(db('alice'), 'calls', 'appel1', 'calleeCandidates', 'c2'), cand));
+    await assertFails(setDoc(doc(db('alice'), 'calls', 'appel1', 'callerCandidates', 'c3'), { ...cand, extra: 1 }));
+    await assertSucceeds(getDocs(collection(db('bob'), 'calls', 'appel1', 'callerCandidates')));
+    await assertSucceeds(getDocs(collection(db('alice'), 'calls', 'appel1', 'calleeCandidates')));
+    await assertFails(getDocs(collection(db('mallory'), 'calls', 'appel1', 'callerCandidates')));
+  });
+
+  test('personne ne supprime un appel', async () => {
+    await setDoc(ref('alice'), call());
+    await assertFails(deleteDoc(ref('alice')));
   });
 });

@@ -11,8 +11,15 @@
 // chaque membre de la conversation (y compris l'auteur) par ECDH éphémère +
 // HKDF + AES-KW. Firestore ne voit donc que :
 //   enc = { v, e: clé publique éphémère, iv, ct: texte chiffré, k: { uid: clé emballée } }
-// Le texte est lié à sa conversation et à son auteur (données associées
-// AES-GCM) : on ne peut pas le recopier ailleurs sans que le déchiffrement échoue.
+// Le texte est lié à sa conversation, à son auteur et à sa version (données
+// associées AES-GCM) : on ne peut pas le recopier ailleurs, ni changer sa
+// version, sans que le déchiffrement échoue.
+//
+//   v1 : le texte chiffré est le message lui-même ;
+//   v2 : c'est une enveloppe JSON (photo, message vocal, journal d'appel).
+//
+// Une photo ou un message vocal est chiffré à part (encryptBlob), avec sa
+// propre clé AES-256-GCM ; cette clé ne voyage que dans l'enveloppe v2.
 
 const subtle = globalThis.crypto.subtle;
 const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
@@ -138,16 +145,18 @@ async function wrappingKey(privateKey, publicKey, salt, uid) {
   );
 }
 
-const aad = (cid, author) => te.encode('message-me/v1|' + cid + '|' + author);
+const VERSIONS = [1, 2];
+const aad = (cid, author, v = 1) => te.encode('message-me/v' + v + '|' + cid + '|' + author);
 
 /**
  * Chiffre `text` pour les membres `recipients` ({ uid: clé publique base64 }).
- * `cid` et `author` sont liés au texte chiffré.
+ * `cid`, `author` et la version `v` sont liés au texte chiffré.
  */
-export async function encryptMessage(text, recipients, cid, author) {
+export async function encryptMessage(text, recipients, cid, author, v = 1) {
+  if (!VERSIONS.includes(v)) throw new Error('bad-version');
   const cek = await subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
   const iv = random(12);
-  const ct = await subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad(cid, author) }, cek, te.encode(text));
+  const ct = await subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad(cid, author, v) }, cek, te.encode(text));
   const eph = await subtle.generateKey(ECDH, false, ['deriveBits']);
   const ephRaw = new Uint8Array(await subtle.exportKey('raw', eph.publicKey));
   const k = {};
@@ -156,20 +165,46 @@ export async function encryptMessage(text, recipients, cid, author) {
     const kek = await wrappingKey(eph.privateKey, theirs, ephRaw, uid);
     k[uid] = toB64(await subtle.wrapKey('raw', cek, kek, 'AES-KW'));
   }
-  return { v: 1, e: toB64(ephRaw), iv: toB64(iv), ct: toB64(ct), k };
+  return { v, e: toB64(ephRaw), iv: toB64(iv), ct: toB64(ct), k };
+}
+
+/** Chiffre une enveloppe v2 (objet sérialisé en JSON). */
+export function encryptPayload(payload, recipients, cid, author) {
+  return encryptMessage(JSON.stringify(payload), recipients, cid, author, 2);
 }
 
 /** Déchiffre un message pour `uid` avec sa clé privée ; lève une erreur sinon. */
 export async function decryptMessage(enc, uid, privateKey, cid, author) {
-  if (!enc || enc.v !== 1 || !enc.k || !enc.k[uid]) throw new Error('no-key');
+  if (!enc || !VERSIONS.includes(enc.v) || !enc.k || !enc.k[uid]) throw new Error('no-key');
   const ephRaw = fromB64(enc.e);
   const eph = await subtle.importKey('raw', ephRaw, ECDH, false, []);
   const kek = await wrappingKey(privateKey, eph, ephRaw, uid);
   const cek = await subtle.unwrapKey('raw', fromB64(enc.k[uid]), kek, 'AES-KW',
     { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-  const pt = await subtle.decrypt({ name: 'AES-GCM', iv: fromB64(enc.iv), additionalData: aad(cid, author) },
+  const pt = await subtle.decrypt({ name: 'AES-GCM', iv: fromB64(enc.iv), additionalData: aad(cid, author, enc.v) },
     cek, fromB64(enc.ct));
   return td.decode(pt);
+}
+
+/* ------------------------------------------------ fichiers (photo, voix) */
+
+const blobAad = (cid, mid) => te.encode('message-me/media/v1|' + cid + '|' + mid);
+
+/**
+ * Chiffre les octets d'un fichier pour le message `mid` de `cid`. La clé et
+ * l'IV rendus doivent partir dans l'enveloppe chiffrée du message.
+ */
+export async function encryptBlob(bytes, cid, mid) {
+  const key = await subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+  const iv = random(12);
+  const data = await subtle.encrypt({ name: 'AES-GCM', iv, additionalData: blobAad(cid, mid) }, key, bytes);
+  return { key: toB64(await subtle.exportKey('raw', key)), iv: toB64(iv), data: new Uint8Array(data) };
+}
+
+/** Rend les octets d'origine, ou lève une erreur si le fichier a été modifié. */
+export async function decryptBlob(data, keyB64, ivB64, cid, mid) {
+  const key = await subtle.importKey('raw', fromB64(keyB64), { name: 'AES-GCM' }, false, ['decrypt']);
+  return subtle.decrypt({ name: 'AES-GCM', iv: fromB64(ivB64), additionalData: blobAad(cid, mid) }, key, data);
 }
 
 /* ------------------------------------ clé de cet appareil (IndexedDB) */
