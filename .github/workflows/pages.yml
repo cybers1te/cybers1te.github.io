@@ -1,47 +1,67 @@
-name: Deploy Trueware (version statique)
+name: message-me — tests et déploiement
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  test:
+    name: Règles Firestore
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.11'
+          node-version: '22'
+          cache: npm
+
+      # L'émulateur Firestore est un programme Java.
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
-        run: pip install -r trueware/requirements.txt
+        run: npm ci
 
-      # Le catalogue et la feuille de style du site statique sont dérivés du
-      # paquet trueware/ : on les régénère ici pour qu'ils ne puissent pas
-      # diverger de la source Python.
-      - name: Regenerate static assets
-        run: python3 tools/build-static.py
-
+      # Vérifie firestore.rules contre l'émulateur local : aucun projet
+      # Firebase réel n'est contacté.
       - name: Run tests
-        run: |
-          pip install pytest
-          python -m pytest trueware/tests -q
+        run: npm test
+
+  deploy:
+    name: GitHub Pages
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -49,8 +69,8 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir _site
-          cp index.html trueware.css trueware-static.css trueware.js \
-             trueware-catalog.js favicon.svg _site/
+          cp -r public/. _site/
+          # Fiche de révision « L'Appel de la forêt », publiée à côté.
           cp london.html styles.css app.js _site/
 
       - name: Upload artifact

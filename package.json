@@ -1,0 +1,16 @@
+{
+  "name": "message-me",
+  "private": true,
+  "description": "Messagerie en temps réel sur Firebase (Auth + Firestore), servie par GitHub Pages.",
+  "type": "module",
+  "scripts": {
+    "dev": "firebase emulators:start --project demo-message-me",
+    "test": "firebase emulators:exec --only firestore --project demo-message-me \"node --test tests/firestore.rules.test.js\"",
+    "deploy:rules": "firebase deploy --only firestore"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.31.0"
+  }
+}
