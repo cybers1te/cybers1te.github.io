@@ -1,0 +1,174 @@
+rules_version = '2';
+
+// Règles de sécurité de message-me.
+//
+// La clé d'API Firebase présente dans public/firebase-config.js est publique
+// par conception : c'est CE fichier qui protège les données. Tout ce qui n'est
+// pas explicitement autorisé ici est refusé.
+//
+// Modèle de données :
+//   usernames/{pseudo}                     -> { uid }          (unicité du pseudo)
+//   users/{uid}                            -> { name, username, createdAt }
+//   conversations/{cid}                    -> { type, members, title, createdBy,
+//                                               createdAt, updatedAt,
+//                                               lastMessage, lastRead }
+//   conversations/{cid}/messages/{mid}     -> { uid, text, createdAt }
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function me() {
+      return request.auth.uid;
+    }
+
+    function validName(name) {
+      return name is string && name.size() >= 1 && name.size() <= 40;
+    }
+
+    // ------------------------------------------------------------------
+    // Pseudos : un document par pseudo, créé une seule fois, en même temps
+    // que le profil. Lisible un par un (pour trouver quelqu'un), jamais listé.
+    // ------------------------------------------------------------------
+    match /usernames/{username} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && username.matches('^[a-z0-9_]{3,20}$')
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == me()
+        // Un seul pseudo par compte : le profil ne doit pas encore exister…
+        && !exists(/databases/$(database)/documents/users/$(me()))
+        // … et il doit être créé dans la même écriture, avec ce pseudo.
+        && getAfter(/databases/$(database)/documents/users/$(me())).data.username == username;
+      allow update, delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Profils publics : nom affiché et pseudo. Aucune adresse e-mail ici.
+    // ------------------------------------------------------------------
+    match /users/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && uid == me()
+        && request.resource.data.keys().hasOnly(['name', 'username', 'createdAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.username is string
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == uid;
+      // Seul le nom affiché peut changer ; le pseudo est définitif.
+      allow update: if signedIn() && uid == me()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && validName(request.resource.data.name);
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Conversations
+    // ------------------------------------------------------------------
+    match /conversations/{cid} {
+
+      function isMember(data) {
+        return signedIn() && data.members is list && me() in data.members;
+      }
+
+      function validCreate() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['type', 'members', 'title', 'createdBy',
+                                 'createdAt', 'updatedAt', 'lastMessage', 'lastRead'])
+          && d.keys().hasAll(['type', 'members', 'title', 'createdBy',
+                              'createdAt', 'updatedAt', 'lastMessage', 'lastRead'])
+          && d.createdBy == me()
+          && d.members is list
+          && me() in d.members
+          && d.members.toSet().size() == d.members.size()
+          && d.createdAt == request.time
+          && d.updatedAt == request.time
+          && d.lastMessage == null
+          && d.lastRead == {}
+          && d.title is string
+          && (
+            // Discussion à deux : identifiant déterministe (dm_<uidA>_<uidB>,
+            // uid triés) pour qu'il n'en existe qu'une par paire.
+            (d.type == 'dm'
+              && d.members.size() == 2
+              && d.members[0] < d.members[1]
+              && cid == 'dm_' + d.members[0] + '_' + d.members[1]
+              && d.title == '')
+            ||
+            (d.type == 'group'
+              && d.members.size() >= 2
+              && d.members.size() <= 20
+              && d.title.size() >= 1
+              && d.title.size() <= 60)
+          );
+      }
+
+      // Le message cité par l'aperçu vient d'être créé par l'auteur, dans
+      // cette même écriture groupée, et l'aperçu recopie son texte.
+      function isFreshMessage(lm) {
+        let msg = getAfter(/databases/$(database)/documents/conversations/$(cid)/messages/$(lm.id)).data;
+        return msg.uid == me() && msg.createdAt == request.time && msg.text == lm.text;
+      }
+
+      // Envoi d'un message : l'aperçu est mis à jour dans la même écriture
+      // groupée que le message.
+      function isPostUpdate() {
+        let d = request.resource.data;
+        let lm = d.lastMessage;
+        return d.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'updatedAt', 'lastRead'])
+          && d.updatedAt == request.time
+          && lm is map
+          && lm.keys().hasOnly(['id', 'uid', 'text', 'at'])
+          && lm.uid == me()
+          && lm.at == request.time
+          && lm.id is string
+          && isFreshMessage(lm)
+          && d.lastRead.diff(resource.data.lastRead).affectedKeys().hasOnly([me()])
+          && d.lastRead[me()] == request.time;
+      }
+
+      // Accusé de lecture : chacun ne touche qu'à sa propre date de lecture.
+      function isReadUpdate() {
+        let d = request.resource.data;
+        return d.diff(resource.data).affectedKeys().hasOnly(['lastRead'])
+          && d.lastRead.diff(resource.data.lastRead).affectedKeys().hasOnly([me()])
+          && d.lastRead[me()] == request.time;
+      }
+
+      // Quitter un groupe : on ne peut retirer que soi-même.
+      function isLeaveUpdate() {
+        let d = request.resource.data;
+        return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['members'])
+          && d.members == resource.data.members.removeAll([me()]);
+      }
+
+      allow get: if isMember(resource.data);
+      // Seule la requête « mes conversations » (members array-contains moi)
+      // passe cette règle.
+      allow list: if signedIn() && me() in resource.data.members;
+      allow create: if signedIn() && validCreate();
+      allow update: if isMember(resource.data)
+        && (isPostUpdate() || isReadUpdate() || isLeaveUpdate());
+      allow delete: if false;
+
+      match /messages/{mid} {
+        allow read: if isMember(get(/databases/$(database)/documents/conversations/$(cid)).data);
+        allow create: if signedIn()
+          && isMember(get(/databases/$(database)/documents/conversations/$(cid)).data)
+          && request.resource.data.keys().hasOnly(['uid', 'text', 'createdAt'])
+          && request.resource.data.uid == me()
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt == request.time
+          // L'aperçu de la conversation doit pointer sur ce message.
+          && getAfter(/databases/$(database)/documents/conversations/$(cid)).data.lastMessage.id == mid;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

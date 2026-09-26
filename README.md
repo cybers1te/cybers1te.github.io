@@ -1,36 +1,84 @@
 # cybers1te.github.io
 
-Le site publié sur <https://cybers1te.github.io/> est **Trueware**, une boutique
-de matériel informatique.
+Le site publié sur <https://cybers1te.github.io/> est **message-me**, une
+messagerie en temps réel construite sur Firebase.
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **Trueware** — version navigateur (le site publié) | `index.html`, `trueware.{js,css}`, `trueware-catalog.js` | Site statique |
-| **Trueware** — version serveur complète | `trueware/` | Application Flask + SQLite |
+| **message-me** — le site publié | `public/`, `firestore.rules`, `firebase.json` | Site statique + Firebase (Auth, Firestore) |
 | **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique |
+| **Trueware** — boutique | `trueware/` | Application Flask + SQLite |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
+
+## message-me
+
+Inscription par e-mail avec un **pseudo** unique, discussions à deux ou en
+**groupe** (jusqu'à 20 membres), messages synchronisés en temps réel,
+indicateur de non-lu et accusé de lecture « Vu », liens cliquables, thème
+clair/sombre, interface adaptée au mobile.
+
+### Configuration : [FIREBASE.md](FIREBASE.md)
+
+Le site a besoin d'un projet Firebase. Le guide [FIREBASE.md](FIREBASE.md)
+explique pas à pas comment le créer, activer la connexion par e-mail, créer la
+base Firestore, y publier les règles et coller la configuration dans
+`public/firebase-config.js`. Tant que ce n'est pas fait, le site affiche un
+écran d'aide au lieu de la messagerie.
+
+### Fonctionnement
+
+GitHub Pages ne sert que des fichiers statiques : tout s'exécute dans le
+navigateur, qui parle directement à Firebase.
+
+- **Firebase Authentication** gère les comptes (e-mail + mot de passe).
+- **Cloud Firestore** stocke les profils, les conversations et les messages ;
+  le site s'y abonne et se met à jour dès qu'un message arrive.
+- **`firestore.rules`** est la vraie barrière de sécurité : la configuration
+  web de Firebase est publique par conception, ce sont ces règles qui
+  décident qui lit et écrit quoi (membres seuls, pas d'usurpation d'auteur,
+  pseudos uniques, messages non modifiables…).
+
+```text
+usernames/{pseudo}                   { uid }
+users/{uid}                          { name, username, createdAt }
+conversations/{cid}                  { type, members, title, createdBy,
+                                       createdAt, updatedAt, lastMessage, lastRead }
+conversations/{cid}/messages/{mid}   { uid, text, createdAt }
+```
+
+### Développement local et tests
+
+Node.js 20+ et Java 21 (pour les émulateurs Firebase) :
+
+```bash
+npm install
+npm run dev     # émulateurs Auth + Firestore + site sur http://127.0.0.1:5000/?emulateurs
+npm test        # tests des règles Firestore contre l'émulateur
+```
+
+Avec `?emulateurs` (uniquement sur `localhost`/`127.0.0.1`), le site se
+connecte aux émulateurs d'un projet fictif `demo-message-me` : aucun vrai
+projet n'est touché, et il n'est pas nécessaire de remplir
+`public/firebase-config.js`.
+
+Le workflow GitHub Actions lance ces tests à chaque push et pull request,
+puis publie `public/` (et la fiche de révision) sur GitHub Pages depuis `main`.
+
+```text
+public/index.html            Page unique de la messagerie
+public/main.js               Application (Auth, Firestore, interface)
+public/style.css             Thème clair/sombre et mise en page responsive
+public/firebase-config.js    Configuration web du projet Firebase (à remplir)
+firestore.rules              Règles de sécurité de la base
+firebase.json                Configuration Firebase CLI (règles, hébergement, émulateurs)
+tests/                       Tests des règles (node:test + @firebase/rules-unit-testing)
+```
 
 ## Trueware
 
-Catalogue de 26 produits en 6 familles, recherche et filtres, fiches détaillées
-avec caractéristiques et avis, panier, **inscription et connexion**, commande
-avec décrémentation du stock, compte client et administration.
-
-### Deux versions, un seul catalogue
-
-GitHub Pages ne sert que des fichiers statiques : il ne peut exécuter ni Python
-ni base de données. Le dépôt contient donc deux versions du même magasin.
-
-**Version navigateur** — celle qui est en ligne. Tout s'exécute côté client et
-les données (comptes, panier, commandes, avis, stocks) vivent dans le
-`localStorage` de l'appareil. Rien n'est envoyé nulle part. Les mots de passe
-sont dérivés par PBKDF2-SHA256 via WebCrypto avant stockage, mais **un compte
-local ne protège rien** : quiconque a accès à l'appareil peut le lire. Le site
-l'affiche clairement.
-
-**Version serveur** (`trueware/`) — Flask + SQLite, avec sessions signées,
-jetons anti-CSRF, limitation des tentatives de connexion, vraie base partagée
-et administration réservée aux comptes administrateurs. Voir
+Boutique de matériel informatique en Flask + SQLite (sessions signées, jetons
+anti-CSRF, administration). Sa version navigateur, qui était publiée ici, a été
+remplacée par message-me ; l'application serveur reste disponible. Voir
 [`trueware/README.md`](trueware/README.md).
 
 ```bash
@@ -39,35 +87,19 @@ python -m trueware.app          # http://127.0.0.1:5001
 python -m pytest trueware/tests -q
 ```
 
-### Génération des fichiers statiques
-
-Le catalogue et la feuille de style du site statique sont **dérivés** du paquet
-Python, pour éviter toute divergence :
-
-```bash
-python3 tools/build-static.py   # écrit trueware-catalog.js, trueware.css, favicon.svg
-```
-
-Le workflow GitHub Pages relance cette commande et la suite de tests à chaque
-déploiement : le site publié est toujours construit depuis la source.
-
 ---
 
 ## Cowrie Watch
 
 Dashboard de surveillance pour les logs JSON Lines de [Cowrie](https://github.com/cowrie/cowrie). Le dépôt contient à la fois une version complète Flask/SQLite et une version frontend statique publiable sur GitHub Pages.
 
-## Version site GitHub Pages
+## Version statique
 
-Le dépôt est nommé `cybers1te.github.io`. GitHub publie automatiquement les fichiers statiques placés à la racine du dépôt utilisateur ; les fichiers `index.html`, `styles.css` et `app.js` sont donc également présents à la racine.
-
-GitHub Pages est un hébergement **statique** : il ne peut pas exécuter le backend Flask, lire `cowrie.json` ni écrire dans SQLite. Lorsque l’API n’est pas disponible, le site affiche automatiquement des données de démonstration afin que l’interface reste visible. Pour les données Cowrie réelles, il faut lancer le backend sur un serveur Python séparé puis adapter l’URL d’API dans `frontend/app.js`.
-
-Le site visé est : `https://cybers1te.github.io/`.
-
-### Activation Pages
-
-Pour un dépôt utilisateur public nommé `cybers1te.github.io`, GitHub Pages sert automatiquement la branche principale depuis sa racine. Il suffit de conserver `index.html` à la racine et d’attendre quelques secondes après un push.
+`frontend/` contient une version statique du tableau de bord. Lorsque l'API
+n'est pas disponible, elle affiche automatiquement des données de
+démonstration afin que l'interface reste visible. Pour les données Cowrie
+réelles, il faut lancer le backend sur un serveur Python séparé puis adapter
+l'URL d'API dans `frontend/app.js`.
 
 ## Fonctionnalités MVP
 
@@ -87,7 +119,6 @@ backend/app.py              API, ingestion tail et schéma SQLite
 frontend/index.html         Structure du dashboard
 frontend/styles.css         Thème et responsive design
 frontend/app.js             Appels API, carte, fallback démo et interactions
-.github/workflows/pages.yml Déploiement automatique GitHub Pages
 .env.example                Variables de configuration backend
 ```
 
