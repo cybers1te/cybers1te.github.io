@@ -7,12 +7,13 @@ suffit largement pour un petit groupe d'amis.
 Tant que ces étapes ne sont pas faites, <https://cybers1te.github.io/> affiche
 un écran « Il ne manque plus que Firebase » : c'est normal.
 
-> **Déjà configuré ? Mise à jour « photos, vocaux et appels »** : les règles
+> **Déjà configuré ? Mise à jour « groupes, membres, blocage »** : les règles
 > de sécurité ont changé. Republie-les une fois : console Firebase →
 > **Firestore Database** → onglet **Règles** → efface tout, colle
 > l'intégralité du nouveau [`firestore.rules`](firestore.rules) → **Publier**.
-> Tant que ce n'est pas fait, les messages texte marchent mais les photos,
-> les messages vocaux et les appels sont refusés.
+> Tant que ce n'est pas fait, les messages marchent mais la création de
+> groupe, les admins, le blocage et la sourdine sont refusés (« Accès refusé
+> par les règles Firestore »).
 
 ## En deux mots : c'est quoi Firebase ?
 
@@ -157,8 +158,19 @@ Pour voir le détail d'une erreur : touche **F12** → onglet **Console**.
 - seuls les membres d'une conversation en lisent les messages ;
 - personne ne peut envoyer un message au nom d'un autre, ni antidater un
   message, ni modifier ou supprimer un message envoyé ;
-- on ne peut que se retirer soi-même d'un groupe, jamais ajouter ou exclure
-  quelqu'un après coup ;
+- un groupe a des **admins** (au départ, son créateur, qui en est le
+  **propriétaire**) : ils nomment d'autres admins, retirent des membres,
+  privent un membre de parole pour un temps (30 jours au plus) et décident
+  qui peut écrire, modifier le nom et la description, ou ajouter des
+  membres (tous, ou les admins seulement) ;
+- le propriétaire ne peut être ni retiré ni privé de parole ; le dernier
+  admin qui quitte un groupe passe la main à un membre ;
+- les membres sont ajoutés un par un, et seulement s'ils n'ont pas bloqué la
+  personne qui les ajoute ;
+- une personne bloquée ne peut plus écrire en privé, appeler, ni ajouter à un
+  groupe celle qui l'a bloquée ; la liste des personnes bloquées et des
+  conversations en sourdine (collection `settings`) n'est lisible que par son
+  propriétaire ;
 - les listes complètes (tous les comptes, tous les pseudos, toutes les
   conversations) ne sont jamais lisibles ;
 - tout nouveau message est chiffré, avec une clé pour chaque membre de la
@@ -180,8 +192,9 @@ que du texte chiffré (champ `enc`). Chaque compte reçoit à l'inscription un
 **code de secours** à noter : si quelqu'un oublie son mot de passe, ce code est
 le seul moyen de relire ses anciens messages. Sans lui, le site propose de
 créer une nouvelle clé, et les anciens messages restent illisibles pour ce
-compte. Les noms affichés, les pseudos, les titres de groupe et les dates
-d'envoi ne sont pas chiffrés.
+compte. Les noms affichés, les pseudos, les noms, descriptions et membres des
+groupes, et les dates d'envoi ne sont pas chiffrés. Les événements d'un
+groupe (« Alice a ajouté Bob ») sont des messages chiffrés comme les autres.
 
 Les **photos et messages vocaux** sont chiffrés de la même façon, chacun avec
 sa propre clé. Comme la formule gratuite ne donne pas accès à Cloud Storage,
