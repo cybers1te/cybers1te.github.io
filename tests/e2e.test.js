@@ -5,8 +5,11 @@ import assert from 'node:assert/strict';
 import {
   PASSWORD_ITERATIONS,
   RECOVERY_ITERATIONS,
+  decryptBlob,
   decryptMessage,
+  encryptBlob,
   encryptMessage,
+  encryptPayload,
   generateIdentity,
   importPrivateKey,
   isRecoveryCodeShaped,
@@ -74,4 +77,40 @@ test('code de secours : format, tolérance à la saisie, déverrouillage', async
   assert.ok(!isRecoveryCodeShaped('ABCD-EFGH'));
   const box = await seal(alice.pkcs8, normalizeRecoveryCode(code), RECOVERY_ITERATIONS);
   await unseal(box, normalizeRecoveryCode(typed));
+});
+
+test('enveloppe v2 (photo, vocal, appel) : aller-retour et version liée', async () => {
+  const payload = { t: 'image', caption: 'Vue du balcon', mime: 'image/webp', w: 800, h: 600, key: 'k', iv: 'i' };
+  const enc = await encryptPayload(payload, members, 'c1', 'alice');
+  assert.equal(enc.v, 2);
+  assert.deepEqual(JSON.parse(await decryptMessage(enc, 'bob', bob.privateKey, 'c1', 'alice')), payload);
+  assert.ok(!JSON.stringify(enc).includes('balcon'));
+  // Changer la version (v2 -> v1) ne doit pas faire passer l'enveloppe pour du texte.
+  await assert.rejects(decryptMessage({ ...enc, v: 1 }, 'bob', bob.privateKey, 'c1', 'alice'));
+  const v1 = await encryptMessage('texte', members, 'c1', 'alice');
+  await assert.rejects(decryptMessage({ ...v1, v: 2 }, 'bob', bob.privateKey, 'c1', 'alice'));
+  await assert.rejects(decryptMessage({ ...enc, v: 3 }, 'bob', bob.privateKey, 'c1', 'alice'));
+});
+
+test('fichier chiffré : aller-retour, lié au message, intègre', async () => {
+  const bytes = new Uint8Array(50000).map((_, i) => (i * 7) % 256);
+  const box = await encryptBlob(bytes, 'c1', 'm1');
+  assert.equal(box.data.length, bytes.length + 16);
+  assert.notDeepEqual(box.data.slice(0, 32), bytes.slice(0, 32));
+  const back = new Uint8Array(await decryptBlob(box.data, box.key, box.iv, 'c1', 'm1'));
+  assert.deepEqual(back, bytes);
+  await assert.rejects(decryptBlob(box.data, box.key, box.iv, 'c1', 'm2'));
+  await assert.rejects(decryptBlob(box.data, box.key, box.iv, 'c2', 'm1'));
+  const tampered = box.data.slice();
+  tampered[10] ^= 1;
+  await assert.rejects(decryptBlob(tampered, box.key, box.iv, 'c1', 'm1'));
+  const other = await encryptBlob(bytes, 'c1', 'm1');
+  await assert.rejects(decryptBlob(box.data, other.key, box.iv, 'c1', 'm1'));
+});
+
+test('enveloppe v2 la plus longue (légende de 2000 caractères) sous la limite des règles', async () => {
+  const payload = { t: 'image', caption: 'é'.repeat(2000), mime: 'image/jpeg', w: 1600, h: 1200,
+    key: 'A'.repeat(44), iv: 'B'.repeat(16) };
+  const enc = await encryptPayload(payload, members, 'c1', 'alice');
+  assert.ok(enc.ct.length <= 8200, 'ct = ' + enc.ct.length);
 });
