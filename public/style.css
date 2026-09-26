@@ -720,6 +720,24 @@ button, input, textarea { font: inherit; color: inherit; }
 .modal-head { display: flex; align-items: center; justify-content: space-between; margin: -6px -8px 16px 0; }
 .modal-head h2 { font-size: 20px; }
 
+/* Chiffrement de bout en bout */
+.log-hint.e2e { margin: 0 auto 12px; padding: 6px 12px; font-size: 12.5px; color: var(--faint); }
+.bubble.locked { font-style: italic; opacity: .75; }
+.recovery-code {
+  font: 600 19px/1.5 ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
+  letter-spacing: .06em;
+  text-align: center;
+  padding: 14px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+.field input.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace; letter-spacing: .04em; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 14.5px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+
 .profile-id { display: flex; align-items: center; gap: 14px; }
 .profile-id div { display: grid; min-width: 0; }
 .profile-id b { font-size: 17px; }

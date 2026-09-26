@@ -5,7 +5,11 @@
 // conversations et les messages, et les règles de firestore.rules décident qui
 // a le droit de lire et d'écrire quoi. Les écritures de ce fichier doivent
 // donc correspondre exactement à ce que ces règles acceptent.
+//
+// Les messages sont chiffrés de bout en bout avant de partir (voir e2e.js) :
+// Firestore ne reçoit jamais leur texte en clair.
 import { firebaseConfig } from './firebase-config.js';
+import * as E2E from './e2e.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/12.19.0/';
 const GUIDE = 'https://github.com/cybers1te/cybers1te.github.io/blob/main/FIREBASE.md';
@@ -205,6 +209,7 @@ function describe(err) {
     'auth/too-many-requests': 'Trop de tentatives. Réessaie dans quelques minutes.',
     'auth/network-request-failed': 'Connexion réseau impossible. Vérifie ta connexion Internet.',
     'auth/user-disabled': 'Ce compte a été désactivé.',
+    'auth/requires-recent-login': 'Par sécurité, déconnecte-toi puis reconnecte-toi avant de réessayer.',
     'auth/operation-not-allowed':
       'La connexion par e-mail n\'est pas activée dans Firebase (guide, étape 3).',
     'auth/configuration-not-found':
@@ -253,13 +258,27 @@ const state = {
   authMode: 'login',
 };
 
-const people = new Map();   // uid -> { name, username } | 'pending'
+const people = new Map();   // uid -> { name, username, publicKey } | 'pending'
 const drafts = new Map();   // brouillon par conversation
 const markedRead = new Map(); // cid -> id du dernier message déjà marqué lu
+const plain = new Map();    // 'cid/mid' -> { text, state: 'ok' | 'legacy' | 'error' }
+const decrypting = new Set();
 const unsub = { profile: null, convs: null, msgs: null };
 let pendingProfile = null;  // pseudo choisi à l'inscription, réservé dès la connexion
 let claiming = false;
 let ui = null;              // éléments de l'interface principale
+
+// Chiffrement : `vault` est la clé privée déverrouillée du compte connecté.
+// `secret` garde le mot de passe tapé à la connexion le temps de déverrouiller
+// la clé, puis il est oublié.
+let vault = null;           // { uid, publicKey, privateKey }
+let secret = null;
+let opening = false;
+let recoveryToShow = null;  // code de secours à montrer une fois
+
+function userError(message) {
+  return Object.assign(new Error(message), { userMessage: message });
+}
 
 function teardown() {
   for (const k of Object.keys(unsub)) {
@@ -276,6 +295,10 @@ function teardown() {
   people.clear();
   drafts.clear();
   markedRead.clear();
+  plain.clear();
+  decrypting.clear();
+  vault = null;
+  recoveryToShow = null;
   ui = null;
   document.title = 'message-me';
 }
@@ -300,17 +323,40 @@ function scheduleRender() {
   });
 }
 
+async function fetchPerson(uid) {
+  const snap = await F.getDoc(F.doc(db, 'users', uid));
+  const p = snap.exists() ? snap.data() : { name: 'Compte inconnu', username: '' };
+  people.set(uid, p);
+  return p;
+}
+
 function ensurePeople(uids) {
   for (const uid of uids) {
     if (people.has(uid)) continue;
     people.set(uid, 'pending');
-    F.getDoc(F.doc(db, 'users', uid))
-      .then((snap) => {
-        people.set(uid, snap.exists() ? snap.data() : { name: 'Compte inconnu', username: '' });
-      })
+    fetchPerson(uid)
       .catch(() => people.delete(uid))
       .finally(scheduleRender);
   }
+}
+
+/* Texte en clair d'un message (ou de l'aperçu d'une conversation, qui porte
+   le même identifiant). Déchiffre à la demande et redessine ensuite. */
+function plainText(cid, m) {
+  if (typeof m.text === 'string') return { text: m.text, state: 'legacy' };
+  const key = cid + '/' + m.id;
+  const hit = plain.get(key);
+  if (hit) return hit;
+  if (!m.enc || !vault) return { text: '', state: 'error' };
+  if (!decrypting.has(key)) {
+    decrypting.add(key);
+    const holder = vault;
+    E2E.decryptMessage(m.enc, holder.uid, holder.privateKey, cid, m.uid)
+      .then((text) => { if (vault === holder) plain.set(key, { text, state: 'ok' }); })
+      .catch(() => { if (vault === holder) plain.set(key, { text: '', state: 'error' }); })
+      .finally(() => { decrypting.delete(key); scheduleRender(); });
+  }
+  return { text: '', state: 'pending' };
 }
 
 function otherUid(conv) {
@@ -408,11 +454,16 @@ function watchProfile(user) {
       if (snap.metadata.hasPendingWrites && !state.profile) return;
       state.profile = { uid: user.uid, ...snap.data() };
       people.set(user.uid, state.profile);
-      if (state.screen !== 'main') {
-        startMain();
-      } else {
+      if (state.screen === 'main') {
+        // Clé changée depuis un autre appareil : on rouvre avec la nouvelle.
+        if (vault && state.profile.publicKey && state.profile.publicKey !== vault.publicKey) {
+          location.reload();
+          return;
+        }
         renderMe();
         scheduleRender();
+      } else if (!claiming && state.screen !== 'lock' && state.screen !== 'recovery') {
+        openVault();
       }
       return;
     }
@@ -429,15 +480,23 @@ function watchProfile(user) {
 }
 
 /* Réserve le pseudo et crée le profil dans une seule écriture groupée : les
-   règles refusent l'un sans l'autre, et refusent un pseudo déjà pris. */
+   règles refusent l'un sans l'autre, et refusent un pseudo déjà pris. Si le
+   mot de passe vient d'être tapé, la clé de chiffrement part avec. */
 async function claimProfile({ name, username }) {
   claiming = true;
+  let created = false;
   try {
     const uid = me();
+    const keys = secret ? await newKeys(secret) : null;
     const batch = F.writeBatch(db);
     batch.set(F.doc(db, 'usernames', username), { uid });
-    batch.set(F.doc(db, 'users', uid), { name, username, createdAt: F.serverTimestamp() });
+    batch.set(F.doc(db, 'users', uid), {
+      name, username, createdAt: F.serverTimestamp(), ...(keys ? { publicKey: keys.doc.publicKey } : {}),
+    });
+    if (keys) batch.set(F.doc(db, 'keys', uid), keys.doc);
     await batch.commit();
+    if (keys) await adoptKeys(keys);
+    created = true;
   } catch (err) {
     if (err.code === 'permission-denied') {
       const taken = await F.getDoc(F.doc(db, 'usernames', username)).catch(() => null);
@@ -450,7 +509,117 @@ async function claimProfile({ name, username }) {
     throw err;
   } finally {
     claiming = false;
+    if (created && state.profile) openVault();
   }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Clé de chiffrement du compte                                             */
+/* ------------------------------------------------------------------------ */
+
+/* Nouvelle paire de clés, scellée par le mot de passe et par un nouveau code
+   de secours, prête à écrire dans keys/{uid}. */
+async function newKeys(password) {
+  const identity = await E2E.generateIdentity();
+  const code = E2E.newRecoveryCode();
+  const [byPassword, byRecovery] = await Promise.all([
+    E2E.seal(identity.pkcs8, password, E2E.PASSWORD_ITERATIONS),
+    E2E.seal(identity.pkcs8, E2E.normalizeRecoveryCode(code), E2E.RECOVERY_ITERATIONS),
+  ]);
+  return {
+    identity,
+    code,
+    doc: { v: 1, publicKey: identity.publicKey, byPassword, byRecovery, updatedAt: F.serverTimestamp() },
+  };
+}
+
+/* Garde la clé déverrouillée en mémoire et sur cet appareil ; le code de
+   secours d'une clé toute neuve sera montré avant d'entrer. */
+async function adoptKeys({ identity, code }) {
+  vault = { uid: me(), publicKey: identity.publicKey, privateKey: identity.privateKey };
+  recoveryToShow = code;
+  await E2E.saveDeviceKey(vault.uid, { publicKey: vault.publicKey, privateKey: vault.privateKey });
+}
+
+async function adoptPkcs8(pkcs8, publicKey) {
+  const privateKey = await E2E.importPrivateKey(pkcs8);
+  vault = { uid: me(), publicKey, privateKey };
+  await E2E.saveDeviceKey(vault.uid, { publicKey, privateKey });
+}
+
+/* Crée (ou remplace, si le code de secours est perdu) la clé du compte. */
+async function writeNewKeys(password) {
+  const keys = await newKeys(password);
+  const uid = me();
+  const batch = F.writeBatch(db);
+  batch.set(F.doc(db, 'keys', uid), keys.doc);
+  batch.update(F.doc(db, 'users', uid), { publicKey: keys.doc.publicKey });
+  await batch.commit();
+  await adoptKeys(keys);
+}
+
+async function readKeys() {
+  const snap = await F.getDoc(F.doc(db, 'keys', me()));
+  return snap.exists() ? snap.data() : null;
+}
+
+async function tryPassword(box, password) {
+  try {
+    await adoptPkcs8(await E2E.unseal(box.byPassword, password), box.publicKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function reauthenticate(password) {
+  const user = auth.currentUser;
+  return A.reauthenticateWithCredential(user, A.EmailAuthProvider.credential(user.email, password));
+}
+
+/* Déverrouille la clé du compte, puis ouvre la messagerie. */
+async function openVault() {
+  if (opening) return;
+  opening = true;
+  try {
+    const uid = me();
+    if (!vault) {
+      const device = await E2E.loadDeviceKey(uid);
+      if (device && device.publicKey && device.publicKey === state.profile.publicKey) {
+        vault = { uid, publicKey: device.publicKey, privateKey: device.privateKey };
+      }
+    }
+    if (!vault) {
+      renderSplash('Déverrouillage de tes messages…');
+      const box = await readKeys();
+      if (!box) {
+        // Compte créé avant le chiffrement : on crée sa clé.
+        if (!secret) { renderUnlock('setup'); return; }
+        await writeNewKeys(secret);
+      } else if (!secret || !(await tryPassword(box, secret))) {
+        // Mot de passe connu mais qui n'ouvre pas la clé : il a été réinitialisé.
+        renderUnlock(secret ? 'changed' : 'password', box);
+        return;
+      }
+    }
+    secret = null;
+    enterMain();
+  } catch (err) {
+    renderFatal(describe(err));
+  } finally {
+    opening = false;
+  }
+}
+
+function enterMain() {
+  if (recoveryToShow) {
+    renderRecovery(recoveryToShow, () => {
+      recoveryToShow = null;
+      startMain();
+    });
+    return;
+  }
+  startMain();
 }
 
 /* ======================================================================== */
@@ -568,7 +737,13 @@ function renderAuth() {
   }
 
   async function doLogin() {
-    await A.signInWithEmailAndPassword(auth, email.value.trim(), password.value);
+    secret = password.value; // déverrouille la clé de chiffrement juste après
+    try {
+      await A.signInWithEmailAndPassword(auth, email.value.trim(), password.value);
+    } catch (err) {
+      secret = null;
+      throw err;
+    }
   }
 
   async function doRegister() {
@@ -581,10 +756,12 @@ function renderAuth() {
     // Le pseudo ne peut être réservé qu'une fois connecté (les règles
     // l'exigent) : on le garde de côté, watchProfile le réserve aussitôt.
     pendingProfile = { name: n, username: u };
+    secret = password.value; // scelle la clé de chiffrement créée avec le profil
     try {
       await A.createUserWithEmailAndPassword(auth, email.value.trim(), password.value);
     } catch (err) {
       pendingProfile = null;
+      secret = null;
       throw err;
     }
   }
@@ -598,7 +775,8 @@ function renderAuth() {
     }
     try {
       await A.sendPasswordResetEmail(auth, address);
-      toast('Si un compte existe pour ' + address + ', un e-mail de réinitialisation vient de partir.', 'success');
+      toast('Si un compte existe pour ' + address + ', un e-mail de réinitialisation vient de partir. ' +
+        'Garde ton code de secours sous la main pour relire tes messages.', 'success');
     } catch (err) {
       showError(error, describe(err));
     }
@@ -618,8 +796,9 @@ function renderAuth() {
         'Discussions à deux ou en groupe, synchronisées instantanément sur tous tes appareils.' }),
       preview,
       h('p', { class: 'fineprint', text:
-        'Les messages sont stockés dans Firebase et protégés par des règles d\'accès ; ' +
-        'ils ne sont pas chiffrés de bout en bout.' })),
+        '🔒 Les messages sont chiffrés de bout en bout : seuls les membres d\'une conversation ' +
+        'peuvent les lire, pas même l\'administrateur du site. Les noms, pseudos et titres de ' +
+        'groupe ne sont pas chiffrés.' })),
     h('section', { class: 'auth-panel' }, h('div', { class: 'card auth-card' },
       tabs,
       h('h2', { text: login ? 'Content de te revoir' : 'Crée ton compte' }),
@@ -661,7 +840,7 @@ function renderOnboarding(prefill = {}, err = null) {
       '3 à 20 caractères : lettres minuscules, chiffres, _.'),
     error,
     submit),
-    h('button', { class: 'linkish', type: 'button', onclick: () => A.signOut(auth) }, 'Se déconnecter'))));
+    h('button', { class: 'linkish', type: 'button', onclick: logout }, 'Se déconnecter'))));
 
   if (err) {
     showError(error, err.code === 'username-taken'
@@ -669,6 +848,157 @@ function renderOnboarding(prefill = {}, err = null) {
       : describe(err));
   }
   (prefill.name ? username : name).focus();
+}
+
+/* Déverrouillage de la clé de chiffrement.
+   - 'password' : session ouverte mais clé absente de cet appareil ;
+   - 'changed'  : le mot de passe a été réinitialisé, il faut le code de secours ;
+   - 'setup'    : compte créé avant le chiffrement, on lui crée sa clé. */
+function renderUnlock(mode, box = null) {
+  state.screen = 'lock';
+  const error = formError();
+  const recovery = mode === 'changed';
+  const input = recovery
+    ? h('input', {
+      name: 'code', required: true, autocapitalize: 'characters', autocomplete: 'off', spellcheck: 'false',
+      class: 'mono', placeholder: 'XXXX-XXXX-XXXX-XXXX-XXXX-XXXX',
+    })
+    : h('input', { type: 'password', name: 'password', required: true, autocomplete: 'current-password' });
+  const submit = h('button', { class: 'btn primary block', type: 'submit' },
+    mode === 'setup' ? 'Activer le chiffrement' : 'Déverrouiller');
+
+  const copy = {
+    password: ['Déverrouille tes messages',
+      'Tes messages sont chiffrés. Sur cet appareil, entre ton mot de passe pour les lire.'],
+    changed: ['Ton mot de passe a changé',
+      'Pour relire tes messages chiffrés, entre le code de secours que tu as noté à l\'inscription.'],
+    setup: ['Active le chiffrement',
+      'message-me chiffre désormais les messages de bout en bout. Entre ton mot de passe pour créer ta clé.'],
+  }[mode];
+
+  async function unlock() {
+    if (mode === 'changed') {
+      if (!E2E.isRecoveryCodeShaped(input.value)) throw userError('Le code de secours compte 24 caractères, par groupes de 4.');
+      let pkcs8;
+      try {
+        pkcs8 = await E2E.unseal(box.byRecovery, E2E.normalizeRecoveryCode(input.value));
+      } catch {
+        throw userError('Code de secours incorrect.');
+      }
+      // La clé est rescellée avec le nouveau mot de passe.
+      const byPassword = await E2E.seal(pkcs8, secret, E2E.PASSWORD_ITERATIONS);
+      await F.updateDoc(F.doc(db, 'keys', me()), { byPassword, updatedAt: F.serverTimestamp() });
+      await adoptPkcs8(pkcs8, box.publicKey);
+      toast('Messages déverrouillés.', 'success');
+    } else {
+      const password = input.value;
+      if (!password) throw userError('Indique ton mot de passe.');
+      if (mode === 'password' && await tryPassword(box, password)) {
+        // Rien d'autre à faire.
+      } else {
+        try {
+          await reauthenticate(password);
+        } catch (err) {
+          const code = (err && err.code) || '';
+          if (/wrong-password|invalid-credential|invalid-login/.test(code)) throw userError('Mot de passe incorrect.');
+          throw err;
+        }
+        secret = password;
+        if (mode === 'password') { renderUnlock('changed', box); return; }
+        await writeNewKeys(password);
+      }
+    }
+    secret = null;
+    enterMain();
+  }
+
+  const form = h('form', {
+    class: 'form', novalidate: true,
+    onsubmit: (e) => {
+      e.preventDefault();
+      showError(error, '');
+      busy(submit, unlock).catch((err) => showError(error, err.userMessage || describe(err)));
+    },
+  },
+  field(recovery ? 'Code de secours' : 'Mot de passe', input),
+  error,
+  submit);
+
+  mount(h('div', { class: 'center' }, h('div', { class: 'card narrow' },
+    logo(),
+    h('p', { class: 'kicker', text: '🔒 Chiffrement de bout en bout' }),
+    h('h1', { text: copy[0] }),
+    h('p', { class: 'lead', text: copy[1] }),
+    form,
+    h('div', { class: 'row-actions' },
+      recovery ? h('button', { class: 'linkish', type: 'button', onclick: lostCode }, 'J\'ai perdu mon code') : null,
+      h('button', { class: 'linkish', type: 'button', onclick: logout }, 'Se déconnecter')))));
+  input.focus();
+
+  function lostCode() {
+    const confirmBtn = h('button', { class: 'btn primary', type: 'button' }, 'Créer une nouvelle clé');
+    const err = formError();
+    const dlg = modal('Code de secours perdu', h('div', { class: 'form' },
+      h('p', { text: 'Sans ce code, personne ne peut déchiffrer tes anciens messages : ils resteront illisibles pour toi.' }),
+      h('p', { text: 'Tu peux créer une nouvelle clé pour continuer à discuter. Les nouveaux messages seront lisibles normalement.' }),
+      err,
+      h('div', { class: 'row-actions end' },
+        h('button', { class: 'btn ghost', type: 'button', onclick: () => dlg.close() }, 'Annuler'),
+        confirmBtn)));
+    confirmBtn.addEventListener('click', () => {
+      busy(confirmBtn, async () => {
+        await writeNewKeys(secret);
+        secret = null;
+        dlg.close();
+        enterMain();
+      }).catch((e) => showError(err, e.userMessage || describe(e)));
+    });
+  }
+}
+
+/* Bloc qui affiche un code de secours, avec copie et téléchargement. */
+function recoveryPanel(code, onDone) {
+  const ok = h('input', { type: 'checkbox', name: 'saved' });
+  const next = h('button', { class: 'btn primary block', type: 'button', disabled: true, onclick: onDone }, 'Continuer');
+  ok.addEventListener('change', () => { next.disabled = !ok.checked; });
+  const text = 'Code de secours message-me (' + (state.user ? state.user.email : '') + ')\n\n' + code + '\n\n' +
+    'Il permet de relire tes messages chiffrés si tu oublies ton mot de passe.\n';
+  return h('div', { class: 'form' },
+    h('p', { class: 'recovery-code', text: code, 'aria-label': 'Code de secours' }),
+    h('div', { class: 'row-actions' },
+      h('button', {
+        class: 'btn ghost sm', type: 'button',
+        onclick: () => navigator.clipboard.writeText(code)
+          .then(() => toast('Code copié.', 'success'))
+          .catch(() => toast('Copie impossible : recopie le code à la main.', 'info')),
+      }, icon('copy'), 'Copier'),
+      h('button', {
+        class: 'btn ghost sm', type: 'button',
+        onclick: () => {
+          const a = h('a', {
+            href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
+            download: 'message-me-code-de-secours.txt',
+          });
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        },
+      }, 'Télécharger')),
+    h('p', { class: 'fineprint', text:
+      'Si tu oublies ton mot de passe, ce code est le seul moyen de relire tes messages. Personne ne peut ' +
+      'le retrouver pour toi, pas même l\'administrateur du site. Range-le hors de ce site : sur papier ou ' +
+      'dans un gestionnaire de mots de passe.' }),
+    h('label', { class: 'check' }, ok, h('span', { text: 'J\'ai noté ce code en lieu sûr.' })),
+    next);
+}
+
+function renderRecovery(code, onDone) {
+  state.screen = 'recovery';
+  mount(h('div', { class: 'center' }, h('div', { class: 'card narrow' },
+    logo(),
+    h('p', { class: 'kicker', text: '🔒 Chiffrement de bout en bout' }),
+    h('h1', { text: 'Ton code de secours' }),
+    h('p', { class: 'lead', text: 'Tes messages sont chiffrés avec une clé protégée par ton mot de passe. Note ce code : il ne sera plus jamais affiché.' }),
+    recoveryPanel(code, onDone))));
 }
 
 /* ======================================================================== */
@@ -774,7 +1104,10 @@ function renderConvList() {
     if (lm) {
       const who = lm.uid === me() ? 'Toi : '
         : (c.type === 'group' ? ((person(lm.uid) || {}).name || '…') + ' : ' : '');
-      preview = who + lm.text.replace(/\s+/g, ' ');
+      const p = plainText(c.id, lm);
+      const body = p.state === 'pending' ? '…'
+        : p.state === 'error' ? '🔒 Message illisible' : p.text.replace(/\s+/g, ' ');
+      preview = who + body;
     }
     return h('a', {
       class: 'conv' + (unread ? ' unread' : ''),
@@ -917,7 +1250,8 @@ function renderMessages() {
     if (lastMine && !lastMine.pending && readAt && readAt >= lastMine.t) seenId = lastMine.id;
   }
 
-  const nodes = [];
+  const nodes = [h('p', { class: 'log-hint e2e', text:
+    '🔒 Les messages de cette conversation sont chiffrés de bout en bout.' })];
   if (state.messages.length >= HISTORY) {
     nodes.push(h('p', { class: 'log-hint', text: 'Seuls les ' + HISTORY + ' derniers messages sont affichés.' }));
   }
@@ -934,10 +1268,14 @@ function renderMessages() {
     const last = !next || next.uid !== m.uid || next.t - m.t > RUN_GAP || startOfDay(next.t) !== day;
     const mine = m.uid === me();
     const author = person(m.uid);
+    const p = plainText(state.activeId, m);
+    const readable = p.state === 'ok' || p.state === 'legacy';
     const bubble = h('div', {
-      class: 'bubble' + (EMOJI_ONLY.test(m.text) ? ' emoji' : ''),
-      title: fmtTime.format(m.t),
-    }, richText(m.text));
+      class: 'bubble' + (readable && EMOJI_ONLY.test(p.text) ? ' emoji' : '') + (readable ? '' : ' locked'),
+      title: p.state === 'error'
+        ? 'Ce message a été chiffré pour une ancienne clé de ton compte.'
+        : fmtTime.format(m.t) + (p.state === 'legacy' ? ' · envoyé avant le chiffrement' : ''),
+    }, p.state === 'pending' ? 'Déchiffrement…' : p.state === 'error' ? '🔒 Message illisible' : richText(p.text));
 
     const row = h('div', {
       class: 'msg ' + (mine ? 'mine' : 'theirs') + (first ? ' first' : '') + (last ? ' last' : '') +
@@ -988,7 +1326,7 @@ function buildComposer(cid) {
       drafts.delete(cid);
       sync();
       sendMessage(cid, text).catch((err) => {
-        toast('Message non envoyé : ' + describe(err), 'error');
+        toast('Message non envoyé : ' + (err.userMessage || describe(err)), 'error');
         if (!ta.value) { ta.value = text; sync(); }
       });
     },
@@ -1005,15 +1343,38 @@ function buildComposer(cid) {
   return form;
 }
 
-/* Le message et l'aperçu de la conversation partent dans la même écriture
-   groupée : les règles refusent l'un sans l'autre. */
-function sendMessage(cid, text) {
+/* Clés publiques de tous les membres (y compris soi), relues à chaque envoi :
+   un message chiffré pour une clé remplacée resterait illisible. */
+async function memberKeys(conv) {
+  const keys = { [me()]: vault.publicKey };
+  const missing = [];
+  const others = conv.members.filter((uid) => uid !== me());
+  const fresh = await Promise.all(others.map(fetchPerson));
+  others.forEach((uid, i) => {
+    const p = fresh[i];
+    if (p.publicKey) keys[uid] = p.publicKey;
+    else missing.push(p.username ? '@' + p.username : p.name);
+  });
+  if (missing.length) {
+    throw userError(missing.join(', ') + (missing.length > 1 ? ' doivent' : ' doit') +
+      ' se reconnecter une fois à message-me pour activer le chiffrement.');
+  }
+  return keys;
+}
+
+/* Le message chiffré et l'aperçu de la conversation partent dans la même
+   écriture groupée : les règles refusent l'un sans l'autre. */
+async function sendMessage(cid, text) {
+  const conv = state.convs.find((c) => c.id === cid);
+  if (!conv || !vault) throw userError('Conversation pas encore chargée, réessaie dans un instant.');
   const uid = me();
+  const enc = await E2E.encryptMessage(text, await memberKeys(conv), cid, uid);
   const msg = F.doc(F.collection(db, 'conversations', cid, 'messages'));
+  plain.set(cid + '/' + msg.id, { text, state: 'ok' });
   const batch = F.writeBatch(db);
-  batch.set(msg, { uid, text, createdAt: F.serverTimestamp() });
+  batch.set(msg, { uid, enc, createdAt: F.serverTimestamp() });
   batch.update(F.doc(db, 'conversations', cid), {
-    lastMessage: { id: msg.id, uid, text, at: F.serverTimestamp() },
+    lastMessage: { id: msg.id, uid, enc, at: F.serverTimestamp() },
     updatedAt: F.serverTimestamp(),
     ['lastRead.' + uid]: F.serverTimestamp(),
   });
@@ -1043,8 +1404,12 @@ async function leaveGroup(conv) {
   }
 }
 
+/* La clé déverrouillée est effacée de cet appareil à la déconnexion. */
 async function logout() {
+  const uid = me();
+  secret = null;
   teardown();
+  if (uid) await E2E.deleteDeviceKey(uid);
   await A.signOut(auth);
 }
 
@@ -1202,11 +1567,12 @@ function openProfile() {
         .catch(() => toast('Copie impossible : ton pseudo est @' + p.username, 'info')),
     }, icon('copy'), 'Copier mon pseudo'),
     h('button', {
-      class: 'btn ghost sm', type: 'button',
-      onclick: () => A.sendPasswordResetEmail(auth, state.user.email)
-        .then(() => toast('E-mail envoyé à ' + state.user.email + ' pour changer de mot de passe.', 'success'))
-        .catch((err) => toast(describe(err), 'error')),
-    }, icon('mail'), 'Changer de mot de passe')),
+      class: 'btn ghost sm', type: 'button', onclick: () => { dlg.close(); openChangePassword(); },
+    }, icon('mail'), 'Changer de mot de passe'),
+    h('button', {
+      class: 'btn ghost sm', type: 'button', onclick: () => { dlg.close(); openNewRecoveryCode(); },
+    }, 'Nouveau code de secours')),
+  h('p', { class: 'fineprint', text: '🔒 Tes messages sont chiffrés de bout en bout.' }),
   field('Nom affiché', name),
   error,
   h('div', { class: 'row-actions end' },
@@ -1215,6 +1581,90 @@ function openProfile() {
     save));
 
   const dlg = modal('Mon profil', form);
+}
+
+/* Ouvre la clé privée avec le mot de passe actuel (vérifié par Firebase). */
+async function unsealWithPassword(password) {
+  try {
+    await reauthenticate(password);
+  } catch (err) {
+    const code = (err && err.code) || '';
+    if (/wrong-password|invalid-credential|invalid-login/.test(code)) throw userError('Mot de passe actuel incorrect.');
+    throw err;
+  }
+  const box = await readKeys();
+  if (!box) throw userError('Clé de chiffrement introuvable. Déconnecte-toi puis reconnecte-toi.');
+  try {
+    return await E2E.unseal(box.byPassword, password);
+  } catch {
+    throw userError('Ta clé ne s\'ouvre pas avec ce mot de passe. Déconnecte-toi puis reconnecte-toi avec ton code de secours.');
+  }
+}
+
+/* Le mot de passe change dans Firebase, et la clé privée est rescellée avec
+   le nouveau : les messages restent lisibles. */
+function openChangePassword() {
+  const error = formError();
+  const current = h('input', { type: 'password', name: 'current', required: true, autocomplete: 'current-password' });
+  const next = h('input', { type: 'password', name: 'next', required: true, minlength: 8, autocomplete: 'new-password' });
+  const save = h('button', { class: 'btn primary', type: 'submit' }, 'Changer');
+  const form = h('form', {
+    class: 'form', novalidate: true,
+    onsubmit: (e) => {
+      e.preventDefault();
+      showError(error, '');
+      busy(save, async () => {
+        if (next.value.length < 8) throw userError('Nouveau mot de passe trop court : 8 caractères minimum.');
+        const pkcs8 = await unsealWithPassword(current.value);
+        const byPassword = await E2E.seal(pkcs8, next.value, E2E.PASSWORD_ITERATIONS);
+        await A.updatePassword(auth.currentUser, next.value);
+        await F.updateDoc(F.doc(db, 'keys', me()), { byPassword, updatedAt: F.serverTimestamp() });
+        toast('Mot de passe changé.', 'success');
+        dlg.close();
+      }).catch((err) => showError(error, err.userMessage || describe(err)));
+    },
+  },
+  field('Mot de passe actuel', current),
+  field('Nouveau mot de passe', next, '8 caractères minimum.'),
+  error,
+  h('div', { class: 'row-actions end' },
+    h('button', { class: 'btn ghost', type: 'button', onclick: () => dlg.close() }, 'Annuler'),
+    save));
+  const dlg = modal('Changer de mot de passe', form);
+  current.focus();
+}
+
+/* Remplace le code de secours (l'ancien cesse de fonctionner). */
+function openNewRecoveryCode() {
+  const error = formError();
+  const password = h('input', { type: 'password', name: 'password', required: true, autocomplete: 'current-password' });
+  const go = h('button', { class: 'btn primary', type: 'submit' }, 'Générer');
+  const body = h('div', {});
+  const form = h('form', {
+    class: 'form', novalidate: true,
+    onsubmit: (e) => {
+      e.preventDefault();
+      showError(error, '');
+      busy(go, async () => {
+        const pkcs8 = await unsealWithPassword(password.value);
+        const code = E2E.newRecoveryCode();
+        const byRecovery = await E2E.seal(pkcs8, E2E.normalizeRecoveryCode(code), E2E.RECOVERY_ITERATIONS);
+        await F.updateDoc(F.doc(db, 'keys', me()), { byRecovery, updatedAt: F.serverTimestamp() });
+        body.replaceChildren(
+          h('p', { class: 'lead', text: 'Voici ton nouveau code. L\'ancien ne fonctionne plus.' }),
+          recoveryPanel(code, () => dlg.close()));
+      }).catch((err) => showError(error, err.userMessage || describe(err)));
+    },
+  },
+  h('p', { text: 'Un nouveau code de secours remplace l\'ancien. Confirme avec ton mot de passe.' }),
+  field('Mot de passe', password),
+  error,
+  h('div', { class: 'row-actions end' },
+    h('button', { class: 'btn ghost', type: 'button', onclick: () => dlg.close() }, 'Annuler'),
+    go));
+  body.append(form);
+  const dlg = modal('Nouveau code de secours', body);
+  password.focus();
 }
 
 start();
