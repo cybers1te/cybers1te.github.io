@@ -37,13 +37,20 @@ navigateur, qui parle directement à Firebase.
   web de Firebase est publique par conception, ce sont ces règles qui
   décident qui lit et écrit quoi (membres seuls, pas d'usurpation d'auteur,
   pseudos uniques, messages non modifiables…).
+- **`public/e2e.js`** chiffre les messages de bout en bout dans le navigateur
+  (Web Crypto : ECDH P-256, HKDF, AES-GCM) : Firestore ne stocke que du texte
+  chiffré, illisible même pour le propriétaire du projet. La clé privée de
+  chaque compte est scellée par son mot de passe et par un code de secours
+  (PBKDF2-SHA-256), affiché une seule fois à l'inscription. Les noms, pseudos
+  et titres de groupe restent en clair.
 
 ```text
 usernames/{pseudo}                   { uid }
-users/{uid}                          { name, username, createdAt }
+users/{uid}                          { name, username, createdAt, publicKey }
+keys/{uid}                           { v, publicKey, byPassword, byRecovery, updatedAt }
 conversations/{cid}                  { type, members, title, createdBy,
                                        createdAt, updatedAt, lastMessage, lastRead }
-conversations/{cid}/messages/{mid}   { uid, text, createdAt }
+conversations/{cid}/messages/{mid}   { uid, enc, createdAt }
 ```
 
 ### Développement local et tests

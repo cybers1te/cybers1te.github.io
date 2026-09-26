@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "firebase emulators:start --project demo-message-me",
-    "test": "firebase emulators:exec --only firestore --project demo-message-me \"node --test tests/firestore.rules.test.js\"",
+    "test": "firebase emulators:exec --only firestore --project demo-message-me \"node --test tests/e2e.test.js tests/firestore.rules.test.js\"",
     "deploy:rules": "firebase deploy --only firestore"
   },
   "devDependencies": {

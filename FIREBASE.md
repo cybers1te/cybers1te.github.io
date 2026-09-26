@@ -153,15 +153,22 @@ Pour voir le détail d'une erreur : touche **F12** → onglet **Console**.
 - on ne peut que se retirer soi-même d'un groupe, jamais ajouter ou exclure
   quelqu'un après coup ;
 - les listes complètes (tous les comptes, tous les pseudos, toutes les
-  conversations) ne sont jamais lisibles.
+  conversations) ne sont jamais lisibles ;
+- tout nouveau message est chiffré, avec une clé pour chaque membre de la
+  conversation et pour personne d'autre ;
+- la clé privée scellée d'un compte n'est lisible que par lui.
 
 Ces règles sont testées automatiquement (`npm test`, et à chaque push par
 GitHub Actions). **Si tu modifies `firestore.rules` dans le dépôt, republie-le
 dans la console (étape 4)** : GitHub ne l'envoie pas à Firebase tout seul.
 
-Les messages ne sont **pas** chiffrés de bout en bout : en tant que
-propriétaire du projet, tu peux les lire dans la console. Le site le signale
-sur son écran de connexion.
+Les messages sont **chiffrés de bout en bout** : dans la console, tu ne vois
+que du texte chiffré (champ `enc`). Chaque compte reçoit à l'inscription un
+**code de secours** à noter : si quelqu'un oublie son mot de passe, ce code est
+le seul moyen de relire ses anciens messages. Sans lui, le site propose de
+créer une nouvelle clé, et les anciens messages restent illisibles pour ce
+compte. Les noms affichés, les pseudos, les titres de groupe et les dates
+d'envoi ne sont pas chiffrés.
 
 ## Pour aller plus loin (facultatif)
 
