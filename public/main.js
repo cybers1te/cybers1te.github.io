@@ -6,10 +6,16 @@
 // a le droit de lire et d'écrire quoi. Les écritures de ce fichier doivent
 // donc correspondre exactement à ce que ces règles acceptent.
 //
-// Les messages sont chiffrés de bout en bout avant de partir (voir e2e.js) :
-// Firestore ne reçoit jamais leur texte en clair.
-import { firebaseConfig } from './firebase-config.js';
+// Les messages, photos et messages vocaux sont chiffrés de bout en bout
+// avant de partir (voir e2e.js) : Firestore ne reçoit jamais leur contenu en
+// clair. Les appels passent directement d'un navigateur à l'autre (calls.js).
+import * as appConfig from './firebase-config.js';
 import * as E2E from './e2e.js';
+import * as Media from './media.js';
+import * as Notify from './notify.js';
+import { callsSupported, createCalls } from './calls.js';
+
+const { firebaseConfig } = appConfig;
 
 const SDK = 'https://www.gstatic.com/firebasejs/12.19.0/';
 const GUIDE = 'https://github.com/cybers1te/cybers1te.github.io/blob/main/FIREBASE.md';
@@ -22,6 +28,8 @@ const MAX_TEXT = 2000;
 const MAX_MEMBERS = 20;
 const HISTORY = 200;          // messages chargés par conversation
 const RUN_GAP = 5 * 60 * 1000; // deux messages d'une même personne à moins de 5 min forment un bloc
+const TYPING_MS = 6000;        // durée d'affichage de « … écrit » après un signal
+const TYPING_EVERY = 3000;     // on signale sa saisie au plus toutes les 3 s
 
 // Projet fictif utilisé avec les émulateurs locaux (npm run dev, puis
 // http://127.0.0.1:5000/?emulateurs).
@@ -74,6 +82,19 @@ const ICONS = {
   logout: '<path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14"/><path d="M9 16l-4-4 4-4M5 12h10"/>',
   mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4 7l8 6 8-6"/>',
   chats: '<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h8A2.5 2.5 0 0 1 17 6.5v5a2.5 2.5 0 0 1-2.5 2.5H10l-4 3.5V14h0.5A2.5 2.5 0 0 1 4 11.5z"/><path d="M17 8.5h0.5A2.5 2.5 0 0 1 20 11v5a2.5 2.5 0 0 1-2.5 2.5H17V21l-3.5-2.5H11"/>',
+  image: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/>',
+  mic: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>',
+  micOff: '<path d="M9 9v2.5a3 3 0 0 0 5.2 2M15 11.5V6.5a3 3 0 0 0-5.8-1"/><path d="M5.5 11.5a6.5 6.5 0 0 0 10.4 5.2M18.5 11.5a6.4 6.4 0 0 1-.6 2.7M12 18v3M4 4l16 16"/>',
+  phone: '<path d="M5 4.5h3.2l1.6 4-2.1 1.3a11 11 0 0 0 6.5 6.5l1.3-2.1 4 1.6V19a1.5 1.5 0 0 1-1.6 1.5A15.5 15.5 0 0 1 3.5 6.1 1.5 1.5 0 0 1 5 4.5z"/>',
+  hangup: '<path d="M3.2 14.6l-.4-2.3a1.6 1.6 0 0 1 .9-1.7 18.5 18.5 0 0 1 16.6 0 1.6 1.6 0 0 1 .9 1.7l-.4 2.3a1.3 1.3 0 0 1-1.6 1l-3-.7a1.3 1.3 0 0 1-1-1.2l-.1-1.6a12.3 12.3 0 0 0-5.3 0l-.1 1.6a1.3 1.3 0 0 1-1 1.2l-3 .7a1.3 1.3 0 0 1-1.5-1z"/>',
+  video: '<rect x="3" y="6.5" width="12.5" height="11" rx="2.5"/><path d="M15.5 10.5l5.5-3v9l-5.5-3z"/>',
+  videoOff: '<path d="M8 6.5h5A2.5 2.5 0 0 1 15.5 9v4.5M15.5 10.5l5.5-3v9l-4-2.2M15 17.5H5.5A2.5 2.5 0 0 1 3 15V9a2.5 2.5 0 0 1 1.6-2.3M3 3l18 18"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>',
+  pause: '<path d="M8 5.5v13M16 5.5v13" stroke-width="3.2"/>',
+  trash: '<path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l1 12.5h9l1-12.5M10 10.5v6M14 10.5v6"/>',
+  down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
+  bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15zM10 20.5a2.2 2.2 0 0 0 4 0"/>',
+  download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/>',
 };
 
 function icon(name) {
@@ -194,7 +215,9 @@ function normalizeUsername(v) {
 /* Messages d'erreur compréhensibles, avec un renvoi vers l'étape du guide
    quand l'erreur vient d'une configuration Firebase incomplète. */
 function describe(err) {
-  const code = (err && err.code) || '';
+  // Les erreurs du navigateur (DOMException) portent leur nom dans `name` ;
+  // leur `code` est un vieux numéro sans intérêt.
+  const code = (err && typeof err.code === 'string' && err.code) || (err && err.name !== 'Error' && err.name) || '';
   const map = {
     'auth/invalid-credential': 'Adresse e-mail ou mot de passe incorrect.',
     'auth/wrong-password': 'Adresse e-mail ou mot de passe incorrect.',
@@ -224,6 +247,17 @@ function describe(err) {
       'Accès refusé par les règles Firestore. Les règles de firestore.rules sont-elles publiées ? (guide, étape 4)',
     'not-found': 'Base Firestore introuvable : crée-la dans la console Firebase (guide, étape 4).',
     'unavailable': 'Firebase est injoignable pour le moment. Nouvelle tentative automatique…',
+    'resource-exhausted': 'La limite gratuite de Firebase est atteinte pour aujourd\'hui. Réessaie demain.',
+    'invalid-argument': 'Fichier trop volumineux pour être envoyé.',
+    'NotAllowedError': 'Accès au micro ou à la caméra refusé. Autorise-le dans les réglages du site (icône à gauche de l\'adresse).',
+    'SecurityError': 'Accès au micro ou à la caméra refusé. Autorise-le dans les réglages du site (icône à gauche de l\'adresse).',
+    'NotFoundError': 'Aucun micro ou caméra détecté sur cet appareil.',
+    'NotReadableError': 'Le micro ou la caméra est déjà utilisé par une autre application.',
+    'OverconstrainedError': 'Le micro ou la caméra ne convient pas. Essaie un autre appareil.',
+    'not-image': 'Ce fichier n\'est pas une image.',
+    'image-decode': 'Impossible de lire cette image. Essaie un autre format (JPEG, PNG).',
+    'too-big': 'Fichier trop volumineux, même après compression.',
+    'busy': 'Un appel est déjà en cours.',
   };
   if (map[code]) return map[code];
   if (code.startsWith('auth/requests-from-referer')) return map['auth/unauthorized-domain'];
@@ -261,9 +295,21 @@ const state = {
 const people = new Map();   // uid -> { name, username, publicKey } | 'pending'
 const drafts = new Map();   // brouillon par conversation
 const markedRead = new Map(); // cid -> id du dernier message déjà marqué lu
-const plain = new Map();    // 'cid/mid' -> { text, state: 'ok' | 'legacy' | 'error' }
-const decrypting = new Set();
+const plain = new Map();    // 'cid/mid' -> { state, kind, text, payload } (voir content())
+const decrypting = new Map(); // 'cid/mid' -> déchiffrement en cours
+const mediaUrls = new Map(); // 'cid/mid' -> Promise de l'URL locale du fichier déchiffré
+const rowCache = new Map();  // mid -> { sig, node } : lignes déjà dessinées de la conversation ouverte
+const typingSeen = new Map(); // 'cid/uid' -> dernier signal de saisie reçu
+const typingUntil = new Map(); // 'cid/uid' -> fin d'affichage de « … écrit »
+const lastSeenMsg = new Map(); // cid -> dernier message déjà signalé (notifications)
+const announcedCalls = new Set();
 const unsub = { profile: null, convs: null, msgs: null };
+let convsInit = false;
+let calls = null;           // appels (calls.js), si le navigateur les gère
+let callLayer = null;       // écran d'appel
+let endedCall = null;       // appel qui vient de se terminer (écran de fin)
+let unsubPlayer = null;
+let lastTypingSent = 0;
 let pendingProfile = null;  // pseudo choisi à l'inscription, réservé dès la connexion
 let claiming = false;
 let ui = null;              // éléments de l'interface principale
@@ -281,6 +327,28 @@ function userError(message) {
 }
 
 function teardown() {
+  if (ui && ui.composer && ui.composer.cleanup) ui.composer.cleanup();
+  if (calls) calls.dispose();
+  calls = null;
+  Notify.stopRingtone();
+  endedCall = null;
+  if (callLayer) {
+    clearInterval(callLayer.timer);
+    callLayer.el.remove();
+    callLayer = null;
+  }
+  if (unsubPlayer) unsubPlayer();
+  unsubPlayer = null;
+  Media.player.stop();
+  for (const job of mediaUrls.values()) job.then((url) => URL.revokeObjectURL(url)).catch(() => {});
+  mediaUrls.clear();
+  rowCache.clear();
+  typingSeen.clear();
+  typingUntil.clear();
+  lastSeenMsg.clear();
+  announcedCalls.clear();
+  convsInit = false;
+  lastTypingSent = 0;
   for (const k of Object.keys(unsub)) {
     if (unsub[k]) unsub[k]();
     unsub[k] = null;
@@ -340,23 +408,120 @@ function ensurePeople(uids) {
   }
 }
 
-/* Texte en clair d'un message (ou de l'aperçu d'une conversation, qui porte
-   le même identifiant). Déchiffre à la demande et redessine ensuite. */
-function plainText(cid, m) {
-  if (typeof m.text === 'string') return { text: m.text, state: 'legacy' };
+/* Contenu en clair d'un message (ou de l'aperçu d'une conversation, qui porte
+   le même identifiant) : { state, kind, text, payload }.
+     state : 'ok' | 'legacy' (envoyé avant le chiffrement) | 'pending' | 'error'
+     kind  : 'text' | 'image' | 'audio' | 'call'
+   Déchiffre à la demande et redessine ensuite. */
+const LOCKED = { state: 'error', kind: 'text', text: '' };
+const RICH_KINDS = ['image', 'audio', 'call'];
+
+function readPayload(v, raw) {
+  if (v !== 2) return { state: 'ok', kind: 'text', text: raw };
+  try {
+    const p = JSON.parse(raw);
+    if (p && RICH_KINDS.includes(p.t)) {
+      return { state: 'ok', kind: p.t, text: typeof p.caption === 'string' ? p.caption : '', payload: p };
+    }
+  } catch {
+    // Enveloppe illisible.
+  }
+  return LOCKED;
+}
+
+function decryptContent(cid, m) {
+  if (typeof m.text === 'string') return Promise.resolve({ state: 'legacy', kind: 'text', text: m.text });
+  const key = cid + '/' + m.id;
+  if (plain.has(key)) return Promise.resolve(plain.get(key));
+  if (decrypting.has(key)) return decrypting.get(key);
+  if (!m.enc || !vault) return Promise.resolve(LOCKED);
+  const holder = vault;
+  const job = E2E.decryptMessage(m.enc, holder.uid, holder.privateKey, cid, m.uid)
+    .then((raw) => readPayload(m.enc.v, raw), () => LOCKED)
+    .then((c) => {
+      decrypting.delete(key);
+      if (vault === holder) plain.set(key, c);
+      return c;
+    });
+  decrypting.set(key, job);
+  return job;
+}
+
+function content(cid, m) {
+  if (typeof m.text === 'string') return { state: 'legacy', kind: 'text', text: m.text };
   const key = cid + '/' + m.id;
   const hit = plain.get(key);
   if (hit) return hit;
-  if (!m.enc || !vault) return { text: '', state: 'error' };
-  if (!decrypting.has(key)) {
-    decrypting.add(key);
-    const holder = vault;
-    E2E.decryptMessage(m.enc, holder.uid, holder.privateKey, cid, m.uid)
-      .then((text) => { if (vault === holder) plain.set(key, { text, state: 'ok' }); })
-      .catch(() => { if (vault === holder) plain.set(key, { text: '', state: 'error' }); })
-      .finally(() => { decrypting.delete(key); scheduleRender(); });
+  if (!m.enc || !vault) return LOCKED;
+  if (!decrypting.has(key)) decryptContent(cid, m).then(scheduleRender);
+  return { state: 'pending', kind: 'text', text: '' };
+}
+
+function spokenDuration(seconds) {
+  const s = Math.max(0, Math.round(seconds || 0));
+  return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0');
+}
+
+function callLabel(p, mine) {
+  const kind = p.video ? 'Appel vidéo' : 'Appel vocal';
+  if (p.status === 'ended') return kind + ' · ' + spokenDuration(p.duration);
+  if (p.status === 'declined') return kind + ' refusé';
+  if (p.status === 'failed') return kind + ' : connexion impossible';
+  return kind + (mine ? ' sans réponse' : ' manqué');
+}
+
+/* Résumé d'une ligne : aperçu de la liste, notifications. */
+function summary(c, mine) {
+  if (c.state === 'pending') return '…';
+  if (c.state === 'error') return '🔒 Message illisible';
+  if (c.kind === 'image') return '📷 Photo' + (c.text ? ' · ' + c.text : '');
+  if (c.kind === 'audio') return '🎤 Message vocal (' + Media.formatDuration(c.payload.duration) + ')';
+  if (c.kind === 'call') return '📞 ' + callLabel(c.payload, mine);
+  return c.text;
+}
+
+/* Type du fichier, choisi par l'expéditeur : seuls des formats d'image et de
+   son inoffensifs sont gardés. Une « photo » en text/html ou image/svg+xml,
+   ouverte dans un onglet, exécuterait du code sur ce site. */
+const SAFE_TYPES = {
+  image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'],
+  audio: ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg', 'audio/aac', 'audio/wav', 'audio/x-m4a'],
+};
+
+function safeType(p) {
+  const base = String(p.mime || '').split(';')[0].trim().toLowerCase();
+  return (SAFE_TYPES[p.t] || []).includes(base) ? base : 'application/octet-stream';
+}
+
+/* Fichier chiffré d'un message, déchiffré en mémoire : URL locale (blob:). */
+function mediaUrl(cid, mid, p) {
+  const key = cid + '/' + mid;
+  if (!mediaUrls.has(key)) {
+    const job = F.getDoc(F.doc(db, 'conversations', cid, 'media', mid))
+      .then((snap) => {
+        if (!snap.exists()) throw new Error('missing');
+        return E2E.decryptBlob(snap.data().data.toUint8Array(), p.key, p.iv, cid, mid);
+      })
+      .then((bytes) => URL.createObjectURL(new Blob([bytes], { type: safeType(p) })));
+    job.catch(() => {});
+    mediaUrls.set(key, job);
   }
-  return { text: '', state: 'pending' };
+  return mediaUrls.get(key);
+}
+
+/* « … écrit » : membres dont un signal de saisie est récent. */
+function typers(conv) {
+  const now = Date.now();
+  return conv.members.filter((uid) => uid !== me() && (typingUntil.get(conv.id + '/' + uid) || 0) > now);
+}
+
+function typingText(conv) {
+  const who = typers(conv);
+  if (!who.length) return '';
+  if (conv.type !== 'group') return 'écrit…';
+  const names = who.map((uid) => (person(uid) || {}).name || '…');
+  return names.length === 1 ? names[0] + ' écrit…'
+    : names.slice(0, -1).join(', ') + ' et ' + names[names.length - 1] + ' écrivent…';
 }
 
 function otherUid(conv) {
@@ -431,6 +596,18 @@ async function start() {
   A.onAuthStateChanged(auth, onAuth);
   window.addEventListener('hashchange', route);
   document.addEventListener('visibilitychange', () => markRead(activeConv()));
+  // Le son n'est permis qu'après une interaction avec la page.
+  document.addEventListener('pointerdown', Notify.unlockAudio, { once: true });
+  document.addEventListener('keydown', Notify.unlockAudio, { once: true });
+  // Clic sur une notification : le service worker indique la conversation.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'open' && e.data.hash) location.hash = e.data.hash;
+    });
+  }
+  // Fermer l'onglet raccroche ; l'écoute des appels entrants reste active si
+  // la page revient de l'historique.
+  window.addEventListener('pagehide', () => { if (calls) calls.hangUp(); });
 }
 
 function onAuth(user) {
@@ -1013,6 +1190,7 @@ function startMain() {
   });
   ui = {
     list: h('nav', { class: 'conv-list', 'aria-label': 'Conversations' }),
+    notice: h('div', { class: 'notice', hidden: true }),
     me: h('div', { class: 'me' }),
     chat: h('main', { class: 'chat' }),
     search,
@@ -1020,6 +1198,7 @@ function startMain() {
     log: null,
     logIn: null,
     composer: null,
+    jump: null,
   };
   ui.shell = h('div', { class: 'shell', 'data-view': 'list' },
     h('aside', { class: 'side' },
@@ -1030,12 +1209,33 @@ function startMain() {
           'aria-label': 'Nouvelle conversation', onclick: openNewConversation,
         }, icon('plus'))),
       h('div', { class: 'side-search' }, icon('search'), search),
+      ui.notice,
       ui.list,
       ui.me),
     ui.chat);
   mount(ui.shell);
   renderMe();
+  renderNotice();
   renderConvList();
+  bindDrop(ui.chat);
+
+  Notify.registerWorker();
+  buildCallLayer();
+  unsubPlayer = Media.player.subscribe(updateVoice);
+  if (callsSupported()) {
+    calls = createCalls({
+      F, db, uid: me(), iceServers: appConfig.iceServers,
+      onChange: onCallChange,
+      onRinging,
+      onLog: (cid, payload) => sendRich(cid, payload).catch(() => {}),
+      onError: (err) => {
+        if (err && err.code === 'permission-denied') {
+          toast('Les appels demandent les nouvelles règles Firestore : republie firestore.rules (guide, étape 4).', 'error');
+        }
+      },
+    });
+    calls.watch();
+  }
 
   unsub.convs = F.onSnapshot(
     F.query(F.collection(db, 'conversations'), F.where('members', 'array-contains', me())),
@@ -1045,6 +1245,7 @@ function startMain() {
         .sort((a, b) => ts(b.updatedAt) - ts(a.updatedAt));
       state.convsReady = true;
       ensurePeople(new Set(state.convs.flatMap((c) => c.members)));
+      trackActivity();
       renderConvList();
       renderChatHead();
       renderMessages();
@@ -1067,6 +1268,83 @@ function renderMe() {
       class: 'btn icon ghost', type: 'button', title: 'Se déconnecter', 'aria-label': 'Se déconnecter',
       onclick: logout,
     }, icon('logout')));
+}
+
+/* Invitation à activer les notifications, tant qu'on n'a ni accepté, ni
+   refusé, ni fermé l'invitation. */
+function renderNotice() {
+  if (!ui) return;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem('mm-notice-notifs') === 'non'; } catch { /* stockage indisponible */ }
+  const show = Notify.notificationPermission() === 'default' && !dismissed;
+  ui.notice.hidden = !show;
+  if (!show) return;
+  ui.notice.replaceChildren(
+    icon('bell'),
+    h('span', { class: 'notice-txt' }, h('b', { text: 'Active les notifications' }),
+      h('small', { text: 'pour être prévenu des messages et des appels.' })),
+    h('button', {
+      class: 'btn icon ghost', type: 'button', 'aria-label': 'Plus tard',
+      onclick: () => {
+        try { localStorage.setItem('mm-notice-notifs', 'non'); } catch { /* tant pis */ }
+        renderNotice();
+      },
+    }, icon('close')),
+    h('button', { class: 'btn primary sm', type: 'button', onclick: enableNotifications }, 'Activer'));
+}
+
+async function enableNotifications() {
+  Notify.unlockAudio();
+  const result = await Notify.requestNotifications();
+  if (result === 'granted') {
+    toast('Notifications activées.', 'success');
+    Notify.notify('message-me', { body: 'Les notifications fonctionnent 🎉', tag: 'test' });
+  } else if (result === 'denied') {
+    toast('Notifications bloquées : autorise-les dans les réglages du site.', 'error');
+  }
+  renderNotice();
+}
+
+/* Nouveaux messages et « … écrit » : ce qui a changé depuis le dernier
+   instantané de la liste des conversations. */
+function trackActivity() {
+  for (const c of state.convs) {
+    for (const [uid, v] of Object.entries(c.typing || {})) {
+      if (uid === me()) continue;
+      const key = c.id + '/' + uid;
+      const t = ts(v);
+      const prev = typingSeen.get(key);
+      typingSeen.set(key, t);
+      if (convsInit && t && t !== prev) {
+        typingUntil.set(key, Date.now() + TYPING_MS);
+        setTimeout(scheduleRender, TYPING_MS + 100);
+      }
+    }
+    const lm = c.lastMessage;
+    if (!lm) continue;
+    const prev = lastSeenMsg.get(c.id);
+    lastSeenMsg.set(c.id, lm.id);
+    if (!convsInit || prev === lm.id || lm.uid === me()) continue;
+    typingUntil.delete(c.id + '/' + lm.uid);
+    if (!document.hidden && c.id === state.activeId) continue;
+    announce(c, lm);
+  }
+  convsInit = true;
+}
+
+async function announce(conv, lm) {
+  if (!document.hidden) {
+    Notify.blip();
+    return;
+  }
+  const c = await decryptContent(conv.id, lm);
+  const who = person(lm.uid) || await fetchPerson(lm.uid).catch(() => null);
+  const group = conv.type === 'group';
+  Notify.notify(group ? conv.title : (who ? who.name : 'message-me'), {
+    body: (group && who ? who.name + ' : ' : '') + summary(c, false),
+    tag: 'conv-' + conv.id,
+    hash: '#/c/' + encodeURIComponent(conv.id),
+  });
 }
 
 function updateTitle() {
@@ -1101,13 +1379,15 @@ function renderConvList() {
     const lm = c.lastMessage;
     const unread = isUnread(c);
     let preview = 'Nouvelle conversation';
-    if (lm) {
-      const who = lm.uid === me() ? 'Toi : '
-        : (c.type === 'group' ? ((person(lm.uid) || {}).name || '…') + ' : ' : '');
-      const p = plainText(c.id, lm);
-      const body = p.state === 'pending' ? '…'
-        : p.state === 'error' ? '🔒 Message illisible' : p.text.replace(/\s+/g, ' ');
-      preview = who + body;
+    const typing = typingText(c);
+    if (typing) {
+      preview = typing;
+    } else if (lm) {
+      const p = content(c.id, lm);
+      const who = p.kind === 'call' ? ''
+        : lm.uid === me() ? 'Toi : '
+          : (c.type === 'group' ? ((person(lm.uid) || {}).name || '…') + ' : ' : '');
+      preview = who + summary(p, lm.uid === me()).replace(/\s+/g, ' ');
     }
     return h('a', {
       class: 'conv' + (unread ? ' unread' : ''),
@@ -1120,7 +1400,7 @@ function renderConvList() {
         h('b', { class: 'conv-title', text: convTitle(c) }),
         h('time', { text: listTime(ts(lm ? lm.at : c.updatedAt)) })),
       h('span', { class: 'conv-bottom' },
-        h('span', { class: 'conv-preview', text: preview }),
+        h('span', { class: 'conv-preview' + (typing ? ' typing' : ''), text: preview }),
         unread ? h('span', { class: 'dot', 'aria-label': 'non lu' }) : null)));
   }));
 }
@@ -1136,11 +1416,16 @@ function openConversation(id) {
   if (unsub.msgs) unsub.msgs();
   unsub.msgs = null;
   if (ui.composer && state.activeId) drafts.set(state.activeId, ui.composer.querySelector('textarea').value);
+  if (ui.composer && ui.composer.cleanup) ui.composer.cleanup();
+  if (id !== state.activeId) {
+    rowCache.clear();
+    Media.player.stop();
+  }
   state.activeId = id;
   state.messages = [];
   state.messagesReady = false;
   ui.shell.dataset.view = id ? 'chat' : 'list';
-  ui.head = ui.log = ui.logIn = ui.composer = null;
+  ui.head = ui.log = ui.logIn = ui.composer = ui.jump = null;
   renderConvList();
 
   if (!id) {
@@ -1158,8 +1443,13 @@ function openConversation(id) {
   ui.head = h('header', { class: 'chat-head' });
   ui.logIn = h('div', { class: 'log-in' });
   ui.log = h('div', { class: 'log', role: 'log', 'aria-live': 'polite', 'aria-label': 'Messages' }, ui.logIn);
+  ui.log.addEventListener('scroll', updateJump, { passive: true });
+  ui.jump = h('button', {
+    class: 'jump', type: 'button', hidden: true, 'aria-label': 'Aller aux derniers messages',
+    onclick: () => ui.log.scrollTo({ top: ui.log.scrollHeight, behavior: 'smooth' }),
+  }, icon('down'));
   ui.composer = buildComposer(id);
-  ui.chat.replaceChildren(ui.head, ui.log, ui.composer);
+  ui.chat.replaceChildren(ui.head, ui.log, ui.jump, ui.composer);
   renderChatHead();
   renderMessages();
   markRead(activeConv());
@@ -1208,6 +1498,14 @@ function renderChatHead() {
     h('div', { class: 'chat-id' },
       h('b', { text: convTitle(conv) }),
       h('small', { text: convSubtitle(conv) })),
+    conv.type !== 'group' && calls ? h('button', {
+      class: 'btn icon ghost', type: 'button', title: 'Appel vocal', 'aria-label': 'Appel vocal',
+      onclick: () => startCall(conv, false),
+    }, icon('phone')) : null,
+    conv.type !== 'group' && calls ? h('button', {
+      class: 'btn icon ghost', type: 'button', title: 'Appel vidéo', 'aria-label': 'Appel vidéo',
+      onclick: () => startCall(conv, true),
+    }, icon('video')) : null,
     conv.type === 'group'
       ? h('button', {
         class: 'btn icon ghost', type: 'button', title: 'Quitter le groupe', 'aria-label': 'Quitter le groupe',
@@ -1216,9 +1514,19 @@ function renderChatHead() {
       : null].filter(Boolean));
 }
 
+function typingRow(conv) {
+  const text = conv ? typingText(conv) : '';
+  if (!text) return null;
+  const label = conv.type === 'group' ? text : ((person(otherUid(conv)) || {}).name || '') + ' écrit…';
+  return h('div', { class: 'typing-row' },
+    h('span', { class: 'typing-dots', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')),
+    h('span', { text: label }));
+}
+
 function renderMessages() {
   if (!ui || !ui.logIn) return;
   const conv = activeConv();
+  const cid = state.activeId;
   const log = ui.log;
   const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 120;
   const firstPaint = !ui.logIn.dataset.painted;
@@ -1231,13 +1539,13 @@ function renderMessages() {
     const text = conv && conv.type === 'group'
       ? 'Le groupe « ' + conv.title + ' » est créé. Lance la discussion !'
       : 'Dis bonjour 👋';
-    ui.logIn.replaceChildren(h('p', { class: 'log-hint', text }));
+    ui.logIn.replaceChildren(...[h('p', { class: 'log-hint', text }), typingRow(conv)].filter(Boolean));
     ui.logIn.dataset.painted = '1';
     return;
   }
 
   const group = conv && conv.type === 'group';
-  const msgs = state.messages.map((m) => ({ ...m, t: ts(m.createdAt) || Date.now() }));
+  const msgs = state.messages.map((m) => ({ ...m, t: ts(m.createdAt) || Date.now(), c: content(cid, m) }));
   msgs.sort((a, b) => a.t - b.t);
 
   // Dernier de mes messages lu par l'autre personne (discussion à deux).
@@ -1245,16 +1553,20 @@ function renderMessages() {
   if (conv && !group) {
     const other = otherUid(conv);
     const readAt = conv.lastRead ? ts(conv.lastRead[other]) : 0;
-    const mine = msgs.filter((m) => m.uid === me());
+    const mine = msgs.filter((m) => m.uid === me() && m.c.kind !== 'call');
     const lastMine = mine[mine.length - 1];
     if (lastMine && !lastMine.pending && readAt && readAt >= lastMine.t) seenId = lastMine.id;
   }
 
   const nodes = [h('p', { class: 'log-hint e2e', text:
-    '🔒 Les messages de cette conversation sont chiffrés de bout en bout.' })];
+    '🔒 Messages, photos et messages vocaux sont chiffrés de bout en bout.' })];
   if (state.messages.length >= HISTORY) {
     nodes.push(h('p', { class: 'log-hint', text: 'Seuls les ' + HISTORY + ' derniers messages sont affichés.' }));
   }
+  // Deux messages forment un bloc s'ils viennent de la même personne, le même
+  // jour, à moins de RUN_GAP d'écart ; un journal d'appel coupe les blocs.
+  const joins = (a, b) => a && b && a.uid === b.uid && a.c.kind !== 'call' && b.c.kind !== 'call'
+    && Math.abs(b.t - a.t) <= RUN_GAP && startOfDay(a.t) === startOfDay(b.t);
   let prevDay = null;
   msgs.forEach((m, i) => {
     const day = startOfDay(m.t);
@@ -1262,44 +1574,173 @@ function renderMessages() {
       nodes.push(h('p', { class: 'day' }, h('span', { text: dayLabel(m.t) })));
       prevDay = day;
     }
-    const prev = msgs[i - 1];
-    const next = msgs[i + 1];
-    const first = !prev || prev.uid !== m.uid || m.t - prev.t > RUN_GAP || startOfDay(prev.t) !== day;
-    const last = !next || next.uid !== m.uid || next.t - m.t > RUN_GAP || startOfDay(next.t) !== day;
-    const mine = m.uid === me();
     const author = person(m.uid);
-    const p = plainText(state.activeId, m);
-    const readable = p.state === 'ok' || p.state === 'legacy';
-    const bubble = h('div', {
-      class: 'bubble' + (readable && EMOJI_ONLY.test(p.text) ? ' emoji' : '') + (readable ? '' : ' locked'),
-      title: p.state === 'error'
-        ? 'Ce message a été chiffré pour une ancienne clé de ton compte.'
-        : fmtTime.format(m.t) + (p.state === 'legacy' ? ' · envoyé avant le chiffrement' : ''),
-    }, p.state === 'pending' ? 'Déchiffrement…' : p.state === 'error' ? '🔒 Message illisible' : richText(p.text));
-
-    const row = h('div', {
-      class: 'msg ' + (mine ? 'mine' : 'theirs') + (first ? ' first' : '') + (last ? ' last' : '') +
-        (m.pending ? ' pending' : ''),
-    },
-    group && !mine ? (last ? avatar(m.uid, author ? author.name : '?', 'xs') : h('span', { class: 'avatar-gap' })) : null,
-    h('div', { class: 'msg-body' },
-      group && !mine && first ? h('span', { class: 'author', text: author ? author.name : '…' }) : null,
-      bubble,
-      last ? h('span', { class: 'meta' },
-        m.pending ? 'Envoi…' : fmtTime.format(m.t),
-        m.id === seenId ? ' · Vu' : '') : null));
-    nodes.push(row);
+    const f = {
+      first: !joins(msgs[i - 1], m),
+      last: !joins(m, msgs[i + 1]),
+      mine: m.uid === me(),
+      group,
+      seen: m.id === seenId,
+    };
+    const sig = [m.c.state, m.c.kind, m.c.text, f.first, f.last, f.mine, group, f.seen, m.pending,
+      fmtTime.format(m.t), author ? author.name : ''].join('\u0001');
+    let hit = rowCache.get(m.id);
+    if (!hit || hit.sig !== sig) {
+      hit = { sig, node: messageRow(cid, conv, m, m.c, f, author) };
+      rowCache.set(m.id, hit);
+    }
+    nodes.push(hit.node);
   });
+  const typing = typingRow(conv);
+  if (typing) nodes.push(typing);
   ui.logIn.replaceChildren(...nodes);
   ui.logIn.dataset.painted = '1';
+  updateVoice(Media.player.state());
 
   const lastMsg = msgs[msgs.length - 1];
-  if (firstPaint || nearBottom || (lastMsg && lastMsg.uid === me() && lastMsg.pending)) {
+  const grew = ui.logIn.dataset.lastId !== lastMsg.id;
+  ui.logIn.dataset.lastId = lastMsg.id;
+  if (firstPaint || nearBottom || (lastMsg.uid === me() && lastMsg.pending)) {
     log.scrollTop = log.scrollHeight;
+  } else if (grew && ui.jump) {
+    ui.jump.classList.add('fresh');
+  }
+  updateJump();
+}
+
+function messageRow(cid, conv, m, c, f, author) {
+  if (c.kind === 'call' && c.state === 'ok') {
+    const p = c.payload;
+    const missed = p.status !== 'ended';
+    return h('div', { class: 'msg system' },
+      h('div', { class: 'call-log' + (missed ? ' missed' : '') },
+        icon(p.video ? 'video' : 'phone'),
+        h('span', { text: callLabel(p, f.mine) }),
+        h('time', { text: m.pending ? 'Envoi…' : fmtTime.format(m.t) }),
+        calls && conv && conv.type !== 'group'
+          ? h('button', { class: 'linkish', type: 'button', onclick: () => startCall(conv, Boolean(p.video)) }, 'Rappeler')
+          : null));
+  }
+
+  const readable = c.state === 'ok' || c.state === 'legacy';
+  let bubble;
+  if (readable && c.kind === 'image') {
+    bubble = photoBubble(cid, m, c);
+  } else if (readable && c.kind === 'audio') {
+    bubble = voiceBubble(cid, m, c);
+  } else {
+    bubble = h('div', {
+      class: 'bubble' + (readable && EMOJI_ONLY.test(c.text) ? ' emoji' : '') + (readable ? '' : ' locked'),
+      title: c.state === 'error'
+        ? 'Ce message a été chiffré pour une ancienne clé de ton compte.'
+        : fmtTime.format(m.t) + (c.state === 'legacy' ? ' · envoyé avant le chiffrement' : ''),
+    }, c.state === 'pending' ? 'Déchiffrement…' : c.state === 'error' ? '🔒 Message illisible' : richText(c.text));
+  }
+
+  return h('div', {
+    class: 'msg ' + (f.mine ? 'mine' : 'theirs') + (f.first ? ' first' : '') + (f.last ? ' last' : '') +
+      (m.pending ? ' pending' : ''),
+  },
+  f.group && !f.mine ? (f.last ? avatar(m.uid, author ? author.name : '?', 'xs') : h('span', { class: 'avatar-gap' })) : null,
+  h('div', { class: 'msg-body' },
+    f.group && !f.mine && f.first ? h('span', { class: 'author', text: author ? author.name : '…' }) : null,
+    bubble,
+    f.last ? h('span', { class: 'meta' },
+      m.pending ? 'Envoi…' : fmtTime.format(m.t),
+      f.seen ? ' · Vu' : '') : null));
+}
+
+function photoBubble(cid, m, c) {
+  const p = c.payload;
+  const w0 = Math.max(1, Number(p.w) || 1);
+  const h0 = Math.max(1, Number(p.h) || 1);
+  let width = Math.min(300, w0);
+  if ((width * h0) / w0 > 360) width = (360 * w0) / h0;
+  width = Math.max(120, Math.round(width));
+  const img = h('img', { alt: c.text || 'Photo', decoding: 'async' });
+  const frame = h('button', {
+    class: 'photo', type: 'button', 'aria-label': 'Agrandir la photo',
+    style: 'width:' + width + 'px;aspect-ratio:' + w0 + ' / ' + h0,
+  }, img);
+  mediaUrl(cid, m.id, p)
+    .then((url) => {
+      img.src = url;
+      frame.classList.add('ready');
+      frame.onclick = () => openPhoto(url, c.text, safeType(p));
+    })
+    .catch(() => {
+      frame.classList.add('broken');
+      frame.disabled = true;
+      frame.setAttribute('aria-label', 'Photo illisible');
+    });
+  return h('div', { class: 'bubble media' }, frame, c.text ? h('p', { class: 'caption' }, richText(c.text)) : null);
+}
+
+function voiceBubble(cid, m, c) {
+  const p = c.payload;
+  const key = cid + '/' + m.id;
+  const levels = Array.isArray(p.wave) && p.wave.length ? p.wave.slice(0, 64) : Array(40).fill(4);
+  const play = h('button', { class: 'voice-play', type: 'button', 'aria-label': 'Écouter le message vocal' }, icon('play'));
+  const wave = h('div', { class: 'voice-wave', 'aria-hidden': 'true' },
+    levels.map((v) => h('i', { style: 'height:' + Math.max(14, Math.min(100, ((Number(v) || 1) / 15) * 100)) + '%' })));
+  const el = h('div', { class: 'bubble voice', 'data-voice': key, 'data-duration': Number(p.duration) || 0 },
+    play,
+    wave,
+    h('span', { class: 'voice-time', text: Media.formatDuration(p.duration) }),
+    h('button', {
+      class: 'voice-rate', type: 'button', 'aria-label': 'Vitesse de lecture', hidden: true,
+      onclick: () => Media.player.cycleRate(),
+    }, '1×'));
+  play.addEventListener('click', () => {
+    Notify.unlockAudio();
+    el.classList.add('loading');
+    mediaUrl(cid, m.id, p)
+      .then((url) => Media.player.toggle(key, url, p.duration))
+      .catch(() => toast('Ce message vocal ne peut pas être lu sur ce navigateur.', 'error'))
+      .finally(() => el.classList.remove('loading'));
+  });
+  wave.addEventListener('click', (e) => {
+    const r = wave.getBoundingClientRect();
+    Media.player.seek(key, (e.clientX - r.left) / r.width);
+  });
+  return el;
+}
+
+/* Le lecteur est unique (media.js) : on reflète son état sur les messages
+   vocaux affichés. */
+function updateVoice(st) {
+  if (!ui || !ui.log) return;
+  for (const el of ui.log.querySelectorAll('[data-voice]')) {
+    const active = st.id === el.dataset.voice;
+    const duration = active && st.duration ? st.duration : Number(el.dataset.duration) || 0;
+    const progress = active && duration ? Math.min(1, st.time / duration) : 0;
+    const playing = active && st.playing;
+    el.classList.toggle('playing', playing);
+    const btn = el.querySelector('.voice-play');
+    if (btn.dataset.state !== String(playing)) {
+      btn.dataset.state = String(playing);
+      btn.replaceChildren(icon(playing ? 'pause' : 'play'));
+      btn.setAttribute('aria-label', playing ? 'Pause' : 'Écouter le message vocal');
+    }
+    const bars = el.querySelectorAll('.voice-wave i');
+    const on = Math.round(progress * bars.length);
+    bars.forEach((b, i) => b.classList.toggle('on', i < on));
+    el.querySelector('.voice-time').textContent = Media.formatDuration(active && st.time ? st.time : duration);
+    const rate = el.querySelector('.voice-rate');
+    rate.hidden = !active;
+    rate.textContent = String(st.rate).replace('.', ',') + '×';
   }
 }
 
+function updateJump() {
+  if (!ui || !ui.jump || !ui.log) return;
+  const far = ui.log.scrollHeight - ui.log.scrollTop - ui.log.clientHeight > 300;
+  ui.jump.hidden = !far;
+  if (!far) ui.jump.classList.remove('fresh');
+}
+
 function buildComposer(cid) {
+  const voice = Media.voiceSupported();
   const ta = h('textarea', {
     rows: 1, maxlength: MAX_TEXT, placeholder: 'Écris un message…', 'aria-label': 'Message',
     enterkeyhint: coarse ? 'enter' : 'send',
@@ -1307,13 +1748,134 @@ function buildComposer(cid) {
   ta.value = drafts.get(cid) || '';
   const count = h('span', { class: 'count', 'aria-live': 'polite' });
   const send = h('button', { class: 'btn icon primary send', type: 'submit', 'aria-label': 'Envoyer' }, icon('send'));
+  const mic = h('button', {
+    class: 'btn icon primary send', type: 'button', 'aria-label': 'Enregistrer un message vocal',
+    title: 'Message vocal', hidden: !voice,
+  }, icon('mic'));
+  const picker = h('input', { type: 'file', accept: 'image/*', hidden: true, 'aria-hidden': 'true', tabindex: -1 });
+  const attachBtn = h('button', {
+    class: 'btn icon ghost attach', type: 'button', 'aria-label': 'Joindre une photo', title: 'Photo',
+    onclick: () => picker.click(),
+  }, icon('image'));
+  const tray = h('div', { class: 'tray', hidden: true });
+  const row = h('div', { class: 'composer-row' }, attachBtn, picker, ta, count, send, mic);
+  const recTime = h('span', { class: 'rec-time', text: '0:00' });
+  const recLevel = h('span', { class: 'rec-level', 'aria-hidden': 'true' }, Array.from({ length: 48 }, () => h('i')));
+  const recBar = h('div', { class: 'rec', hidden: true, role: 'status' },
+    h('button', {
+      class: 'btn icon ghost', type: 'button', 'aria-label': 'Annuler l\'enregistrement', title: 'Annuler',
+      onclick: () => finishRecording(false),
+    }, icon('trash')),
+    h('span', { class: 'rec-dot', 'aria-hidden': 'true' }),
+    recTime,
+    recLevel,
+    h('button', {
+      class: 'btn icon primary send', type: 'button', 'aria-label': 'Envoyer le message vocal',
+      onclick: () => finishRecording(true),
+    }, icon('send')));
+
+  let attached = null; // { blob, w, h, mime, url }
+  let recorder = null;
+  let recTimer = null;
 
   function sync() {
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 168) + 'px';
     const left = MAX_TEXT - ta.value.length;
     count.textContent = left < 200 ? String(left) : '';
-    send.disabled = !ta.value.trim();
+    const ready = Boolean(ta.value.trim()) || Boolean(attached);
+    send.disabled = !ready;
+    send.hidden = voice && !ready;
+    mic.hidden = !voice || ready;
+  }
+
+  function clearAttachment(revoke = true) {
+    if (attached && revoke) URL.revokeObjectURL(attached.url);
+    attached = null;
+    tray.hidden = true;
+    tray.replaceChildren();
+    ta.placeholder = 'Écris un message…';
+    sync();
+  }
+
+  async function attach(file) {
+    try {
+      const img = await Media.prepareImage(file);
+      clearAttachment();
+      attached = { ...img, url: URL.createObjectURL(img.blob) };
+      tray.replaceChildren(
+        h('img', { src: attached.url, alt: '' }),
+        h('span', { class: 'tray-txt' },
+          h('b', { text: 'Photo' }),
+          h('small', { text: img.w + ' × ' + img.h + ' · ' + Media.formatBytes(img.blob.size) + ' · chiffrée à l\'envoi' })),
+        h('button', {
+          class: 'btn icon ghost', type: 'button', 'aria-label': 'Retirer la photo',
+          onclick: () => clearAttachment(),
+        }, icon('close')));
+      tray.hidden = false;
+      ta.placeholder = 'Ajoute une légende…';
+      sync();
+      ta.focus();
+    } catch (err) {
+      toast(describe(err), 'error');
+    }
+  }
+
+  async function startRecording() {
+    Notify.unlockAudio();
+    const r = new Media.VoiceRecorder();
+    try {
+      await r.start();
+    } catch (err) {
+      r.cancel();
+      toast(describe(err), 'error');
+      return;
+    }
+    recorder = r;
+    row.hidden = true;
+    tray.hidden = true;
+    recBar.hidden = false;
+    const bars = recLevel.querySelectorAll('i');
+    recTimer = setInterval(() => {
+      recTime.textContent = Media.formatDuration(r.seconds);
+      // Onde qui défile : les derniers niveaux relevés, le plus récent à droite.
+      const recent = r.levels.slice(-bars.length);
+      const offset = bars.length - recent.length;
+      bars.forEach((b, i) => {
+        const level = i < offset ? 0 : recent[i - offset];
+        b.style.height = Math.max(12, Math.round(Math.sqrt(level) * 100)) + '%';
+      });
+      if (r.full) {
+        toast('Durée maximale atteinte : message vocal envoyé.', 'info');
+        finishRecording(true);
+      }
+    }, 150);
+  }
+
+  function stopRecordingUi() {
+    clearInterval(recTimer);
+    recTimer = null;
+    recBar.hidden = true;
+    row.hidden = false;
+    tray.hidden = !attached;
+  }
+
+  async function finishRecording(keep) {
+    const r = recorder;
+    recorder = null;
+    stopRecordingUi();
+    if (!r) return;
+    if (!keep) {
+      r.cancel();
+      return;
+    }
+    try {
+      const v = await r.stop();
+      const url = URL.createObjectURL(v.blob);
+      await sendRich(cid, { t: 'audio', mime: v.mime, duration: v.duration, wave: v.wave, size: v.blob.size }, v.blob, url);
+    } catch (err) {
+      toast('Message vocal non envoyé : ' + (err.userMessage || describe(err)), 'error');
+    }
   }
 
   const form = h('form', {
@@ -1321,6 +1883,16 @@ function buildComposer(cid) {
     onsubmit: (e) => {
       e.preventDefault();
       const text = ta.value.trim();
+      lastTypingSent = 0;
+      if (attached) {
+        const a = attached;
+        ta.value = '';
+        drafts.delete(cid);
+        clearAttachment(false); // l'URL locale sert à afficher la photo pendant l'envoi
+        sendRich(cid, { t: 'image', caption: text, mime: a.mime, w: a.w, h: a.h, size: a.blob.size }, a.blob, a.url)
+          .catch((err) => toast('Photo non envoyée : ' + (err.userMessage || describe(err)), 'error'));
+        return;
+      }
       if (!text) return;
       ta.value = '';
       drafts.delete(cid);
@@ -1330,17 +1902,72 @@ function buildComposer(cid) {
         if (!ta.value) { ta.value = text; sync(); }
       });
     },
-  }, ta, count, send);
+  }, tray, row, recBar);
 
-  ta.addEventListener('input', sync);
+  ta.addEventListener('input', () => {
+    sync();
+    signalTyping(cid, ta.value);
+  });
   ta.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !coarse) {
       e.preventDefault();
       form.requestSubmit();
     }
   });
+  ta.addEventListener('paste', (e) => {
+    const file = [...(e.clipboardData ? e.clipboardData.files : [])].find((f) => /^image\//.test(f.type));
+    if (!file) return;
+    e.preventDefault();
+    attach(file);
+  });
+  picker.addEventListener('change', () => {
+    if (picker.files[0]) attach(picker.files[0]);
+    picker.value = '';
+  });
+  mic.addEventListener('click', startRecording);
+  form.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && recorder) finishRecording(false);
+  });
+  form.attach = attach;
+  form.cleanup = () => {
+    if (recorder) recorder.cancel();
+    recorder = null;
+    clearInterval(recTimer);
+    if (attached) URL.revokeObjectURL(attached.url);
+    attached = null;
+  };
   requestAnimationFrame(sync);
   return form;
+}
+
+/* Déposer une photo n'importe où dans la conversation ouverte. */
+function bindDrop(zone) {
+  const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  zone.addEventListener('dragover', (e) => {
+    if (!hasFiles(e) || !ui || !ui.composer) return;
+    e.preventDefault();
+    zone.classList.add('dropping');
+  });
+  zone.addEventListener('dragleave', (e) => {
+    if (e.target === zone || !zone.contains(e.relatedTarget)) zone.classList.remove('dropping');
+  });
+  zone.addEventListener('drop', (e) => {
+    zone.classList.remove('dropping');
+    if (!hasFiles(e) || !ui || !ui.composer) return;
+    e.preventDefault();
+    const file = [...e.dataTransfer.files].find((f) => /^image\//.test(f.type));
+    if (file) ui.composer.attach(file);
+    else toast('Seules les photos peuvent être envoyées.', 'info');
+  });
+}
+
+/* « … écrit » : au plus un signal toutes les TYPING_EVERY ms, et seulement
+   quand il y a du texte. */
+function signalTyping(cid, text) {
+  const now = Date.now();
+  if (!text.trim() || now - lastTypingSent < TYPING_EVERY) return;
+  lastTypingSent = now;
+  F.updateDoc(F.doc(db, 'conversations', cid), { ['typing.' + me()]: F.serverTimestamp() }).catch(() => {});
 }
 
 /* Clés publiques de tous les membres (y compris soi), relues à chaque envoi :
@@ -1362,16 +1989,17 @@ async function memberKeys(conv) {
   return keys;
 }
 
-/* Le message chiffré et l'aperçu de la conversation partent dans la même
-   écriture groupée : les règles refusent l'un sans l'autre. */
-async function sendMessage(cid, text) {
-  const conv = state.convs.find((c) => c.id === cid);
-  if (!conv || !vault) throw userError('Conversation pas encore chargée, réessaie dans un instant.');
+/* Le message chiffré, son éventuel fichier chiffré et l'aperçu de la
+   conversation partent dans la même écriture groupée : les règles refusent
+   l'un sans les autres. */
+function commitMessage(cid, msg, enc, media = null) {
   const uid = me();
-  const enc = await E2E.encryptMessage(text, await memberKeys(conv), cid, uid);
-  const msg = F.doc(F.collection(db, 'conversations', cid, 'messages'));
-  plain.set(cid + '/' + msg.id, { text, state: 'ok' });
   const batch = F.writeBatch(db);
+  if (media) {
+    batch.set(F.doc(db, 'conversations', cid, 'media', msg.id), {
+      uid, data: F.Bytes.fromUint8Array(media), createdAt: F.serverTimestamp(),
+    });
+  }
   batch.set(msg, { uid, enc, createdAt: F.serverTimestamp() });
   batch.update(F.doc(db, 'conversations', cid), {
     lastMessage: { id: msg.id, uid, enc, at: F.serverTimestamp() },
@@ -1379,6 +2007,40 @@ async function sendMessage(cid, text) {
     ['lastRead.' + uid]: F.serverTimestamp(),
   });
   return batch.commit();
+}
+
+function conversationFor(cid) {
+  const conv = state.convs.find((c) => c.id === cid);
+  if (!conv || !vault) throw userError('Conversation pas encore chargée, réessaie dans un instant.');
+  return conv;
+}
+
+async function sendMessage(cid, text) {
+  const conv = conversationFor(cid);
+  const enc = await E2E.encryptMessage(text, await memberKeys(conv), cid, me());
+  const msg = F.doc(F.collection(db, 'conversations', cid, 'messages'));
+  plain.set(cid + '/' + msg.id, { state: 'ok', kind: 'text', text });
+  return commitMessage(cid, msg, enc);
+}
+
+/* Photo, message vocal ou journal d'appel : enveloppe chiffrée (v2). Un
+   fichier est chiffré avec sa propre clé, qui ne voyage que dans l'enveloppe. */
+async function sendRich(cid, payload, blob = null, localUrl = null) {
+  const conv = conversationFor(cid);
+  const msg = F.doc(F.collection(db, 'conversations', cid, 'messages'));
+  const key = cid + '/' + msg.id;
+  let full = payload;
+  let media = null;
+  if (blob) {
+    const box = await E2E.encryptBlob(new Uint8Array(await blob.arrayBuffer()), cid, msg.id);
+    full = { ...payload, key: box.key, iv: box.iv };
+    media = box.data;
+    if (localUrl) mediaUrls.set(key, Promise.resolve(localUrl));
+  }
+  const enc = await E2E.encryptPayload(full, await memberKeys(conv), cid, me());
+  plain.set(key, { state: 'ok', kind: full.t, text: full.caption || '', payload: full });
+  scheduleRender();
+  return commitMessage(cid, msg, enc, media);
 }
 
 function markRead(conv) {
@@ -1402,6 +2064,204 @@ async function leaveGroup(conv) {
     toast(describe(err), 'error');
     openConversation(conv.id);
   }
+}
+
+/* ======================================================================== */
+/* Appels                                                                   */
+/* ======================================================================== */
+
+async function startCall(conv, video) {
+  if (!calls) return;
+  if (calls.current) {
+    toast('Un appel est déjà en cours.', 'info');
+    return;
+  }
+  Notify.unlockAudio();
+  try {
+    await calls.start(conv.id, otherUid(conv), video);
+  } catch (err) {
+    toast('Appel impossible : ' + describe(err), 'error');
+  }
+}
+
+function answerCall(id) {
+  Notify.unlockAudio();
+  calls.accept(id).catch((err) => toast('Impossible de décrocher : ' + describe(err), 'error'));
+}
+
+function onCallChange(c) {
+  if (c && c.ended) {
+    endedCall = c;
+    Notify.hangupTone();
+    setTimeout(() => {
+      if (endedCall !== c) return;
+      endedCall = null;
+      renderCallLayer();
+    }, 1800);
+  } else if (c) {
+    endedCall = null;
+  }
+  renderCallLayer();
+}
+
+/* Appels qui sonnent : notification (si l'onglet est caché) et écran. */
+function onRinging(list) {
+  const ids = new Set(list.map((r) => r.id));
+  for (const id of [...announcedCalls]) {
+    if (ids.has(id)) continue;
+    announcedCalls.delete(id);
+    Notify.closeNotifications('call-' + id);
+  }
+  for (const r of list) {
+    if (announcedCalls.has(r.id)) continue;
+    announcedCalls.add(r.id);
+    ensurePeople([r.caller]);
+    (person(r.caller) ? Promise.resolve(person(r.caller)) : fetchPerson(r.caller).catch(() => null)).then((p) => {
+      if (!announcedCalls.has(r.id)) return;
+      Notify.notify('Appel de ' + (p ? p.name : 'quelqu\'un'), {
+        body: r.video ? 'Appel vidéo entrant — clique pour répondre' : 'Appel vocal entrant — clique pour répondre',
+        tag: 'call-' + r.id,
+        hash: '#/c/' + encodeURIComponent(r.cid),
+        requireInteraction: true,
+        vibrate: [400, 150, 400, 150, 400],
+      });
+      renderCallLayer();
+    });
+  }
+  renderCallLayer();
+}
+
+function buildCallLayer() {
+  const remoteVideo = h('video', { class: 'call-remote', autoplay: true, playsinline: true });
+  const localVideo = h('video', { class: 'call-local', autoplay: true, playsinline: true });
+  const remoteAudio = h('audio', { autoplay: true });
+  remoteVideo.muted = true; // le son passe par remoteAudio
+  localVideo.muted = true;
+  const info = h('div', { class: 'call-info' });
+  const controls = h('div', { class: 'call-controls' });
+  const el = h('div', { class: 'call-layer', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Appel', hidden: true },
+    remoteVideo, remoteAudio, info, localVideo, controls);
+  document.body.append(el);
+  callLayer = { el, remoteVideo, localVideo, remoteAudio, info, controls, timer: null, status: null };
+}
+
+function callButton(label, iconName, cls, onclick) {
+  return h('button', { class: 'call-btn ' + cls, type: 'button', 'aria-label': label, title: label, onclick },
+    icon(iconName), h('span', { text: label }));
+}
+
+function endedText(c) {
+  if (c.reason === 'declined') return 'Appel refusé';
+  if (c.reason === 'failed') {
+    return c.startedAt ? 'Connexion perdue' : 'Connexion impossible : le réseau bloque peut-être l\'appel';
+  }
+  if (c.reason === 'gone') return 'L\'appel est terminé';
+  if (!c.answered) return c.role === 'caller' ? 'Pas de réponse' : 'Appel manqué';
+  return 'Appel terminé · ' + Media.formatDuration(c.duration);
+}
+
+function setStream(el, stream) {
+  if (el.srcObject === stream) return;
+  el.srcObject = stream;
+  if (stream) el.play().catch(() => {});
+}
+
+function renderCallLayer() {
+  if (!callLayer) return;
+  const L = callLayer;
+  const c = calls ? calls.current : null;
+  const ring = !c && calls ? calls.ringing[0] : null;
+  const shown = c || ring || endedCall;
+
+  if (ring) Notify.startRingtone('incoming');
+  else if (c && c.role === 'caller' && c.phase === 'calling') Notify.startRingtone('outgoing');
+  else Notify.stopRingtone();
+
+  if (!shown) {
+    L.el.hidden = true;
+    clearInterval(L.timer);
+    L.timer = null;
+    setStream(L.remoteVideo, null);
+    setStream(L.remoteAudio, null);
+    setStream(L.localVideo, null);
+    document.body.classList.remove('in-call');
+    return;
+  }
+  L.el.hidden = false;
+  document.body.classList.add('in-call');
+
+  const cur = c || endedCall;
+  const peerUid = ring ? ring.caller : cur.peer;
+  const p = person(peerUid);
+  const name = p ? p.name : '…';
+  const video = ring ? ring.video : cur.video;
+
+  if (c) {
+    setStream(L.remoteAudio, c.remote);
+    setStream(L.remoteVideo, c.remote);
+    setStream(L.localVideo, c.local);
+  }
+  const remoteVideo = Boolean(c && c.video && c.remote && c.remote.getVideoTracks().length && c.phase !== 'calling');
+  const localVideo = Boolean(c && c.local && c.local.getVideoTracks().length && c.camOn);
+  L.el.dataset.mode = ring ? 'incoming' : c ? c.phase : 'ended';
+  L.el.classList.toggle('has-remote-video', remoteVideo);
+  L.el.classList.toggle('has-local-video', localVideo);
+
+  const status = h('p', { class: 'call-status' });
+  const statusText = () => {
+    if (ring) return video ? 'Appel vidéo entrant…' : 'Appel vocal entrant…';
+    if (!c) return endedText(endedCall);
+    if (c.phase === 'calling') return (video ? 'Appel vidéo' : 'Appel vocal') + ' · sonnerie…';
+    if (c.phase === 'connecting') return 'Connexion…';
+    if (c.phase === 'unstable') return 'Connexion instable…';
+    return Media.formatDuration(c.startedAt ? (Date.now() - c.startedAt) / 1000 : 0);
+  };
+  status.textContent = statusText();
+  L.status = { el: status, text: statusText };
+  L.info.replaceChildren(
+    avatar(peerUid, name, 'xl' + (ring || (c && c.phase === 'calling') ? ' pulse' : '')),
+    h('h2', { text: name }),
+    status,
+    h('p', { class: 'call-note', text: '🔒 Chiffré de navigateur à navigateur' }));
+
+  if (ring) {
+    L.controls.replaceChildren(
+      callButton('Refuser', 'hangup', 'danger', () => calls.decline(ring.id)),
+      callButton('Répondre', ring.video ? 'video' : 'phone', 'accept', () => answerCall(ring.id)));
+  } else if (c) {
+    L.controls.replaceChildren(...[
+      callButton(c.micOn ? 'Couper le micro' : 'Activer le micro', c.micOn ? 'mic' : 'micOff',
+        c.micOn ? '' : 'off', () => calls.toggleMic()),
+      c.local && c.local.getVideoTracks().length
+        ? callButton(c.camOn ? 'Couper la caméra' : 'Activer la caméra', c.camOn ? 'video' : 'videoOff',
+          c.camOn ? '' : 'off', () => calls.toggleCam())
+        : null,
+      callButton('Raccrocher', 'hangup', 'danger', () => calls.hangUp()),
+    ].filter(Boolean));
+  } else {
+    L.controls.replaceChildren();
+  }
+
+  clearInterval(L.timer);
+  L.timer = null;
+  if (c && (c.phase === 'active' || c.phase === 'unstable')) {
+    L.timer = setInterval(() => { if (L.status) L.status.el.textContent = L.status.text(); }, 1000);
+  }
+}
+
+/* Visionneuse : la photo déchiffrée, en grand, avec enregistrement. */
+function openPhoto(url, caption, mime) {
+  const ext = /png/.test(mime) ? 'png' : /webp/.test(mime) ? 'webp' : 'jpg';
+  const dlg = h('dialog', { class: 'lightbox', 'aria-label': 'Photo' },
+    h('img', { src: url, alt: caption || 'Photo' }),
+    h('div', { class: 'lightbox-bar' },
+      h('p', { text: caption || '' }),
+      h('a', { class: 'btn ghost sm', href: url, download: 'message-me-photo.' + ext }, icon('download'), 'Enregistrer'),
+      h('button', { class: 'btn icon ghost', type: 'button', 'aria-label': 'Fermer', onclick: () => dlg.close() }, icon('close'))));
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.tagName === 'IMG') dlg.close(); });
+  document.body.append(dlg);
+  dlg.showModal();
 }
 
 /* La clé déverrouillée est effacée de cet appareil à la déconnexion. */
@@ -1572,7 +2432,8 @@ function openProfile() {
     h('button', {
       class: 'btn ghost sm', type: 'button', onclick: () => { dlg.close(); openNewRecoveryCode(); },
     }, 'Nouveau code de secours')),
-  h('p', { class: 'fineprint', text: '🔒 Tes messages sont chiffrés de bout en bout.' }),
+  h('p', { class: 'fineprint', text: '🔒 Tes messages, photos et messages vocaux sont chiffrés de bout en bout.' }),
+  notificationsSetting(),
   field('Nom affiché', name),
   error,
   h('div', { class: 'row-actions end' },
@@ -1581,6 +2442,32 @@ function openProfile() {
     save));
 
   const dlg = modal('Mon profil', form);
+}
+
+function notificationsSetting() {
+  const box = h('div', { class: 'setting' });
+  const draw = () => {
+    const perm = Notify.notificationPermission();
+    const text = {
+      granted: 'Notifications activées sur cet appareil.',
+      denied: 'Notifications bloquées : autorise-les dans les réglages du site (icône à gauche de l\'adresse).',
+      default: 'Sois prévenu des nouveaux messages et des appels.',
+      unsupported: 'Ce navigateur ne gère pas les notifications.',
+    }[perm];
+    box.replaceChildren(
+      icon('bell'),
+      h('span', { class: 'setting-txt' },
+        h('b', { text: 'Notifications' }),
+        h('small', { text: text + (perm === 'unsupported' ? '' : ' Elles arrivent tant que message-me est ouvert, même en arrière-plan.') })),
+      perm === 'default'
+        ? h('button', {
+          class: 'btn primary sm', type: 'button',
+          onclick: () => enableNotifications().then(draw),
+        }, 'Activer')
+        : null);
+  };
+  draw();
+  return box;
 }
 
 /* Ouvre la clé privée avec le mot de passe actuel (vérifié par Firebase). */

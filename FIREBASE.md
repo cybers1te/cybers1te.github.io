@@ -7,6 +7,13 @@ suffit largement pour un petit groupe d'amis.
 Tant que ces étapes ne sont pas faites, <https://cybers1te.github.io/> affiche
 un écran « Il ne manque plus que Firebase » : c'est normal.
 
+> **Déjà configuré ? Mise à jour « photos, vocaux et appels »** : les règles
+> de sécurité ont changé. Republie-les une fois : console Firebase →
+> **Firestore Database** → onglet **Règles** → efface tout, colle
+> l'intégralité du nouveau [`firestore.rules`](firestore.rules) → **Publier**.
+> Tant que ce n'est pas fait, les messages texte marchent mais les photos,
+> les messages vocaux et les appels sont refusés.
+
 ## En deux mots : c'est quoi Firebase ?
 
 Un service de Google qui fournit ce qu'un site statique comme GitHub Pages ne
@@ -156,6 +163,12 @@ Pour voir le détail d'une erreur : touche **F12** → onglet **Console**.
   conversations) ne sont jamais lisibles ;
 - tout nouveau message est chiffré, avec une clé pour chaque membre de la
   conversation et pour personne d'autre ;
+- une photo ou un message vocal n'est stocké que sous forme d'octets
+  chiffrés, déposés avec leur message par son auteur, et lisibles par les
+  seuls membres ;
+- on n'appelle que l'autre membre d'une discussion à deux ; seul l'appelé
+  décroche ou refuse, et chacun ne dépose que ses propres informations de
+  connexion ;
 - la clé privée scellée d'un compte n'est lisible que par lui.
 
 Ces règles sont testées automatiquement (`npm test`, et à chaque push par
@@ -169,6 +182,25 @@ le seul moyen de relire ses anciens messages. Sans lui, le site propose de
 créer une nouvelle clé, et les anciens messages restent illisibles pour ce
 compte. Les noms affichés, les pseudos, les titres de groupe et les dates
 d'envoi ne sont pas chiffrés.
+
+Les **photos et messages vocaux** sont chiffrés de la même façon, chacun avec
+sa propre clé. Comme la formule gratuite ne donne pas accès à Cloud Storage,
+ils sont rangés dans Firestore (collection `media`), dont un document ne
+dépasse pas 1 Mo : les photos sont redimensionnées et recompressées avant
+l'envoi, et un message vocal dure au plus 3 minutes. Les 1 Go de stockage
+gratuits représentent plusieurs milliers de photos.
+
+Les **appels audio et vidéo** (discussions à deux) passent directement d'un
+navigateur à l'autre et sont chiffrés par WebRTC ; Firestore ne sert qu'à se
+mettre en relation (collection `calls`). Sur la plupart des réseaux ça marche
+tel quel. Derrière certains réseaux très fermés (4G de quelques opérateurs,
+réseaux d'entreprise), la connexion échoue sans **serveur relais TURN** : voir
+« Pour aller plus loin ».
+
+Les **notifications** (nouveaux messages, appels entrants) s'activent depuis
+le site. Elles arrivent tant qu'un onglet message-me est ouvert, même en
+arrière-plan ou fenêtre réduite. Recevoir des notifications site fermé
+demanderait un serveur d'envoi, donc la formule payante de Firebase.
 
 ## Pour aller plus loin (facultatif)
 
@@ -191,6 +223,20 @@ npx firebase deploy --only firestore --project <identifiant-du-projet>
 # Héberger aussi le site sur Firebase (https://<identifiant>.web.app) :
 npx firebase deploy --only hosting --project <identifiant-du-projet>
 ```
+
+**Ajouter un serveur relais TURN** (appels derrière des réseaux fermés) : crée
+un compte chez un fournisseur TURN (par exemple Metered, Twilio ou Cloudflare
+Calls), puis ajoute à la fin de `public/firebase-config.js` les accès qu'il te
+donne :
+
+```js
+export const iceServers = [
+  { urls: 'turn:ton-serveur.exemple:3478', username: '…', credential: '…' },
+];
+```
+
+Ces accès sont visibles par les visiteurs du site : choisis une offre qui les
+limite à ton domaine ou fournit des identifiants temporaires.
 
 **Restreindre la clé d'API** (protection supplémentaire contre l'usage de ta
 clé par d'autres sites) : dans la [console Google Cloud](https://console.cloud.google.com/apis/credentials)
