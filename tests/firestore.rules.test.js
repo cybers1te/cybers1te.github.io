@@ -25,10 +25,19 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
+import {
+  PASSWORD_ITERATIONS,
+  RECOVERY_ITERATIONS,
+  encryptMessage,
+  generateIdentity,
+  seal,
+} from '../public/e2e.js';
 
 let env;
+const ids = {}; // uid -> identité de test
 
 before(async () => {
+  for (const uid of ['alice', 'bob', 'carol', 'mallory']) ids[uid] = await generateIdentity();
   env = await initializeTestEnvironment({
     projectId: 'demo-message-me',
     firestore: {
@@ -73,16 +82,43 @@ function createDm(fs, uid, other) {
     newConversation(fs, uid, members, { type: 'dm', title: '' }));
 }
 
-function post(fs, uid, cid, text, overrides = {}) {
+const encryptFor = (members, text, cid, uid) =>
+  encryptMessage(text, Object.fromEntries(members.map((m) => [m, ids[m].publicKey])), cid, uid);
+
+async function post(fs, uid, cid, text, overrides = {}) {
+  const members = overrides.members || ['alice', 'bob'];
+  const enc = overrides.enc || await encryptFor(members, text, cid, uid);
   const msg = doc(collection(fs, 'conversations', cid, 'messages'));
   const batch = writeBatch(fs);
-  batch.set(msg, { uid, text, createdAt: serverTimestamp(), ...overrides.message });
+  batch.set(msg, { uid, enc, createdAt: serverTimestamp(), ...overrides.message });
   batch.update(doc(fs, 'conversations', cid), {
-    lastMessage: { id: msg.id, uid, text, at: serverTimestamp(), ...overrides.lastMessage },
+    lastMessage: { id: msg.id, uid, enc, at: serverTimestamp(), ...overrides.lastMessage },
     updatedAt: serverTimestamp(),
     ['lastRead.' + uid]: serverTimestamp(),
   });
   return batch.commit();
+}
+
+// Même écriture que l'inscription de public/main.js : pseudo, profil avec
+// clé publique et clé privée scellée, ensemble.
+async function registerWithKeys(fs, uid, username, identity = ids[uid]) {
+  const batch = writeBatch(fs);
+  batch.set(doc(fs, 'usernames', username), { uid });
+  batch.set(doc(fs, 'users', uid), {
+    name: 'Nom ' + username, username, createdAt: serverTimestamp(), publicKey: identity.publicKey,
+  });
+  batch.set(doc(fs, 'keys', uid), await keysDoc(identity));
+  return batch.commit();
+}
+
+async function keysDoc(identity, { iterations = PASSWORD_ITERATIONS } = {}) {
+  return {
+    v: 1,
+    publicKey: identity.publicKey,
+    byPassword: await seal(identity.pkcs8, 'mot de passe', iterations),
+    byRecovery: await seal(identity.pkcs8, 'CODEDESECOURS', RECOVERY_ITERATIONS),
+    updatedAt: serverTimestamp(),
+  };
 }
 
 async function seed(fn) {
@@ -149,6 +185,79 @@ describe('pseudos et profils', () => {
     await assertSucceeds(updateDoc(doc(db('alice'), 'users', 'alice'), { name: 'Alice L.' }));
     await assertFails(updateDoc(doc(db('alice'), 'users', 'alice'), { username: 'reine' }));
     await assertFails(updateDoc(doc(db('bob'), 'users', 'alice'), { name: 'Piratée' }));
+  });
+});
+
+describe('clés de chiffrement', () => {
+  test('inscription : pseudo, profil, clé publique et clé scellée ensemble', async () => {
+    await assertSucceeds(registerWithKeys(db('alice'), 'alice', 'alice'));
+    const profile = await getDoc(doc(db('bob'), 'users', 'alice'));
+    if (profile.data().publicKey !== ids.alice.publicKey) throw new Error('clé publique absente');
+  });
+
+  test('la clé scellée n\'est lisible que par son propriétaire, jamais listée', async () => {
+    await registerWithKeys(db('alice'), 'alice', 'alice');
+    await assertSucceeds(getDoc(doc(db('alice'), 'keys', 'alice')));
+    await assertFails(getDoc(doc(db('bob'), 'keys', 'alice')));
+    await assertFails(getDoc(doc(anon(), 'keys', 'alice')));
+    await assertFails(getDocs(collection(db('alice'), 'keys')));
+  });
+
+  test('la clé scellée doit correspondre à la clé publique du profil', async () => {
+    await register(db('alice'), 'alice', 'alice');
+    const fs = db('alice');
+    const data = await keysDoc(ids.alice);
+    await assertFails(setDoc(doc(fs, 'keys', 'alice'), data));
+    const batch = writeBatch(fs);
+    batch.set(doc(fs, 'keys', 'alice'), data);
+    batch.update(doc(fs, 'users', 'alice'), { publicKey: ids.bob.publicKey });
+    await assertFails(batch.commit());
+  });
+
+  test('activer le chiffrement sur un compte existant', async () => {
+    await register(db('alice'), 'alice', 'alice');
+    const fs = db('alice');
+    const batch = writeBatch(fs);
+    batch.set(doc(fs, 'keys', 'alice'), await keysDoc(ids.alice));
+    batch.update(doc(fs, 'users', 'alice'), { publicKey: ids.alice.publicKey });
+    await assertSucceeds(batch.commit());
+  });
+
+  test('changer de clé : profil et clé scellée ensemble, jamais l\'un sans l\'autre', async () => {
+    await registerWithKeys(db('alice'), 'alice', 'alice');
+    const fresh = await generateIdentity();
+    const fs = db('alice');
+    await assertFails(updateDoc(doc(fs, 'users', 'alice'), { publicKey: fresh.publicKey }));
+    const batch = writeBatch(fs);
+    batch.set(doc(fs, 'keys', 'alice'), await keysDoc(fresh));
+    batch.update(doc(fs, 'users', 'alice'), { publicKey: fresh.publicKey });
+    await assertSucceeds(batch.commit());
+  });
+
+  test('changer de mot de passe : la clé scellée est réécrite, la clé publique reste', async () => {
+    await registerWithKeys(db('alice'), 'alice', 'alice');
+    await assertSucceeds(updateDoc(doc(db('alice'), 'keys', 'alice'), {
+      byPassword: await seal(ids.alice.pkcs8, 'nouveau', PASSWORD_ITERATIONS),
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  test('personne d\'autre ne touche à la clé d\'un compte', async () => {
+    await registerWithKeys(db('alice'), 'alice', 'alice');
+    const fs = db('mallory');
+    await assertFails(updateDoc(doc(fs, 'users', 'alice'), { publicKey: ids.mallory.publicKey }));
+    await assertFails(setDoc(doc(fs, 'keys', 'alice'), await keysDoc(ids.mallory)));
+    await assertFails(deleteDoc(doc(db('alice'), 'keys', 'alice')));
+  });
+
+  test('refuse une clé mal formée ou trop peu protégée', async () => {
+    await register(db('alice'), 'alice', 'alice');
+    const fs = db('alice');
+    const weak = writeBatch(fs);
+    weak.set(doc(fs, 'keys', 'alice'), await keysDoc(ids.alice, { iterations: 1000 }));
+    weak.update(doc(fs, 'users', 'alice'), { publicKey: ids.alice.publicKey });
+    await assertFails(weak.commit());
+    await assertFails(updateDoc(doc(fs, 'users', 'alice'), { publicKey: 'pas une clé' }));
   });
 });
 
@@ -244,31 +353,51 @@ describe('messages', () => {
 
   beforeEach(() => createDm(db('alice'), 'alice', 'bob'));
 
-  test('un membre envoie un message et met à jour l\'aperçu', async () => {
+  test('un membre envoie un message chiffré et met à jour l\'aperçu', async () => {
     await assertSucceeds(post(db('alice'), 'alice', cid, 'Salut Bob'));
     const conv = await getDoc(doc(db('bob'), 'conversations', cid));
-    if (conv.data().lastMessage.text !== 'Salut Bob') throw new Error('aperçu non mis à jour');
     const msgs = await assertSucceeds(getDocs(collection(db('bob'), 'conversations', cid, 'messages')));
     if (msgs.size !== 1) throw new Error('attendu 1 message');
+    const stored = msgs.docs[0].data();
+    if ('text' in stored || JSON.stringify(stored).includes('Salut Bob')) throw new Error('texte en clair stocké');
+    if (conv.data().lastMessage.enc.ct !== stored.enc.ct) throw new Error('aperçu non mis à jour');
+  });
+
+  test('un message en clair est refusé', async () => {
+    const fs = db('alice');
+    const msg = doc(collection(fs, 'conversations', cid, 'messages'));
+    const batch = writeBatch(fs);
+    batch.set(msg, { uid: 'alice', text: 'en clair', createdAt: serverTimestamp() });
+    batch.update(doc(fs, 'conversations', cid), {
+      lastMessage: { id: msg.id, uid: 'alice', text: 'en clair', at: serverTimestamp() },
+      updatedAt: serverTimestamp(),
+      'lastRead.alice': serverTimestamp(),
+    });
+    await assertFails(batch.commit());
   });
 
   test('un message sans mise à jour de l\'aperçu est refusé', async () => {
     const fs = db('alice');
     await assertFails(setDoc(doc(collection(fs, 'conversations', cid, 'messages')),
-      { uid: 'alice', text: 'seul', createdAt: serverTimestamp() }));
+      { uid: 'alice', enc: await encryptFor(['alice', 'bob'], 'seul', cid, 'alice'), createdAt: serverTimestamp() }));
   });
 
-  test('l\'aperçu doit recopier le texte du message', async () => {
-    await assertFails(post(db('alice'), 'alice', cid, 'vrai texte',
-      { lastMessage: { text: 'autre chose' } }));
+  test('l\'aperçu doit recopier le message chiffré', async () => {
+    const other = await encryptFor(['alice', 'bob'], 'autre chose', cid, 'alice');
+    await assertFails(post(db('alice'), 'alice', cid, 'vrai texte', { lastMessage: { enc: other } }));
+  });
+
+  test('une clé emballée pour chaque membre, et pour personne d\'autre', async () => {
+    await assertFails(post(db('alice'), 'alice', cid, 'sans Bob', { members: ['alice'] }));
+    await assertFails(post(db('alice'), 'alice', cid, 'avec Mallory', { members: ['alice', 'bob', 'mallory'] }));
   });
 
   test('un aperçu ne peut pas être réécrit hors d\'un envoi', async () => {
     await post(db('alice'), 'alice', cid, 'premier');
     const conv = await getDoc(doc(db('alice'), 'conversations', cid));
-    const old = conv.data().lastMessage.id;
+    const old = conv.data().lastMessage;
     await assertFails(updateDoc(doc(db('alice'), 'conversations', cid), {
-      lastMessage: { id: old, uid: 'alice', text: 'premier', at: serverTimestamp() },
+      lastMessage: { id: old.id, uid: 'alice', enc: old.enc, at: serverTimestamp() },
       updatedAt: serverTimestamp(),
       'lastRead.alice': serverTimestamp(),
     }));
@@ -286,10 +415,12 @@ describe('messages', () => {
     }));
   });
 
-  test('texte vide ou trop long refusé', async () => {
-    await assertFails(post(db('alice'), 'alice', cid, ''));
-    await assertFails(post(db('alice'), 'alice', cid, 'x'.repeat(2001)));
-    await assertSucceeds(post(db('alice'), 'alice', cid, 'x'.repeat(2000)));
+  // Le texte étant chiffré, Firestore ne peut plus vérifier qu'il n'est pas
+  // vide (le site s'en charge) ; il borne en revanche sa taille.
+  test('message chiffré trop long refusé', async () => {
+    // 2000 caractères de 3 octets : le plus long message que le site envoie.
+    await assertSucceeds(post(db('alice'), 'alice', cid, '€'.repeat(2000)));
+    await assertFails(post(db('alice'), 'alice', cid, '€'.repeat(2100)));
   });
 
   test('date imposée par le serveur', async () => {
