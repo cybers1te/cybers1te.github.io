@@ -14,13 +14,18 @@ rules_version = '2';
 //   users/{uid}                            -> { name, username, createdAt, publicKey }
 //   keys/{uid}                             -> { v, publicKey, byPassword, byRecovery,
 //                                               updatedAt }    (clé privée scellée)
+//   settings/{uid}                         -> { blocked, muted }  (privé : personnes
+//                                               bloquées, conversations en sourdine)
 //   conversations/{cid}                    -> { type, members, title, createdBy,
 //                                               createdAt, updatedAt,
-//                                               lastMessage, lastRead, typing }
+//                                               lastMessage, lastRead, typing,
+//                                               admins, perms, description } (groupes)
 //   conversations/{cid}/messages/{mid}     -> { uid, enc, createdAt }
 //                                             (anciens messages : { uid, text, createdAt })
 //   conversations/{cid}/media/{mid}        -> { uid, data, createdAt }
 //                                             (photo ou vocal chiffré du message {mid})
+//   conversations/{cid}/restrictions/{uid} -> { until, by, at }
+//                                             (membre d'un groupe privé de parole)
 //   calls/{callId}                         -> { cid, caller, callee, video, status,
 //                                               offer, answer, createdAt, answeredAt,
 //                                               endedAt, endedBy }
@@ -55,6 +60,14 @@ service cloud.firestore {
         && box.iv is string && box.iv.size() <= 32
         && box.ct is string && box.ct.size() <= 512
         && box.iter is int && box.iter >= 100000 && box.iter <= 10000000;
+    }
+
+    // Le compte {uid} a bloqué le compte connecté. Sa liste de blocage
+    // (settings/{uid}) n'est lisible que par lui : seules les règles la
+    // consultent, pour refuser messages, appels et ajouts à un groupe.
+    function blockedBy(uid) {
+      return exists(/databases/$(database)/documents/settings/$(uid))
+        && me() in get(/databases/$(database)/documents/settings/$(uid)).data.get('blocked', []);
     }
 
     // ------------------------------------------------------------------
@@ -123,6 +136,23 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------
+    // Réglages privés de chaque compte : personnes bloquées et
+    // conversations en sourdine. Personne d'autre ne les lit.
+    // ------------------------------------------------------------------
+    match /settings/{uid} {
+      allow get: if signedIn() && uid == me();
+      allow list: if false;
+      allow create, update: if signedIn() && uid == me()
+        && request.resource.data.keys().hasOnly(['blocked', 'muted'])
+        && request.resource.data.get('blocked', []) is list
+        && request.resource.data.get('blocked', []).size() <= 500
+        && !(me() in request.resource.data.get('blocked', []))
+        && request.resource.data.get('muted', {}) is map
+        && request.resource.data.get('muted', {}).size() <= 500;
+      allow delete: if signedIn() && uid == me();
+    }
+
+    // ------------------------------------------------------------------
     // Conversations
     // ------------------------------------------------------------------
     match /conversations/{cid} {
@@ -131,16 +161,48 @@ service cloud.firestore {
         return signedIn() && data.members is list && me() in data.members;
       }
 
+      // Rôles d'un groupe. Un groupe créé avant l'arrivée des admins n'a ni
+      // `admins` ni `perms` : son créateur en est le seul admin, et chaque
+      // membre peut tout faire.
+      function adminsOf(d) {
+        return d.get('admins', [d.createdBy]);
+      }
+
+      function isAdmin(d) {
+        return me() in adminsOf(d);
+      }
+
+      // what : 'send' (écrire), 'info' (nom et description), 'add' (ajouter
+      // des membres). Réglé sur 'all' (tous les membres) ou 'admins'.
+      function allowed(d, what) {
+        return d.get('perms', {}).get(what, 'all') == 'all' || isAdmin(d);
+      }
+
+      function validPerms(p) {
+        return p is map
+          && p.keys().hasOnly(['send', 'info', 'add'])
+          && p.keys().hasAll(['send', 'info', 'add'])
+          && p.send in ['all', 'admins']
+          && p.info in ['all', 'admins']
+          && p.add in ['all', 'admins'];
+      }
+
+      function validTitle(t) {
+        return t is string && t.size() >= 1 && t.size() <= 60;
+      }
+
+      function validDescription(t) {
+        return t is string && t.size() <= 300;
+      }
+
       function validCreate() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['type', 'members', 'title', 'createdBy',
-                                 'createdAt', 'updatedAt', 'lastMessage', 'lastRead'])
-          && d.keys().hasAll(['type', 'members', 'title', 'createdBy',
-                              'createdAt', 'updatedAt', 'lastMessage', 'lastRead'])
+        let base = ['type', 'members', 'title', 'createdBy',
+                    'createdAt', 'updatedAt', 'lastMessage', 'lastRead'];
+        return d.keys().hasAll(base)
           && d.createdBy == me()
           && d.members is list
           && me() in d.members
-          && d.members.toSet().size() == d.members.size()
           && d.createdAt == request.time
           && d.updatedAt == request.time
           && d.lastMessage == null
@@ -148,24 +210,32 @@ service cloud.firestore {
           && d.title is string
           && (
             // Discussion à deux : identifiant déterministe (dm_<uidA>_<uidB>,
-            // uid triés) pour qu'il n'en existe qu'une par paire.
+            // uid triés) pour qu'il n'en existe qu'une par paire. Impossible
+            // d'en ouvrir une avec quelqu'un qui nous a bloqués.
             (d.type == 'dm'
+              && d.keys().hasOnly(base)
               && d.members.size() == 2
               && d.members[0] < d.members[1]
               && cid == 'dm_' + d.members[0] + '_' + d.members[1]
-              && d.title == '')
+              && d.title == ''
+              && !blockedBy(d.members.removeAll([me()])[0]))
             ||
+            // Groupe : il naît avec son seul créateur, qui y ajoute ensuite
+            // chaque membre un par un (isAddUpdate). Les règles vérifient
+            // ainsi qu'aucun membre n'est ajouté par quelqu'un qu'il a bloqué.
             (d.type == 'group'
-              && d.members.size() >= 2
-              && d.members.size() <= 20
-              && d.title.size() >= 1
-              && d.title.size() <= 60)
+              && d.keys().hasOnly(base.concat(['admins', 'perms', 'description']))
+              && d.members == [me()]
+              && d.admins == [me()]
+              && validPerms(d.perms)
+              && validDescription(d.description)
+              && validTitle(d.title))
           );
       }
 
       // Message chiffré (public/e2e.js) : une clé emballée pour chaque
       // membre, et pour personne d'autre. v1 : texte ; v2 : enveloppe
-      // (photo, message vocal, journal d'appel).
+      // (photo, message vocal, journal d'appel, événement du groupe).
       function validEnc(e, members) {
         return e is map
           && e.keys().hasOnly(['v', 'e', 'iv', 'ct', 'k'])
@@ -177,6 +247,17 @@ service cloud.firestore {
           && e.k is map
           && e.k.keys().hasAll(members)
           && e.k.keys().hasOnly(members);
+      }
+
+      // Le compte connecté a le droit d'écrire : dans un groupe, s'il n'est
+      // pas privé de parole et si l'écriture n'est pas réservée aux admins ;
+      // dans une discussion à deux, si l'autre ne l'a pas bloqué.
+      function canPost(d) {
+        return (d.type == 'group'
+            && allowed(d, 'send')
+            && !(exists(/databases/$(database)/documents/conversations/$(cid)/restrictions/$(me()))
+              && get(/databases/$(database)/documents/conversations/$(cid)/restrictions/$(me())).data.until > request.time))
+          || (d.type == 'dm' && !blockedBy(d.members.removeAll([me()])[0]));
       }
 
       // Le message cité par l'aperçu vient d'être créé par l'auteur, dans
@@ -220,12 +301,90 @@ service cloud.firestore {
           && d.typing[me()] == request.time;
       }
 
-      // Quitter un groupe : on ne peut retirer que soi-même.
-      function isLeaveUpdate() {
+      // Nom et description du groupe.
+      function isInfoUpdate() {
         let d = request.resource.data;
         return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['title', 'description'])
+          && allowed(resource.data, 'info')
+          && validTitle(d.title)
+          && validDescription(d.get('description', ''));
+      }
+
+      // Qui peut écrire, modifier les infos, ajouter des membres : les admins.
+      function isPermsUpdate() {
+        let d = request.resource.data;
+        return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['perms'])
+          && isAdmin(resource.data)
+          && validPerms(d.perms);
+      }
+
+      // Ajouter UN membre : un compte qui existe, et qui n'a pas bloqué
+      // l'auteur de l'ajout. 20 membres au plus.
+      function isAddUpdate() {
+        let d = request.resource.data;
+        let added = d.members.removeAll(resource.data.members);
+        return resource.data.type == 'group'
           && d.diff(resource.data).affectedKeys().hasOnly(['members'])
-          && d.members == resource.data.members.removeAll([me()]);
+          && allowed(resource.data, 'add')
+          && d.members.size() == resource.data.members.size() + 1
+          && d.members.size() <= 20
+          && d.members.hasAll(resource.data.members)
+          && added.size() == 1
+          && exists(/databases/$(database)/documents/users/$(added[0]))
+          && !blockedBy(added[0]);
+      }
+
+      // Retirer UN membre : un admin, jamais le propriétaire (créateur) du
+      // groupe. S'il était admin, il perd ce rôle en même temps.
+      function isRemoveUpdate() {
+        let d = request.resource.data;
+        let removed = resource.data.members.removeAll(d.members);
+        return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['members', 'admins'])
+          && isAdmin(resource.data)
+          && removed.size() == 1
+          && d.members == resource.data.members.removeAll(removed)
+          && removed[0] != me()
+          && removed[0] != resource.data.createdBy
+          && adminsOf(d) == adminsOf(resource.data).removeAll(removed);
+      }
+
+      // Quitter un groupe : on ne peut retirer que soi-même. Le dernier
+      // admin qui s'en va passe la main à un membre restant.
+      function isLeaveUpdate() {
+        let d = request.resource.data;
+        let rest = adminsOf(resource.data).removeAll([me()]);
+        return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['members', 'admins'])
+          && d.members == resource.data.members.removeAll([me()])
+          && ((adminsOf(d) == rest
+              && (rest.size() > 0 || !isAdmin(resource.data) || d.members.size() == 0))
+            || (rest.size() == 0 && adminsOf(d).size() == 1 && d.members.hasAll(adminsOf(d))));
+      }
+
+      // Donner ou retirer les droits d'admin (un admin, un membre à la fois).
+      // Seul le propriétaire peut retirer les siens ; il reste toujours au
+      // moins un admin. Un groupe sans plus aucun admin parmi ses membres
+      // peut en retrouver un : le membre qui se désigne.
+      function isRoleUpdate() {
+        let d = request.resource.data;
+        let before = adminsOf(resource.data);
+        let owner = resource.data.createdBy;
+        return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['admins'])
+          && d.admins is list
+          && d.admins.toSet().size() == d.admins.size()
+          && d.admins.size() >= 1
+          && resource.data.members.hasAll(d.admins)
+          && ((isAdmin(resource.data)
+              && ((d.admins.size() == before.size() + 1 && d.admins.hasAll(before))
+                || (d.admins.size() == before.size() - 1 && before.hasAll(d.admins)
+                  && (!(owner in before.removeAll(d.admins)) || me() == owner))))
+            || (isMember(resource.data)
+              && !resource.data.members.hasAny(before)
+              && d.admins == [me()]));
       }
 
       allow get: if isMember(resource.data);
@@ -234,7 +393,9 @@ service cloud.firestore {
       allow list: if signedIn() && me() in resource.data.members;
       allow create: if signedIn() && validCreate();
       allow update: if isMember(resource.data)
-        && (isPostUpdate() || isReadUpdate() || isTypingUpdate() || isLeaveUpdate());
+        && (isPostUpdate() || isReadUpdate() || isTypingUpdate() || isLeaveUpdate()
+          || isInfoUpdate() || isPermsUpdate() || isAddUpdate() || isRemoveUpdate()
+          || isRoleUpdate());
       allow delete: if false;
 
       match /messages/{mid} {
@@ -247,6 +408,7 @@ service cloud.firestore {
           && validEnc(request.resource.data.enc,
                       get(/databases/$(database)/documents/conversations/$(cid)).data.members)
           && request.resource.data.createdAt == request.time
+          && canPost(get(/databases/$(database)/documents/conversations/$(cid)).data)
           // L'aperçu de la conversation doit pointer sur ce message.
           && getAfter(/databases/$(database)/documents/conversations/$(cid)).data.lastMessage.id == mid;
         allow update, delete: if false;
@@ -268,6 +430,31 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/conversations/$(cid)/messages/$(mid)).data.uid == me()
           && getAfter(/databases/$(database)/documents/conversations/$(cid)/messages/$(mid)).data.createdAt == request.time;
         allow update, delete: if false;
+      }
+
+      // Membre privé de parole jusqu'à `until` (30 jours au plus), par un
+      // admin. Ni le propriétaire ni un admin ne peuvent l'être. Tous les
+      // membres voient qui l'est ; un admin peut lui rendre la parole.
+      match /restrictions/{uid} {
+        function group() {
+          return get(/databases/$(database)/documents/conversations/$(cid)).data;
+        }
+
+        allow read: if isMember(group());
+        allow create, update: if signedIn()
+          && group().type == 'group'
+          && isAdmin(group())
+          && uid in group().members
+          && uid != me()
+          && uid != group().createdBy
+          && !(uid in adminsOf(group()))
+          && request.resource.data.keys().hasOnly(['until', 'by', 'at'])
+          && request.resource.data.by == me()
+          && request.resource.data.at == request.time
+          && request.resource.data.until is timestamp
+          && request.resource.data.until > request.time
+          && request.resource.data.until <= request.time + duration.value(30, 'd');
+        allow delete: if signedIn() && group().type == 'group' && isAdmin(group());
       }
     }
 
@@ -335,6 +522,7 @@ service cloud.firestore {
       allow get: if isParty(resource.data);
       // Seule la requête « les appels qui me sonnent » (callee == moi) passe.
       allow list: if signedIn() && resource.data.callee == me();
+      // On n'appelle pas quelqu'un qui nous a bloqués.
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['cid', 'caller', 'callee', 'video', 'status', 'offer', 'createdAt'])
         && request.resource.data.caller == me()
@@ -347,7 +535,8 @@ service cloud.firestore {
         && request.resource.data.cid is string
         && get(/databases/$(database)/documents/conversations/$(request.resource.data.cid)).data.type == 'dm'
         && get(/databases/$(database)/documents/conversations/$(request.resource.data.cid)).data.members
-          .hasAll([me(), request.resource.data.callee]);
+          .hasAll([me(), request.resource.data.callee])
+        && !blockedBy(request.resource.data.callee);
       allow update: if isParty(resource.data) && (isAnswer() || isRefusal() || isHangUp());
       allow delete: if false;
 
