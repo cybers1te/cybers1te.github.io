@@ -85,6 +85,46 @@ function createDm(fs, uid, other) {
     newConversation(fs, uid, members, { type: 'dm', title: '' }));
 }
 
+// Groupe tel que public/main.js le crée : son seul créateur, admin, puis
+// les membres ajoutés un par un (addMember).
+const PERMS = { send: 'all', info: 'all', add: 'all' };
+
+function newGroup(uid, { title = 'Groupe', perms = PERMS, description = '' } = {}) {
+  return {
+    type: 'group',
+    members: [uid],
+    admins: [uid],
+    perms,
+    description,
+    title,
+    createdBy: uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    lastMessage: null,
+    lastRead: {},
+  };
+}
+
+const addMember = (fs, gid, uid) => updateDoc(doc(fs, 'conversations', gid), { members: arrayUnion(uid) });
+
+// Groupe déjà en place (écrit sans passer par les règles). `legacy` : groupe
+// créé avant les admins, sans `admins` ni `perms`.
+async function seedGroup(gid, members, { createdBy = members[0], admins = [createdBy], perms = PERMS, legacy = false } = {}) {
+  const data = {
+    type: 'group', members, title: 'Groupe', createdBy,
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastMessage: null, lastRead: {},
+    ...(legacy ? {} : { admins, perms, description: '' }),
+  };
+  await seed((fs) => setDoc(doc(fs, 'conversations', gid), data));
+  return gid;
+}
+
+async function seedUsers(...uids) {
+  await seed(async (fs) => {
+    for (const uid of uids) await setDoc(doc(fs, 'users', uid), { name: 'Nom ' + uid, username: uid });
+  });
+}
+
 const encryptFor = (members, text, cid, uid) =>
   encryptMessage(text, Object.fromEntries(members.map((m) => [m, ids[m].publicKey])), cid, uid);
 
@@ -285,24 +325,28 @@ describe('conversations', () => {
       newConversation(fs, 'mallory', ['alice', 'bob'])));
   });
 
-  test('groupe : 2 à 20 membres distincts et un titre', async () => {
+  test('groupe : créé par son seul créateur, admin, avec un titre', async () => {
     const fs = db('alice');
-    await assertSucceeds(setDoc(doc(collection(fs, 'conversations')),
-      newConversation(fs, 'alice', ['alice', 'bob', 'carol'])));
-    await assertFails(setDoc(doc(collection(fs, 'conversations')),
-      newConversation(fs, 'alice', ['alice', 'bob'], { title: '' })));
-    await assertFails(setDoc(doc(collection(fs, 'conversations')),
-      newConversation(fs, 'alice', ['alice', 'alice'])));
-    const many = ['alice', ...Array.from({ length: 20 }, (_, i) => 'u' + i)];
-    await assertFails(setDoc(doc(collection(fs, 'conversations')),
-      newConversation(fs, 'alice', many)));
+    const make = (data) => setDoc(doc(collection(fs, 'conversations')), data);
+    await assertSucceeds(make(newGroup('alice')));
+    await assertSucceeds(make(newGroup('alice', { description: 'd'.repeat(300) })));
+    // Les autres membres sont ajoutés ensuite, un par un.
+    await assertFails(make({ ...newGroup('alice'), members: ['alice', 'bob'] }));
+    await assertFails(make(newConversation(fs, 'alice', ['alice', 'bob', 'carol'])));
+    await assertFails(make({ ...newGroup('alice'), admins: ['alice', 'bob'] }));
+    await assertFails(make({ ...newGroup('bob'), createdBy: 'alice' }));
+    await assertFails(make(newGroup('alice', { title: '' })));
+    await assertFails(make(newGroup('alice', { title: 't'.repeat(61) })));
+    await assertFails(make(newGroup('alice', { description: 'd'.repeat(301) })));
+    await assertFails(make(newGroup('alice', { perms: { ...PERMS, send: 'personne' } })));
+    await assertFails(make(newGroup('alice', { perms: { send: 'all', info: 'all' } })));
+    await assertFails(make({ ...newGroup('alice'), extra: true }));
   });
 
   test('refuse un aperçu pré-rempli à la création', async () => {
-    const fs = db('alice');
-    const data = newConversation(fs, 'alice', ['alice', 'bob']);
+    const data = newGroup('alice');
     data.lastMessage = { id: 'x', uid: 'bob', text: 'faux', at: serverTimestamp() };
-    await assertFails(setDoc(doc(collection(fs, 'conversations')), data));
+    await assertFails(setDoc(doc(collection(db('alice'), 'conversations')), data));
   });
 
   test('seuls les membres lisent une conversation', async () => {
@@ -331,14 +375,12 @@ describe('conversations', () => {
   });
 
   test('on quitte un groupe, pas une discussion à deux', async () => {
-    const fs = db('alice');
-    const group = doc(collection(fs, 'conversations'));
-    await setDoc(group, newConversation(fs, 'alice', ['alice', 'bob', 'carol']));
-    await assertFails(updateDoc(doc(db('bob'), 'conversations', group.id),
+    const gid = await seedGroup('g1', ['alice', 'bob', 'carol']);
+    await assertFails(updateDoc(doc(db('bob'), 'conversations', gid),
       { members: arrayRemove('carol') }));
-    await assertSucceeds(updateDoc(doc(db('bob'), 'conversations', group.id),
+    await assertSucceeds(updateDoc(doc(db('bob'), 'conversations', gid),
       { members: arrayRemove('bob') }));
-    await assertFails(getDoc(doc(db('bob'), 'conversations', group.id)));
+    await assertFails(getDoc(doc(db('bob'), 'conversations', gid)));
 
     await createDm(db('alice'), 'alice', 'bob');
     await assertFails(updateDoc(doc(db('bob'), 'conversations', dmId('alice', 'bob')),
@@ -566,10 +608,8 @@ describe('appels', () => {
   });
 
   test('refuse un appel hors discussion à deux, usurpé ou mal formé', async () => {
-    const fs = db('alice');
-    const group = doc(collection(fs, 'conversations'));
-    await setDoc(group, newConversation(fs, 'alice', ['alice', 'bob', 'carol']));
-    await assertFails(setDoc(ref('alice', 'g'), call({ cid: group.id })));
+    const gid = await seedGroup('g1', ['alice', 'bob', 'carol']);
+    await assertFails(setDoc(ref('alice', 'g'), call({ cid: gid })));
     await assertFails(setDoc(ref('alice', 'm'), call({ callee: 'mallory' })));
     await assertFails(setDoc(ref('mallory', 'x'), call({ caller: 'mallory', callee: 'bob' })));
     await assertFails(setDoc(ref('bob', 'u'), call()));
@@ -626,5 +666,229 @@ describe('appels', () => {
   test('personne ne supprime un appel', async () => {
     await setDoc(ref('alice'), call());
     await assertFails(deleteDoc(ref('alice')));
+  });
+});
+
+describe('groupes : membres', () => {
+  const ref = (uid, gid = 'g1') => doc(db(uid), 'conversations', gid);
+
+  beforeEach(() => seedUsers('alice', 'bob', 'carol', 'dave', 'mallory'));
+
+  test('le créateur ajoute les membres un par un', async () => {
+    const fs = db('alice');
+    const group = doc(collection(fs, 'conversations'));
+    await setDoc(group, newGroup('alice'));
+    await assertSucceeds(addMember(fs, group.id, 'bob'));
+    await assertSucceeds(addMember(fs, group.id, 'carol'));
+    const data = (await getDoc(group)).data();
+    if (data.members.join() !== 'alice,bob,carol') throw new Error('membres : ' + data.members);
+    await assertSucceeds(getDoc(doc(db('bob'), 'conversations', group.id)));
+  });
+
+  test('un seul membre à la fois, un compte qui existe, 20 membres au plus', async () => {
+    await seedGroup('g1', ['alice']);
+    await assertFails(updateDoc(ref('alice'), { members: arrayUnion('bob', 'carol') }));
+    await assertFails(updateDoc(ref('alice'), { members: arrayUnion('inconnu') }));
+    await assertFails(updateDoc(ref('alice'), { members: ['bob'] }));
+    const many = ['alice', ...Array.from({ length: 19 }, (_, i) => 'u' + i)];
+    await seedGroup('g2', many);
+    await assertFails(addMember(db('alice'), 'g2', 'bob'));
+  });
+
+  test('ajout réservé aux admins si le groupe le demande', async () => {
+    await seedGroup('g1', ['alice', 'bob'], { perms: { ...PERMS, add: 'admins' } });
+    await assertFails(addMember(db('bob'), 'g1', 'carol'));
+    await assertSucceeds(addMember(db('alice'), 'g1', 'carol'));
+    await seedGroup('g2', ['alice', 'bob']);
+    await assertSucceeds(addMember(db('bob'), 'g2', 'carol'));
+    await assertFails(addMember(db('mallory'), 'g2', 'mallory'));
+  });
+
+  test('personne n\'est ajouté par quelqu\'un qu\'il a bloqué', async () => {
+    await seedGroup('g1', ['alice', 'bob']);
+    await setDoc(doc(db('carol'), 'settings', 'carol'), { blocked: ['alice'] });
+    await assertFails(addMember(db('alice'), 'g1', 'carol'));
+    await assertSucceeds(addMember(db('bob'), 'g1', 'carol'));
+  });
+
+  test('un admin retire un membre ; un membre ne retire personne', async () => {
+    await seedGroup('g1', ['alice', 'bob', 'carol', 'dave'], { admins: ['alice', 'bob'] });
+    await assertFails(updateDoc(ref('carol'), { members: arrayRemove('dave') }));
+    await assertFails(updateDoc(ref('alice'), { members: ['alice', 'bob'] }));
+    await assertSucceeds(updateDoc(ref('alice'), { members: arrayRemove('dave') }));
+    // Un admin retiré perd ses droits dans la même écriture.
+    await assertFails(updateDoc(ref('alice'), { members: arrayRemove('bob') }));
+    await assertSucceeds(updateDoc(ref('alice'), { members: arrayRemove('bob'), admins: ['alice'] }));
+    await assertFails(updateDoc(ref('alice'), { members: arrayRemove('alice'), admins: ['carol'], title: 'x' }));
+  });
+
+  test('le propriétaire ne peut pas être retiré', async () => {
+    await seedGroup('g1', ['alice', 'bob', 'carol'], { admins: ['alice', 'bob'] });
+    await assertFails(updateDoc(ref('bob'), { members: arrayRemove('alice'), admins: ['bob'] }));
+    await assertFails(updateDoc(ref('bob'), { members: arrayRemove('alice') }));
+  });
+
+  test('le dernier admin qui part passe la main', async () => {
+    await seedGroup('g1', ['alice', 'bob', 'carol']);
+    await assertFails(updateDoc(ref('alice'), { members: arrayRemove('alice') }));
+    await assertFails(updateDoc(ref('alice'), { members: arrayRemove('alice'), admins: [] }));
+    await assertFails(updateDoc(ref('alice'), { members: arrayRemove('alice'), admins: ['mallory'] }));
+    await assertSucceeds(updateDoc(ref('alice'), { members: arrayRemove('alice'), admins: ['bob'] }));
+    await assertSucceeds(updateDoc(ref('carol'), { members: arrayRemove('carol') }));
+    // Dernier membre : il part, le groupe reste vide.
+    await assertSucceeds(updateDoc(ref('bob'), { members: arrayRemove('bob'), admins: [] }));
+  });
+
+  test('ancien groupe (sans admins) : son créateur en est l\'admin', async () => {
+    await seedGroup('g1', ['alice', 'bob', 'carol'], { legacy: true });
+    await assertFails(updateDoc(ref('bob'), { members: arrayRemove('carol') }));
+    await assertSucceeds(updateDoc(ref('alice'), { members: arrayRemove('carol'), admins: ['alice'] }));
+    await assertSucceeds(addMember(db('bob'), 'g1', 'dave'));
+    await assertSucceeds(updateDoc(ref('bob'), { title: 'Nouveau nom' }));
+  });
+});
+
+describe('groupes : rôles et réglages', () => {
+  const ref = (uid, gid = 'g1') => doc(db(uid), 'conversations', gid);
+
+  test('un admin donne ou retire les droits d\'admin, un à la fois', async () => {
+    await seedGroup('g1', ['alice', 'bob', 'carol', 'dave']);
+    await assertFails(updateDoc(ref('bob'), { admins: arrayUnion('bob') }));
+    await assertFails(updateDoc(ref('alice'), { admins: arrayUnion('mallory') }));
+    await assertFails(updateDoc(ref('alice'), { admins: arrayUnion('bob', 'carol') }));
+    await assertSucceeds(updateDoc(ref('alice'), { admins: arrayUnion('bob') }));
+    await assertSucceeds(updateDoc(ref('bob'), { admins: arrayUnion('carol') }));
+    await assertSucceeds(updateDoc(ref('bob'), { admins: arrayRemove('carol') }));
+    await assertFails(updateDoc(ref('dave'), { admins: arrayRemove('bob') }));
+  });
+
+  test('seul le propriétaire retire ses propres droits ; il reste un admin', async () => {
+    await seedGroup('g1', ['alice', 'bob', 'carol'], { admins: ['alice', 'bob'] });
+    await assertFails(updateDoc(ref('bob'), { admins: arrayRemove('alice') }));
+    await assertSucceeds(updateDoc(ref('alice'), { admins: arrayRemove('alice') }));
+    await assertFails(updateDoc(ref('bob'), { admins: arrayRemove('bob') }));
+  });
+
+  test('groupe sans admin : un membre peut se désigner', async () => {
+    await seedGroup('g1', ['bob', 'carol'], { createdBy: 'alice', legacy: true });
+    await assertFails(updateDoc(ref('bob'), { admins: ['bob', 'carol'] }));
+    await assertSucceeds(updateDoc(ref('bob'), { admins: ['bob'] }));
+    await assertFails(updateDoc(ref('carol'), { admins: ['carol'] }));
+  });
+
+  test('nom et description : par tous, ou par les admins seulement', async () => {
+    await seedGroup('g1', ['alice', 'bob']);
+    await assertSucceeds(updateDoc(ref('bob'), { title: 'Week-end', description: 'Départ vendredi' }));
+    await assertFails(updateDoc(ref('bob'), { title: '' }));
+    await assertFails(updateDoc(ref('bob'), { description: 'd'.repeat(301) }));
+    await assertFails(updateDoc(ref('bob'), { title: 'x', members: arrayUnion('carol') }));
+    await seedGroup('g2', ['alice', 'bob'], { perms: { ...PERMS, info: 'admins' } });
+    await assertFails(updateDoc(ref('bob', 'g2'), { title: 'Pris' }));
+    await assertSucceeds(updateDoc(ref('alice', 'g2'), { title: 'Repris' }));
+    await assertFails(updateDoc(ref('mallory', 'g2'), { title: 'Intrus' }));
+  });
+
+  test('les réglages du groupe sont réservés aux admins', async () => {
+    await seedGroup('g1', ['alice', 'bob']);
+    const locked = { send: 'admins', info: 'admins', add: 'admins' };
+    await assertFails(updateDoc(ref('bob'), { perms: locked }));
+    await assertFails(updateDoc(ref('alice'), { perms: { ...locked, send: 'moi' } }));
+    await assertFails(updateDoc(ref('alice'), { perms: { send: 'admins' } }));
+    await assertSucceeds(updateDoc(ref('alice'), { perms: locked }));
+  });
+
+  test('écriture réservée aux admins', async () => {
+    const members = ['alice', 'bob'];
+    await seedGroup('g1', members, { perms: { ...PERMS, send: 'admins' } });
+    await assertFails(post(db('bob'), 'bob', 'g1', 'je peux ?', { members }));
+    await assertSucceeds(post(db('alice'), 'alice', 'g1', 'annonce', { members }));
+  });
+});
+
+describe('groupes : privé de parole', () => {
+  const members = ['alice', 'bob', 'carol'];
+  const until = (ms) => Timestamp.fromMillis(Date.now() + ms);
+  const restrict = (uid, target, ms = 3600e3, over = {}) =>
+    setDoc(doc(db(uid), 'conversations', 'g1', 'restrictions', target),
+      { until: until(ms), by: uid, at: serverTimestamp(), ...over });
+
+  beforeEach(() => seedGroup('g1', members, { admins: ['alice', 'carol'] }).then(() =>
+    seedUsers('alice', 'bob', 'carol', 'mallory')));
+
+  test('un admin retire la parole à un membre, pour un temps', async () => {
+    await assertSucceeds(restrict('alice', 'bob'));
+    await assertFails(post(db('bob'), 'bob', 'g1', 'chut', { members }));
+    await assertSucceeds(post(db('alice'), 'alice', 'g1', 'ok', { members }));
+    await assertSucceeds(getDoc(doc(db('bob'), 'conversations', 'g1', 'restrictions', 'bob')));
+    await assertSucceeds(getDocs(collection(db('bob'), 'conversations', 'g1', 'restrictions')));
+    await assertFails(getDocs(collection(db('mallory'), 'conversations', 'g1', 'restrictions')));
+    // Rendre la parole.
+    await assertFails(deleteDoc(doc(db('bob'), 'conversations', 'g1', 'restrictions', 'bob')));
+    await assertSucceeds(deleteDoc(doc(db('carol'), 'conversations', 'g1', 'restrictions', 'bob')));
+    await assertSucceeds(post(db('bob'), 'bob', 'g1', 'merci', { members }));
+  });
+
+  test('une fois le délai passé, le membre écrit à nouveau', async () => {
+    await seed((fs) => setDoc(doc(fs, 'conversations', 'g1', 'restrictions', 'bob'),
+      { until: Timestamp.fromMillis(Date.now() - 1000), by: 'alice', at: Timestamp.now() }));
+    await assertSucceeds(post(db('bob'), 'bob', 'g1', 'de retour', { members }));
+  });
+
+  test('ni un membre, ni contre un admin, ni plus de 30 jours', async () => {
+    await assertFails(restrict('bob', 'alice'));
+    await assertFails(restrict('alice', 'carol'));
+    await assertFails(restrict('alice', 'alice'));
+    await assertFails(restrict('alice', 'mallory'));
+    await assertFails(restrict('alice', 'bob', 31 * 864e5));
+    await assertFails(restrict('alice', 'bob', -1000));
+    await assertFails(restrict('alice', 'bob', 3600e3, { by: 'carol' }));
+    await assertFails(restrict('alice', 'bob', 3600e3, { raison: 'spam' }));
+    await assertSucceeds(restrict('alice', 'bob', 30 * 864e5 - 60e3));
+  });
+});
+
+describe('blocage', () => {
+  const cid = dmId('alice', 'bob');
+  const block = (uid, ...who) => setDoc(doc(db(uid), 'settings', uid), { blocked: who });
+
+  test('réglages privés : seul leur propriétaire les lit et les écrit', async () => {
+    await assertSucceeds(setDoc(doc(db('bob'), 'settings', 'bob'),
+      { blocked: ['alice'], muted: { [cid]: Date.now() + 3600e3 } }));
+    await assertSucceeds(getDoc(doc(db('bob'), 'settings', 'bob')));
+    await assertFails(getDoc(doc(db('alice'), 'settings', 'bob')));
+    await assertFails(getDocs(collection(db('bob'), 'settings')));
+    await assertFails(setDoc(doc(db('alice'), 'settings', 'bob'), { blocked: [] }));
+    await assertFails(setDoc(doc(db('bob'), 'settings', 'bob'), { blocked: ['bob'] }));
+    await assertFails(setDoc(doc(db('bob'), 'settings', 'bob'), { blocked: 'alice' }));
+    await assertFails(setDoc(doc(db('bob'), 'settings', 'bob'), { theme: 'sombre' }));
+    await assertFails(setDoc(doc(db('bob'), 'settings', 'bob'),
+      { blocked: Array.from({ length: 501 }, (_, i) => 'u' + i) }));
+  });
+
+  test('une personne bloquée n\'écrit plus, jusqu\'au déblocage', async () => {
+    await createDm(db('alice'), 'alice', 'bob');
+    await assertSucceeds(post(db('alice'), 'alice', cid, 'avant'));
+    await block('bob', 'alice');
+    await assertFails(post(db('alice'), 'alice', cid, 'pendant'));
+    await assertFails(postMedia(db('alice'), 'alice', cid));
+    await block('bob');
+    await assertSucceeds(post(db('alice'), 'alice', cid, 'après'));
+  });
+
+  test('ni nouvelle discussion, ni appel vers qui nous a bloqués', async () => {
+    await block('bob', 'alice');
+    await assertFails(createDm(db('alice'), 'alice', 'bob'));
+    await assertSucceeds(createDm(db('bob'), 'bob', 'alice'));
+    const offer = { type: 'offer', sdp: 'v=0\r\n' };
+    await assertFails(setDoc(doc(db('alice'), 'calls', 'c1'), {
+      cid, caller: 'alice', callee: 'bob', video: false, status: 'ringing', offer, createdAt: serverTimestamp(),
+    }));
+  });
+
+  test('dans un groupe, le blocage n\'empêche pas d\'écrire aux autres', async () => {
+    const members = ['alice', 'bob', 'carol'];
+    await seedGroup('g1', members);
+    await block('bob', 'alice');
+    await assertSucceeds(post(db('alice'), 'alice', 'g1', 'bonjour à tous', { members }));
   });
 });
