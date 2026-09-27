@@ -7,13 +7,16 @@ suffit largement pour un petit groupe d'amis.
 Tant que ces étapes ne sont pas faites, <https://cybers1te.github.io/> affiche
 un écran « Il ne manque plus que Firebase » : c'est normal.
 
-> **Déjà configuré ? Mise à jour « groupes, membres, blocage »** : les règles
-> de sécurité ont changé. Republie-les une fois : console Firebase →
-> **Firestore Database** → onglet **Règles** → efface tout, colle
+> **Déjà configuré ? Mise à jour « réactions, sondages, appels de groupe… »** :
+> les règles de sécurité ont changé. Republie-les une fois : console Firebase
+> → **Firestore Database** → onglet **Règles** → efface tout, colle
 > l'intégralité du nouveau [`firestore.rules`](firestore.rules) → **Publier**.
-> Tant que ce n'est pas fait, les messages marchent mais la création de
-> groupe, les admins, le blocage et la sourdine sont refusés (« Accès refusé
-> par les règles Firestore »).
+> Tant que ce n'est pas fait, les anciens messages s'affichent mais l'envoi,
+> les réactions, les photos de profil, les liens d'invitation et les appels de
+> groupe sont refusés (« Accès refusé par les règles Firestore »).
+>
+> Pour proposer **« Continuer avec Google »**, active aussi ce mode de
+> connexion (étape 3, point 4).
 
 ## En deux mots : c'est quoi Firebase ?
 
@@ -62,6 +65,11 @@ C'est ce qui donne la « configuration » à coller dans le site.
 2. Onglet **Méthode de connexion** (Sign-in method).
 3. Clique sur **Adresse e-mail/Mot de passe**, active le **premier**
    interrupteur (pas besoin de « Lien envoyé par e-mail »), puis **Enregistrer**.
+4. *(Facultatif, pour le bouton « Continuer avec Google »)* **Ajouter un
+   fournisseur** → **Google** → **Activer**, choisis ton adresse comme
+   « Adresse e-mail d'assistance », puis **Enregistrer**. Un compte Google
+   choisit un **mot de passe de chiffrement** sur message-me : c'est lui qui
+   protège ses messages (Google ne le connaît pas).
 
 ## Étape 4 — Créer la base de données et publier les règles
 
@@ -156,8 +164,14 @@ Pour voir le détail d'une erreur : touche **F12** → onglet **Console**.
 - il faut être connecté pour lire quoi que ce soit ;
 - un pseudo appartient à une seule personne et ne peut pas être volé ;
 - seuls les membres d'une conversation en lisent les messages ;
-- personne ne peut envoyer un message au nom d'un autre, ni antidater un
-  message, ni modifier ou supprimer un message envoyé ;
+- personne ne peut envoyer un message au nom d'un autre, ni l'antidater ;
+  seul son auteur le modifie (48 heures au plus) ; lui, ou un admin du
+  groupe, le supprime pour tout le monde (il ne reste que « Message
+  supprimé ») ;
+- réactions et votes sont chiffrés avec la clé du message : chacun ne remplit
+  que sa propre case ;
+- un message éphémère porte l'échéance réglée dans la conversation (24 heures
+  ou 7 jours) et ne peut être effacé qu'une fois échu ;
 - un groupe a des **admins** (au départ, son créateur, qui en est le
   **propriétaire**) : ils nomment d'autres admins, retirent des membres,
   privent un membre de parole pour un temps (30 jours au plus) et décident
@@ -181,7 +195,15 @@ Pour voir le détail d'une erreur : touche **F12** → onglet **Console**.
 - on n'appelle que l'autre membre d'une discussion à deux ; seul l'appelé
   décroche ou refuse, et chacun ne dépose que ses propres informations de
   connexion ;
-- la clé privée scellée d'un compte n'est lisible que par lui.
+- un lien d'invitation ne fait entrer que la personne qui l'utilise, et plus
+  personne une fois désactivé ou remplacé ;
+- un appel de groupe compte 4 participants au plus, chacun ne se relie qu'à
+  eux, et un participant silencieux depuis plus d'une minute peut être
+  retiré ;
+- chacun n'écrit que sa propre présence (« en ligne ») et sa propre photo ;
+- la clé privée scellée d'un compte n'est lisible que par lui ; supprimer son
+  compte efface profil, clé, réglages, photo et présence, mais le pseudo reste
+  réservé.
 
 Ces règles sont testées automatiquement (`npm test`, et à chaque push par
 GitHub Actions). **Si tu modifies `firestore.rules` dans le dépôt, republie-le
@@ -209,6 +231,21 @@ mettre en relation (collection `calls`). Sur la plupart des réseaux ça marche
 tel quel. Derrière certains réseaux très fermés (4G de quelques opérateurs,
 réseaux d'entreprise), la connexion échoue sans **serveur relais TURN** : voir
 « Pour aller plus loin ».
+
+Les **appels de groupe** relient chaque participant directement à chacun des
+autres : au-delà de 4, la connexion de chacun saturerait, d'où la limite. Le
+**partage d'écran** fonctionne depuis un ordinateur (les navigateurs mobiles
+ne le proposent pas).
+
+Le site s'**installe comme une application** (Paramètres → Application) et
+s'ouvre **hors ligne** : les conversations déjà chargées restent lisibles, et
+les messages écrits sans réseau partent dès son retour.
+
+La **vérification du chiffrement** (infos d'un contact) affiche un numéro de
+60 chiffres et un code QR, identiques des deux côtés si personne ne s'est
+glissé entre vous. Le code QR se scanne depuis les navigateurs qui savent lire
+les codes QR (Chrome sur Android, par exemple) ; ailleurs, comparez les
+chiffres.
 
 Les **notifications** (nouveaux messages, appels entrants) s'activent depuis
 le site. Elles arrivent tant qu'un onglet message-me est ouvert, même en

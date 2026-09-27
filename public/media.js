@@ -86,6 +86,30 @@ export async function prepareImage(file) {
   }
 }
 
+/** Photo de profil ou de groupe : carré de 256 px, sous 190 Ko. */
+export async function prepareAvatar(file) {
+  if (!file || !/^image\//.test(file.type)) throw mediaError('not-image');
+  const img = await decodeImage(file);
+  try {
+    if (!img.width || !img.height) throw mediaError('image-decode');
+    const side = Math.min(img.width, img.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 256;
+    const g = canvas.getContext('2d');
+    const type = canEncodeWebp() ? 'image/webp' : 'image/jpeg';
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, 256, 256);
+    g.drawImage(img.source, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 256, 256);
+    for (const quality of [0.86, 0.72, 0.58]) {
+      const blob = await toBlob(canvas, type, quality);
+      if (blob && blob.size <= 190000) return blob;
+    }
+    throw mediaError('too-big');
+  } finally {
+    img.done();
+  }
+}
+
 /* ------------------------------------------------------ messages vocaux */
 
 export function voiceSupported() {
@@ -295,5 +319,6 @@ export function formatDuration(seconds) {
 }
 
 export function formatBytes(n) {
-  return n < 1024 * 1024 ? Math.round(n / 1024) + ' Ko' : (n / 1024 / 1024).toFixed(1).replace('.', ',') + ' Mo';
+  if (n < 1024) return n + ' o';
+  return n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' Ko' : (n / 1024 / 1024).toFixed(1).replace('.', ',') + ' Mo';
 }
