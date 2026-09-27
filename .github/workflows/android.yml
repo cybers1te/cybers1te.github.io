@@ -1,9 +1,11 @@
 name: message-me — application Android
 
-# Construit l'APK (Trusted Web Activity) avec les outils Android de GitHub,
-# l'essaie sur un émulateur, puis dépose l'APK non signé et les captures
-# dans android/dist/ de la branche. La signature se fait hors de GitHub,
-# avec une clé qui n'est jamais publiée.
+# Construit l'APK (Trusted Web Activity) avec les outils Android de GitHub et
+# l'essaie sur un émulateur. Sur une branche de travail, dépose ensuite dans
+# android/dist/ l'APK non signé, l'outil apksigner et les captures : la
+# signature se fait hors de GitHub, avec une clé qui n'est jamais publiée.
+# Lancé à la main sur main, il vérifie l'APK du site (public/message-me.apk)
+# contre le site en ligne (« RESULTAT : » dans le journal).
 on:
   push:
     branches: ['claude/**']
@@ -56,9 +58,12 @@ jobs:
           script: bash android/ci-smoke.sh
 
       - name: Commit the unsigned APK
+        if: github.ref != 'refs/heads/main'
         run: |
           mkdir -p android/dist
           cp android/app/build/outputs/apk/release/app-release-unsigned.apk android/dist/
+          tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          cp "$tools/lib/apksigner.jar" android/dist/
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f android/dist
