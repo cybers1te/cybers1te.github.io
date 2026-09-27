@@ -16,10 +16,18 @@
 // version, sans que le déchiffrement échoue.
 //
 //   v1 : le texte chiffré est le message lui-même ;
-//   v2 : c'est une enveloppe JSON (photo, message vocal, journal d'appel).
+//   v2 : c'est une enveloppe JSON (texte avec réponse ou mentions, photo,
+//        message vocal, fichier, sondage, journal d'appel, événement).
 //
-// Une photo ou un message vocal est chiffré à part (encryptBlob), avec sa
-// propre clé AES-256-GCM ; cette clé ne voyage que dans l'enveloppe v2.
+// Une photo, un message vocal ou un fichier est chiffré à part (encryptBlob),
+// avec sa propre clé AES-256-GCM ; cette clé ne voyage que dans l'enveloppe v2.
+//
+// Réactions et votes (« notes ») sont chiffrés avec une clé tirée du message
+// (sealNote) : seuls ceux qui lisent le message les lisent.
+//
+// Numéro de sécurité (safetyNumber) : 60 chiffres calculés à partir des deux
+// clés publiques d'une discussion. S'il est le même sur les deux téléphones,
+// personne ne s'est glissé entre les deux.
 
 const subtle = globalThis.crypto.subtle;
 const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
@@ -173,17 +181,95 @@ export function encryptPayload(payload, recipients, cid, author) {
   return encryptMessage(JSON.stringify(payload), recipients, cid, author, 2);
 }
 
-/** Déchiffre un message pour `uid` avec sa clé privée ; lève une erreur sinon. */
-export async function decryptMessage(enc, uid, privateKey, cid, author) {
+/* Clé du message, déballée pour `uid` sous la forme demandée. */
+async function unwrapFor(enc, uid, privateKey, algorithm, usages) {
   if (!enc || !VERSIONS.includes(enc.v) || !enc.k || !enc.k[uid]) throw new Error('no-key');
   const ephRaw = fromB64(enc.e);
   const eph = await subtle.importKey('raw', ephRaw, ECDH, false, []);
   const kek = await wrappingKey(privateKey, eph, ephRaw, uid);
-  const cek = await subtle.unwrapKey('raw', fromB64(enc.k[uid]), kek, 'AES-KW',
-    { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  return subtle.unwrapKey('raw', fromB64(enc.k[uid]), kek, 'AES-KW', algorithm, false, usages);
+}
+
+/** Déchiffre un message pour `uid` avec sa clé privée ; lève une erreur sinon. */
+export async function decryptMessage(enc, uid, privateKey, cid, author) {
+  const cek = await unwrapFor(enc, uid, privateKey, { name: 'AES-GCM', length: 256 }, ['decrypt']);
   const pt = await subtle.decrypt({ name: 'AES-GCM', iv: fromB64(enc.iv), additionalData: aad(cid, author, enc.v) },
     cek, fromB64(enc.ct));
   return td.decode(pt);
+}
+
+/* ------------------------------------------ réactions et votes (notes) */
+
+// La clé des notes est tirée (HKDF) d'une graine `nk` de l'enveloppe v2 :
+// l'auteur la garde quand il modifie son message, et les réactions restent
+// lisibles. Un message v1 n'a pas de graine : on part de sa propre clé.
+
+/** Graine aléatoire à mettre dans l'enveloppe (champ `nk`). */
+export const newNoteSeed = () => toB64(random(32));
+
+async function noteKey(base) {
+  return subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: te.encode('message-me/notes/v1') },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  );
+}
+
+export async function noteKeyFromSeed(seed) {
+  return noteKey(await subtle.importKey('raw', fromB64(seed), 'HKDF', false, ['deriveKey']));
+}
+
+export async function noteKeyFromMessage(enc, uid, privateKey) {
+  return noteKey(await unwrapFor(enc, uid, privateKey, 'HKDF', ['deriveKey']));
+}
+
+const noteAad = (cid, mid, uid) => te.encode('message-me/note/v1|' + cid + '|' + mid + '|' + uid);
+
+/** Chiffre la note de `uid` sur le message `mid` : { iv, ct }. */
+export async function sealNote(key, value, cid, mid, uid) {
+  const iv = random(12);
+  const ct = await subtle.encrypt({ name: 'AES-GCM', iv, additionalData: noteAad(cid, mid, uid) },
+    key, te.encode(JSON.stringify(value)));
+  return { iv: toB64(iv), ct: toB64(ct) };
+}
+
+/** Rend la note, ou lève une erreur si elle a été modifiée ou déplacée. */
+export async function openNote(key, note, cid, mid, uid) {
+  const pt = await subtle.decrypt({ name: 'AES-GCM', iv: fromB64(note.iv), additionalData: noteAad(cid, mid, uid) },
+    key, fromB64(note.ct));
+  return JSON.parse(td.decode(pt));
+}
+
+/* --------------------------------------------------- numéro de sécurité */
+
+async function sha256(bytes) {
+  return new Uint8Array(await subtle.digest('SHA-256', bytes));
+}
+
+/* 30 chiffres pour un compte : SHA-256 répété, découpé en 6 blocs de 5. */
+async function fingerprintDigits(uid, publicKey) {
+  let h = te.encode('message-me/safety/v1|' + uid + '|' + publicKey);
+  for (let i = 0; i < 1024; i++) h = await sha256(h);
+  let out = '';
+  for (let i = 0; i < 6; i++) {
+    const chunk = h.slice(i * 5, i * 5 + 5).reduce((n, b) => n * 256 + b, 0);
+    out += String(chunk % 100000).padStart(5, '0');
+  }
+  return out;
+}
+
+/** 60 chiffres (12 blocs de 5), identiques des deux côtés de la discussion. */
+export async function safetyNumber(uidA, keyA, uidB, keyB) {
+  const [a, b] = await Promise.all([fingerprintDigits(uidA, keyA), fingerprintDigits(uidB, keyB)]);
+  const digits = uidA < uidB ? a + b : b + a;
+  return digits.match(/.{5}/g).join(' ');
+}
+
+/** Empreinte courte d'une clé publique, pour repérer un changement de clé. */
+export async function keyFingerprint(publicKey) {
+  return toB64((await sha256(te.encode(publicKey))).slice(0, 12));
 }
 
 /* ------------------------------------------------ fichiers (photo, voix) */

@@ -15,6 +15,7 @@ import {
   Bytes,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -290,7 +291,7 @@ describe('clés de chiffrement', () => {
     const fs = db('mallory');
     await assertFails(updateDoc(doc(fs, 'users', 'alice'), { publicKey: ids.mallory.publicKey }));
     await assertFails(setDoc(doc(fs, 'keys', 'alice'), await keysDoc(ids.mallory)));
-    await assertFails(deleteDoc(doc(db('alice'), 'keys', 'alice')));
+    await assertFails(deleteDoc(doc(fs, 'keys', 'alice')));
   });
 
   test('refuse une clé mal formée ou trop peu protégée', async () => {
@@ -465,7 +466,7 @@ describe('messages', () => {
   test('message chiffré trop long refusé', async () => {
     // 2000 caractères de 3 octets : le plus long message que le site envoie.
     await assertSucceeds(post(db('alice'), 'alice', cid, '€'.repeat(2000)));
-    await assertFails(post(db('alice'), 'alice', cid, '€'.repeat(2100)));
+    await assertFails(post(db('alice'), 'alice', cid, '€'.repeat(3100)));
   });
 
   test('date imposée par le serveur', async () => {
@@ -890,5 +891,370 @@ describe('blocage', () => {
     await seedGroup('g1', members);
     await block('bob', 'alice');
     await assertSucceeds(post(db('alice'), 'alice', 'g1', 'bonjour à tous', { members }));
+  });
+});
+
+// ----------------------------------------------------------------------
+// Réactions, votes, modification, suppression, messages éphémères
+// ----------------------------------------------------------------------
+
+async function lastMessageId(fs, cid) {
+  return (await getDoc(doc(fs, 'conversations', cid))).data().lastMessage.id;
+}
+
+const note = (over = {}) => ({ iv: 'A'.repeat(16), ct: 'B'.repeat(40), ...over });
+
+describe('réactions et votes', () => {
+  const cid = dmId('alice', 'bob');
+  const msgRef = (uid, mid) => doc(db(uid), 'conversations', cid, 'messages', mid);
+
+  beforeEach(() => createDm(db('alice'), 'alice', 'bob'));
+
+  test('chacun pose ou retire sa propre note chiffrée', async () => {
+    await post(db('alice'), 'alice', cid, 'Qui vient ?');
+    const mid = await lastMessageId(db('alice'), cid);
+    await assertSucceeds(updateDoc(msgRef('bob', mid), { 'notes.bob': note() }));
+    await assertSucceeds(updateDoc(msgRef('alice', mid), { 'notes.alice': note() }));
+    await assertFails(updateDoc(msgRef('alice', mid), { 'notes.bob': note({ ct: 'C'.repeat(40) }) }));
+    await assertSucceeds(updateDoc(msgRef('bob', mid), { 'notes.bob': deleteField() }));
+    await assertFails(updateDoc(msgRef('mallory', mid), { 'notes.mallory': note() }));
+  });
+
+  test('une note est petite et bien formée, et ne change rien d\'autre', async () => {
+    await post(db('alice'), 'alice', cid, 'Qui vient ?');
+    const mid = await lastMessageId(db('alice'), cid);
+    await assertFails(updateDoc(msgRef('bob', mid), { 'notes.bob': note({ ct: 'B'.repeat(401) }) }));
+    await assertFails(updateDoc(msgRef('bob', mid), { 'notes.bob': { r: '👍' } }));
+    await assertFails(updateDoc(msgRef('bob', mid), { 'notes.bob': note(), uid: 'bob' }));
+  });
+
+  test('une personne bloquée ne réagit plus', async () => {
+    await post(db('alice'), 'alice', cid, 'Qui vient ?');
+    const mid = await lastMessageId(db('alice'), cid);
+    await setDoc(doc(db('alice'), 'settings', 'alice'), { blocked: ['bob'] });
+    await assertFails(updateDoc(msgRef('bob', mid), { 'notes.bob': note() }));
+  });
+});
+
+describe('modifier et supprimer un message', () => {
+  const cid = dmId('alice', 'bob');
+  const msgRef = (uid, mid) => doc(db(uid), 'conversations', cid, 'messages', mid);
+  const tombstone = (uid) => ({
+    enc: deleteField(), notes: deleteField(), editedAt: deleteField(),
+    deleted: true, deletedBy: uid, deletedAt: serverTimestamp(),
+  });
+
+  beforeEach(() => createDm(db('alice'), 'alice', 'bob'));
+
+  test('l\'auteur modifie son message ; l\'aperçu suit', async () => {
+    await post(db('alice'), 'alice', cid, 'Rendez-vous à 18 h');
+    const mid = await lastMessageId(db('alice'), cid);
+    const enc = await encryptFor(['alice', 'bob'], 'Rendez-vous à 19 h', cid, 'alice');
+    await assertFails(updateDoc(msgRef('bob', mid), { enc, editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(msgRef('alice', mid), { enc, editedAt: Timestamp.fromMillis(0) }));
+    await assertFails(updateDoc(msgRef('alice', mid), { enc: await encryptFor(['alice'], 'x', cid, 'alice'), editedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(msgRef('alice', mid), { enc, editedAt: serverTimestamp() }));
+    const lm = (await getDoc(doc(db('alice'), 'conversations', cid))).data().lastMessage;
+    const conv = (uid) => doc(db(uid), 'conversations', cid);
+    await assertFails(updateDoc(conv('alice'), { lastMessage: { ...lm, enc: await encryptFor(['alice', 'bob'], 'faux', cid, 'alice') } }));
+    await assertFails(updateDoc(conv('alice'), { lastMessage: { ...lm, enc, at: Timestamp.now() } }));
+    await assertSucceeds(updateDoc(conv('bob'), { lastMessage: { ...lm, enc } }));
+  });
+
+  test('plus de modification après 48 heures', async () => {
+    const enc = await encryptFor(['alice', 'bob'], 'ancien', cid, 'alice');
+    await seed((fs) => setDoc(doc(fs, 'conversations', cid, 'messages', 'vieux'),
+      { uid: 'alice', enc, createdAt: Timestamp.fromMillis(Date.now() - 3 * 864e5) }));
+    await assertFails(updateDoc(msgRef('alice', 'vieux'), {
+      enc: await encryptFor(['alice', 'bob'], 'nouveau', cid, 'alice'), editedAt: serverTimestamp(),
+    }));
+  });
+
+  test('supprimer pour tout le monde : l\'auteur, sans laisser de contenu', async () => {
+    await post(db('alice'), 'alice', cid, 'Oups');
+    const mid = await lastMessageId(db('alice'), cid);
+    await assertFails(updateDoc(msgRef('bob', mid), tombstone('bob')));
+    await assertFails(updateDoc(msgRef('alice', mid), { deleted: true, deletedBy: 'alice', deletedAt: serverTimestamp() }));
+    await assertFails(updateDoc(msgRef('alice', mid), { ...tombstone('alice'), createdAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(msgRef('alice', mid), tombstone('alice')));
+    await assertFails(updateDoc(msgRef('alice', mid), tombstone('alice')));
+    await assertFails(updateDoc(msgRef('alice', mid), { 'notes.alice': note() }));
+    const lm = (await getDoc(doc(db('alice'), 'conversations', cid))).data().lastMessage;
+    await assertSucceeds(updateDoc(doc(db('alice'), 'conversations', cid),
+      { lastMessage: { id: lm.id, uid: lm.uid, at: lm.at, deleted: true } }));
+  });
+
+  test('un admin supprime le message d\'un membre dans son groupe', async () => {
+    const members = ['alice', 'bob', 'carol'];
+    await seedGroup('g1', members);
+    await post(db('bob'), 'bob', 'g1', 'spam', { members });
+    const mid = await lastMessageId(db('bob'), 'g1');
+    const ref = (uid) => doc(db(uid), 'conversations', 'g1', 'messages', mid);
+    await assertFails(updateDoc(ref('carol'), tombstone('carol')));
+    await assertSucceeds(updateDoc(ref('alice'), tombstone('alice')));
+  });
+
+  test('le fichier d\'un message supprimé est effacé avec lui', async () => {
+    const fs = db('alice');
+    const mid = await postMedia(fs, 'alice', cid);
+    const media = doc(fs, 'conversations', cid, 'media', mid);
+    await assertFails(deleteDoc(media));
+    const batch = writeBatch(fs);
+    batch.update(doc(fs, 'conversations', cid, 'messages', mid), tombstone('alice'));
+    batch.delete(media);
+    await assertSucceeds(batch.commit());
+  });
+});
+
+describe('messages éphémères', () => {
+  const cid = dmId('alice', 'bob');
+  const day = 86400;
+
+  async function postExp(fs, uid, text, exp) {
+    const enc = await encryptFor(['alice', 'bob'], text, cid, uid);
+    const msg = doc(collection(fs, 'conversations', cid, 'messages'));
+    const batch = writeBatch(fs);
+    batch.set(msg, { uid, enc, createdAt: serverTimestamp(), ...(exp ? { exp } : {}) });
+    batch.update(doc(fs, 'conversations', cid), {
+      lastMessage: { id: msg.id, uid, enc, at: serverTimestamp(), ...(exp ? { exp } : {}) },
+      updatedAt: serverTimestamp(),
+      ['lastRead.' + uid]: serverTimestamp(),
+    });
+    await batch.commit();
+    return msg.id;
+  }
+
+  beforeEach(() => createDm(db('alice'), 'alice', 'bob'));
+
+  test('le délai se règle sur 24 h, 7 jours ou jamais', async () => {
+    const ref = (uid) => doc(db(uid), 'conversations', cid);
+    await assertSucceeds(updateDoc(ref('bob'), { ttl: day }));
+    await assertSucceeds(updateDoc(ref('alice'), { ttl: 7 * day }));
+    await assertSucceeds(updateDoc(ref('alice'), { ttl: 0 }));
+    await assertFails(updateDoc(ref('alice'), { ttl: 60 }));
+    await assertFails(updateDoc(ref('mallory'), { ttl: day }));
+    await seedGroup('g1', ['alice', 'bob'], { perms: { ...PERMS, info: 'admins' } });
+    await assertFails(updateDoc(doc(db('bob'), 'conversations', 'g1'), { ttl: day }));
+    await assertSucceeds(updateDoc(doc(db('alice'), 'conversations', 'g1'), { ttl: day }));
+  });
+
+  test('chaque message porte l\'échéance de la conversation', async () => {
+    await updateDoc(doc(db('alice'), 'conversations', cid), { ttl: day });
+    await assertFails(postExp(db('alice'), 'alice', 'sans échéance'));
+    await assertFails(postExp(db('alice'), 'alice', 'trop longue', Timestamp.fromMillis(Date.now() + 2 * day * 1000)));
+    await assertSucceeds(postExp(db('alice'), 'alice', 'éphémère', Timestamp.fromMillis(Date.now() + day * 1000)));
+    await updateDoc(doc(db('alice'), 'conversations', cid), { ttl: 0 });
+    await assertFails(postExp(db('alice'), 'alice', 'échéance en trop', Timestamp.fromMillis(Date.now() + day * 1000)));
+  });
+
+  test('un message expiré est effacé par un membre, avec son fichier', async () => {
+    const enc = await encryptFor(['alice', 'bob'], 'périmé', cid, 'alice');
+    const past = Timestamp.fromMillis(Date.now() - 1000);
+    await seed(async (fs) => {
+      await setDoc(doc(fs, 'conversations', cid, 'messages', 'vieux'), { uid: 'alice', enc, createdAt: past, exp: past });
+      await setDoc(doc(fs, 'conversations', cid, 'messages', 'frais'),
+        { uid: 'alice', enc, createdAt: past, exp: Timestamp.fromMillis(Date.now() + 3600e3) });
+      await setDoc(doc(fs, 'conversations', cid, 'media', 'vieux'), { uid: 'alice', data: Bytes.fromUint8Array(new Uint8Array(40)), createdAt: past });
+    });
+    await assertFails(deleteDoc(doc(db('bob'), 'conversations', cid, 'messages', 'frais')));
+    await assertFails(deleteDoc(doc(db('mallory'), 'conversations', cid, 'messages', 'vieux')));
+    const fs = db('bob');
+    const batch = writeBatch(fs);
+    batch.delete(doc(fs, 'conversations', cid, 'media', 'vieux'));
+    batch.delete(doc(fs, 'conversations', cid, 'messages', 'vieux'));
+    await assertSucceeds(batch.commit());
+  });
+});
+
+// ----------------------------------------------------------------------
+// Liens d'invitation, photos, présence, réglages, suppression du compte
+// ----------------------------------------------------------------------
+
+describe('liens d\'invitation', () => {
+  const code = 'Abcdefghij_klmnopqrst-uv';
+
+  function makeInvite(uid, gid, c = code) {
+    const fs = db(uid);
+    const batch = writeBatch(fs);
+    batch.set(doc(fs, 'invites', c), { cid: gid, title: 'Groupe', by: uid, createdAt: serverTimestamp() });
+    batch.update(doc(fs, 'conversations', gid), { invite: c });
+    return batch.commit();
+  }
+
+  const join = (uid, gid, c = code) =>
+    updateDoc(doc(db(uid), 'conversations', gid), { members: arrayUnion(uid), joinCode: c });
+
+  beforeEach(() => seedUsers('alice', 'bob', 'carol', 'mallory'));
+
+  test('un admin crée un lien ; qui le connaît rejoint le groupe', async () => {
+    await seedGroup('g1', ['alice', 'bob'], { perms: { ...PERMS, add: 'admins' } });
+    await assertFails(makeInvite('bob', 'g1'));
+    await assertFails(makeInvite('alice', 'g1', 'court'));
+    await assertSucceeds(makeInvite('alice', 'g1'));
+    await assertSucceeds(getDoc(doc(db('carol'), 'invites', code)));
+    await assertFails(getDocs(collection(db('carol'), 'invites')));
+    await assertFails(join('carol', 'g1', 'Mauvais_code_mauvais_code'));
+    await assertSucceeds(join('carol', 'g1'));
+    await assertSucceeds(getDoc(doc(db('carol'), 'conversations', 'g1')));
+    await assertFails(updateDoc(doc(db('mallory'), 'conversations', 'g1'), { members: arrayUnion('mallory', 'dave'), joinCode: code }));
+  });
+
+  test('un lien désactivé ne sert plus', async () => {
+    await seedGroup('g1', ['alice', 'bob']);
+    await makeInvite('alice', 'g1');
+    await assertSucceeds(updateDoc(doc(db('alice'), 'conversations', 'g1'), { invite: deleteField() }));
+    await assertFails(join('carol', 'g1'));
+    await assertFails(updateDoc(doc(db('alice'), 'conversations', 'g1'), { invite: 'Un_code_qui_n_existe_pas' }));
+  });
+
+  test('pas plus de 20 membres par le lien', async () => {
+    const many = ['alice', ...Array.from({ length: 19 }, (_, i) => 'u' + i)];
+    await seedGroup('g1', many);
+    await makeInvite('alice', 'g1');
+    await assertFails(join('carol', 'g1'));
+  });
+});
+
+describe('photos, présence et réglages', () => {
+  const photo = (n = 5000) => ({ data: Bytes.fromUint8Array(new Uint8Array(n).fill(3)), updatedAt: serverTimestamp() });
+
+  test('photo de profil : la sienne, petite, visible par tous les inscrits', async () => {
+    await seedUsers('alice');
+    await assertSucceeds(setDoc(doc(db('alice'), 'avatars', 'alice'), photo()));
+    await assertFails(setDoc(doc(db('alice'), 'avatars', 'alice'), photo(200001)));
+    await assertFails(setDoc(doc(db('bob'), 'avatars', 'alice'), photo()));
+    await assertSucceeds(getDoc(doc(db('bob'), 'avatars', 'alice')));
+    await assertFails(getDoc(doc(anon(), 'avatars', 'alice')));
+    await assertSucceeds(updateDoc(doc(db('alice'), 'users', 'alice'), { photo: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db('alice'), 'users', 'alice'), { photo: Timestamp.fromMillis(0) }));
+  });
+
+  test('photo de groupe : lue par les membres, changée selon les réglages', async () => {
+    await seedGroup('g1', ['alice', 'bob'], { perms: { ...PERMS, info: 'admins' } });
+    const ref = (uid) => doc(db(uid), 'conversations', 'g1', 'photo', 'current');
+    await assertFails(setDoc(ref('bob'), photo()));
+    await assertSucceeds(setDoc(ref('alice'), photo()));
+    await assertSucceeds(updateDoc(doc(db('alice'), 'conversations', 'g1'), { title: 'Groupe', photo: serverTimestamp() }));
+    await assertSucceeds(getDoc(ref('bob')));
+    await assertFails(getDoc(ref('mallory')));
+  });
+
+  test('présence : chacun écrit la sienne, à l\'heure du serveur', async () => {
+    await assertSucceeds(setDoc(doc(db('alice'), 'presence', 'alice'), { at: serverTimestamp() }));
+    await assertFails(setDoc(doc(db('alice'), 'presence', 'alice'), { at: Timestamp.fromMillis(0) }));
+    await assertFails(setDoc(doc(db('bob'), 'presence', 'alice'), { at: serverTimestamp() }));
+    await assertSucceeds(getDoc(doc(db('bob'), 'presence', 'alice')));
+    await assertFails(getDocs(collection(db('bob'), 'presence')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'presence', 'alice')));
+  });
+
+  test('réglages : épinglées, archivées, clés connues et vérifiées', async () => {
+    const ref = doc(db('alice'), 'settings', 'alice');
+    await assertSucceeds(setDoc(ref, { pinned: ['c1'], archived: ['c2'], keys: { bob: 'abc' }, verified: { bob: 'abc' }, hidePresence: true }));
+    await assertFails(setDoc(ref, { hidePresence: 'oui' }));
+    await assertFails(setDoc(ref, { pinned: Array.from({ length: 51 }, (_, i) => 'c' + i) }));
+    await assertFails(setDoc(ref, { archived: 'c2' }));
+  });
+
+  test('supprimer son compte : profil, clé, réglages, photo, présence', async () => {
+    await registerWithKeys(db('alice'), 'alice', 'alice');
+    await setDoc(doc(db('alice'), 'settings', 'alice'), { blocked: [] });
+    await setDoc(doc(db('alice'), 'avatars', 'alice'), photo());
+    await assertFails(deleteDoc(doc(db('bob'), 'users', 'alice')));
+    await assertFails(deleteDoc(doc(db('bob'), 'keys', 'alice')));
+    const fs = db('alice');
+    const batch = writeBatch(fs);
+    for (const col of ['avatars', 'settings', 'keys', 'users']) batch.delete(doc(fs, col, 'alice'));
+    await assertSucceeds(batch.commit());
+    // Le pseudo reste réservé : personne ne reprend le nom d'un autre.
+    await assertFails(deleteDoc(doc(fs, 'usernames', 'alice')));
+  });
+});
+
+// ----------------------------------------------------------------------
+// Appels de groupe
+// ----------------------------------------------------------------------
+
+describe('appels de groupe', () => {
+  const members = ['alice', 'bob', 'carol', 'dave', 'erin'];
+  const offer = { type: 'offer', sdp: 'v=0\r\n' };
+  const answer = { type: 'answer', sdp: 'v=0\r\n' };
+  const room = (uid, rid = 'r1') => doc(db(uid), 'rooms', rid);
+
+  function startRoom(uid, rid = 'r1', gid = 'g1') {
+    const fs = db(uid);
+    const batch = writeBatch(fs);
+    batch.set(doc(fs, 'rooms', rid), {
+      cid: gid, by: uid, video: true, createdAt: serverTimestamp(),
+      participants: [uid], beats: { [uid]: serverTimestamp() },
+    });
+    batch.update(doc(fs, 'conversations', gid), { room: { id: rid, video: true, at: serverTimestamp(), by: uid } });
+    return batch.commit();
+  }
+
+  const joinRoom = (uid) => updateDoc(room(uid), { participants: arrayUnion(uid), [`beats.${uid}`]: serverTimestamp() });
+  const leaveRoom = (uid) => updateDoc(room(uid), { participants: arrayRemove(uid), [`beats.${uid}`]: deleteField() });
+
+  beforeEach(() => seedGroup('g1', members));
+
+  test('un membre lance l\'appel et l\'annonce dans le groupe', async () => {
+    await assertFails(startRoom('mallory'));
+    await assertSucceeds(startRoom('alice'));
+    await assertSucceeds(getDoc(room('bob')));
+    await assertFails(getDoc(room('mallory')));
+    await createDm(db('alice'), 'alice', 'bob');
+    await assertFails(startRoom('alice', 'r2', dmId('alice', 'bob')));
+  });
+
+  test('4 participants au plus ; chacun entre et sort pour lui-même', async () => {
+    await startRoom('alice');
+    for (const uid of ['bob', 'carol', 'dave']) await assertSucceeds(joinRoom(uid));
+    await assertFails(joinRoom('erin'));
+    await assertFails(updateDoc(room('bob'), { participants: arrayRemove('carol'), 'beats.carol': deleteField() }));
+    await assertSucceeds(leaveRoom('dave'));
+    await assertSucceeds(joinRoom('erin'));
+    await assertSucceeds(updateDoc(room('bob'), { 'beats.bob': serverTimestamp() }));
+    await assertFails(updateDoc(room('bob'), { 'beats.carol': serverTimestamp() }));
+  });
+
+  test('un participant silencieux depuis plus d\'une minute peut être retiré', async () => {
+    const old = Timestamp.fromMillis(Date.now() - 120e3);
+    await seed((fs) => setDoc(doc(fs, 'rooms', 'r1'), {
+      cid: 'g1', by: 'alice', video: false, createdAt: old,
+      participants: ['alice', 'bob', 'carol'], beats: { alice: old, bob: Timestamp.now(), carol: Timestamp.now() },
+    }));
+    await assertFails(updateDoc(room('carol'), { participants: arrayRemove('bob'), 'beats.bob': deleteField() }));
+    await assertSucceeds(updateDoc(room('carol'), { participants: arrayRemove('alice'), 'beats.alice': deleteField() }));
+  });
+
+  test('liens entre participants : offre, réponse, candidats', async () => {
+    await startRoom('alice');
+    await joinRoom('bob');
+    const link = (uid) => doc(db(uid), 'rooms', 'r1', 'links', 'l1');
+    await assertFails(setDoc(link('bob'), { from: 'bob', to: 'carol', offer, createdAt: serverTimestamp() }));
+    await assertFails(setDoc(link('bob'), { from: 'alice', to: 'bob', offer, createdAt: serverTimestamp() }));
+    await assertSucceeds(setDoc(link('bob'), { from: 'bob', to: 'alice', offer, createdAt: serverTimestamp() }));
+    await assertSucceeds(getDocs(query(collection(db('alice'), 'rooms', 'r1', 'links'), where('to', '==', 'alice'))));
+    await assertFails(getDoc(link('carol')));
+    await assertFails(updateDoc(link('bob'), { answer }));
+    await assertSucceeds(updateDoc(link('alice'), { answer }));
+    await assertFails(updateDoc(link('alice'), { answer }));
+    const cand = { candidate: 'candidate:1 1 udp 1 10.0.0.1 5000 typ host', sdpMid: '0', sdpMLineIndex: 0, usernameFragment: null };
+    await assertSucceeds(setDoc(doc(db('bob'), 'rooms', 'r1', 'links', 'l1', 'fromCandidates', 'c1'), cand));
+    await assertFails(setDoc(doc(db('alice'), 'rooms', 'r1', 'links', 'l1', 'fromCandidates', 'c2'), cand));
+    await assertSucceeds(setDoc(doc(db('alice'), 'rooms', 'r1', 'links', 'l1', 'toCandidates', 'c1'), cand));
+  });
+
+  test('l\'annonce disparaît quand il ne reste personne', async () => {
+    await startRoom('alice');
+    await joinRoom('bob');
+    const conv = (uid) => doc(db(uid), 'conversations', 'g1');
+    await assertFails(updateDoc(conv('carol'), { room: deleteField() }));
+    await leaveRoom('bob');
+    const fs = db('alice');
+    const batch = writeBatch(fs);
+    batch.update(doc(fs, 'rooms', 'r1'), { participants: arrayRemove('alice'), 'beats.alice': deleteField() });
+    batch.update(doc(fs, 'conversations', 'g1'), { room: deleteField() });
+    await assertSucceeds(batch.commit());
   });
 });

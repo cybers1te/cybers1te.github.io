@@ -11,19 +11,26 @@ rules_version = '2';
 //
 // Modèle de données :
 //   usernames/{pseudo}                     -> { uid }          (unicité du pseudo)
-//   users/{uid}                            -> { name, username, createdAt, publicKey }
+//   users/{uid}                            -> { name, username, createdAt, publicKey, photo }
+//   avatars/{uid}                          -> { data, updatedAt }  (photo de profil)
+//   presence/{uid}                         -> { at }          (« en ligne », « vu à »)
 //   keys/{uid}                             -> { v, publicKey, byPassword, byRecovery,
 //                                               updatedAt }    (clé privée scellée)
-//   settings/{uid}                         -> { blocked, muted }  (privé : personnes
-//                                               bloquées, conversations en sourdine)
+//   settings/{uid}                         -> { blocked, muted, pinned, archived, keys,
+//                                               verified, hidePresence } (réglages privés)
+//   invites/{code}                         -> { cid, title, by, createdAt }
+//                                             (lien d'invitation dans un groupe)
 //   conversations/{cid}                    -> { type, members, title, createdBy,
 //                                               createdAt, updatedAt,
-//                                               lastMessage, lastRead, typing,
-//                                               admins, perms, description } (groupes)
-//   conversations/{cid}/messages/{mid}     -> { uid, enc, createdAt }
+//                                               lastMessage, lastRead, typing, ttl,
+//                                               admins, perms, description, photo,
+//                                               invite, room } (groupes)
+//   conversations/{cid}/messages/{mid}     -> { uid, enc, createdAt, exp, editedAt,
+//                                               notes, deleted, deletedBy, deletedAt }
 //                                             (anciens messages : { uid, text, createdAt })
 //   conversations/{cid}/media/{mid}        -> { uid, data, createdAt }
-//                                             (photo ou vocal chiffré du message {mid})
+//                                             (photo, vocal ou fichier chiffré du message {mid})
+//   conversations/{cid}/photo/current      -> { data, updatedAt }  (photo du groupe)
 //   conversations/{cid}/restrictions/{uid} -> { until, by, at }
 //                                             (membre d'un groupe privé de parole)
 //   calls/{callId}                         -> { cid, caller, callee, video, status,
@@ -31,6 +38,10 @@ rules_version = '2';
 //                                               endedAt, endedBy }
 //   calls/{callId}/callerCandidates/{id}   -> candidat ICE de l'appelant
 //   calls/{callId}/calleeCandidates/{id}   -> candidat ICE de l'appelé
+//   rooms/{rid}                            -> { cid, by, video, createdAt,
+//                                               participants, beats }  (appel de groupe)
+//   rooms/{rid}/links/{lid}                -> { from, to, offer, answer, createdAt }
+//   rooms/{rid}/links/{lid}/fromCandidates, toCandidates
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -70,9 +81,81 @@ service cloud.firestore {
         && me() in get(/databases/$(database)/documents/settings/$(uid)).data.get('blocked', []);
     }
 
+    function convOf(cid) {
+      return get(/databases/$(database)/documents/conversations/$(cid)).data;
+    }
+
+    function isMember(data) {
+      return signedIn() && data.members is list && me() in data.members;
+    }
+
+    // Rôles d'un groupe. Un groupe créé avant l'arrivée des admins n'a ni
+    // `admins` ni `perms` : son créateur en est le seul admin, et chaque
+    // membre peut tout faire.
+    function adminsOf(d) {
+      return d.get('admins', [d.createdBy]);
+    }
+
+    function isAdmin(d) {
+      return me() in adminsOf(d);
+    }
+
+    // what : 'send' (écrire), 'info' (nom, description, photo), 'add'
+    // (ajouter des membres). Réglé sur 'all' (tous les membres) ou 'admins'.
+    function allowed(d, what) {
+      return d.get('perms', {}).get(what, 'all') == 'all' || isAdmin(d);
+    }
+
+    function validPerms(p) {
+      return p is map
+        && p.keys().hasOnly(['send', 'info', 'add'])
+        && p.keys().hasAll(['send', 'info', 'add'])
+        && p.send in ['all', 'admins']
+        && p.info in ['all', 'admins']
+        && p.add in ['all', 'admins'];
+    }
+
+    function validTitle(t) {
+      return t is string && t.size() >= 1 && t.size() <= 60;
+    }
+
+    function validDescription(t) {
+      return t is string && t.size() <= 300;
+    }
+
+    // Photo (profil ou groupe) : une petite image, 200 000 octets au plus.
+    function validPhoto() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['data', 'updatedAt'])
+        && d.keys().hasAll(['data', 'updatedAt'])
+        && d.data is bytes
+        && d.data.size() >= 100
+        && d.data.size() <= 200000
+        && d.updatedAt == request.time;
+    }
+
+    function validSdp(s, type) {
+      return s is map
+        && s.keys().hasOnly(['type', 'sdp'])
+        && s.type == type
+        && s.sdp is string && s.sdp.size() >= 1 && s.sdp.size() <= 40000;
+    }
+
+    function validCandidate() {
+      let c = request.resource.data;
+      return c.keys().hasOnly(['candidate', 'sdpMid', 'sdpMLineIndex', 'usernameFragment'])
+        && c.candidate is string && c.candidate.size() <= 2000
+        && (c.get('sdpMid', null) == null || (c.sdpMid is string && c.sdpMid.size() <= 64))
+        && (c.get('sdpMLineIndex', null) == null || c.sdpMLineIndex is int)
+        && (c.get('usernameFragment', null) == null
+          || (c.usernameFragment is string && c.usernameFragment.size() <= 256));
+    }
+
     // ------------------------------------------------------------------
     // Pseudos : un document par pseudo, créé une seule fois, en même temps
     // que le profil. Lisible un par un (pour trouver quelqu'un), jamais listé.
+    // Un pseudo reste réservé même si son compte est supprimé : personne ne
+    // peut reprendre le nom d'un autre.
     // ------------------------------------------------------------------
     match /usernames/{username} {
       allow get: if signedIn();
@@ -89,7 +172,8 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------
-    // Profils publics : nom affiché et pseudo. Aucune adresse e-mail ici.
+    // Profils publics : nom affiché, pseudo, version de la photo. Aucune
+    // adresse e-mail ici.
     // ------------------------------------------------------------------
     match /users/{uid} {
       allow get: if signedIn();
@@ -101,16 +185,38 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && (!('publicKey' in request.resource.data) || validPublicKey(request.resource.data.publicKey))
         && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == uid;
-      // Le nom affiché et la clé publique peuvent changer ; le pseudo est
-      // définitif. La clé publique suit toujours celle de keys/{uid}.
+      // Le nom affiché, la photo et la clé publique peuvent changer ; le
+      // pseudo est définitif. La clé publique suit toujours celle de keys/{uid}.
       allow update: if signedIn() && uid == me()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'publicKey'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'publicKey', 'photo'])
         && validName(request.resource.data.name)
+        && (!('photo' in request.resource.data) || request.resource.data.photo == resource.data.get('photo', null)
+          || request.resource.data.photo == request.time)
         && (!('publicKey' in request.resource.data.diff(resource.data).affectedKeys())
           || (validPublicKey(request.resource.data.publicKey)
             && getAfter(/databases/$(database)/documents/keys/$(uid)).data.publicKey
               == request.resource.data.publicKey));
-      allow delete: if false;
+      // Suppression du compte, par son propriétaire.
+      allow delete: if signedIn() && uid == me();
+    }
+
+    // Photo de profil : visible par tous les inscrits, comme le nom.
+    match /avatars/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn() && uid == me() && validPhoto();
+      allow delete: if signedIn() && uid == me();
+    }
+
+    // Dernière activité (« en ligne », « vu à 14:32 »). Chacun peut la
+    // masquer : le site n'écrit alors plus rien ici.
+    match /presence/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn() && uid == me()
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
+      allow delete: if signedIn() && uid == me();
     }
 
     // ------------------------------------------------------------------
@@ -132,68 +238,65 @@ service cloud.firestore {
         // Le profil public annonce la même clé, après cette écriture.
         && getAfter(/databases/$(database)/documents/users/$(uid)).data.publicKey
           == request.resource.data.publicKey;
-      allow delete: if false;
+      allow delete: if signedIn() && uid == me();
     }
 
     // ------------------------------------------------------------------
-    // Réglages privés de chaque compte : personnes bloquées et
-    // conversations en sourdine. Personne d'autre ne les lit.
+    // Réglages privés de chaque compte : personnes bloquées, conversations
+    // en sourdine, épinglées ou archivées, clés de sécurité connues et
+    // vérifiées. Personne d'autre ne les lit.
     // ------------------------------------------------------------------
     match /settings/{uid} {
       allow get: if signedIn() && uid == me();
       allow list: if false;
       allow create, update: if signedIn() && uid == me()
-        && request.resource.data.keys().hasOnly(['blocked', 'muted'])
+        && request.resource.data.keys().hasOnly(['blocked', 'muted', 'pinned', 'archived', 'keys', 'verified',
+                                                 'hidePresence'])
+        && request.resource.data.get('hidePresence', false) is bool
         && request.resource.data.get('blocked', []) is list
         && request.resource.data.get('blocked', []).size() <= 500
         && !(me() in request.resource.data.get('blocked', []))
         && request.resource.data.get('muted', {}) is map
-        && request.resource.data.get('muted', {}).size() <= 500;
+        && request.resource.data.get('muted', {}).size() <= 500
+        && request.resource.data.get('pinned', []) is list
+        && request.resource.data.get('pinned', []).size() <= 50
+        && request.resource.data.get('archived', []) is list
+        && request.resource.data.get('archived', []).size() <= 500
+        && request.resource.data.get('keys', {}) is map
+        && request.resource.data.get('keys', {}).size() <= 1000
+        && request.resource.data.get('verified', {}) is map
+        && request.resource.data.get('verified', {}).size() <= 1000;
       allow delete: if signedIn() && uid == me();
+    }
+
+    // ------------------------------------------------------------------
+    // Liens d'invitation : le code (long et aléatoire) est le secret. Qui le
+    // connaît lit ce document (nom du groupe) puis rejoint le groupe, tant
+    // que le lien n'a pas été désactivé ou remplacé (isJoinUpdate).
+    // ------------------------------------------------------------------
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && code.matches('^[A-Za-z0-9_-]{20,40}$')
+        && request.resource.data.keys().hasOnly(['cid', 'title', 'by', 'createdAt'])
+        && request.resource.data.keys().hasAll(['cid', 'title', 'by', 'createdAt'])
+        && request.resource.data.by == me()
+        && request.resource.data.createdAt == request.time
+        && validTitle(request.resource.data.title)
+        && request.resource.data.cid is string
+        && convOf(request.resource.data.cid).type == 'group'
+        && isMember(convOf(request.resource.data.cid))
+        && allowed(convOf(request.resource.data.cid), 'add')
+        && getAfter(/databases/$(database)/documents/conversations/$(request.resource.data.cid)).data.invite == code;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.by == me();
     }
 
     // ------------------------------------------------------------------
     // Conversations
     // ------------------------------------------------------------------
     match /conversations/{cid} {
-
-      function isMember(data) {
-        return signedIn() && data.members is list && me() in data.members;
-      }
-
-      // Rôles d'un groupe. Un groupe créé avant l'arrivée des admins n'a ni
-      // `admins` ni `perms` : son créateur en est le seul admin, et chaque
-      // membre peut tout faire.
-      function adminsOf(d) {
-        return d.get('admins', [d.createdBy]);
-      }
-
-      function isAdmin(d) {
-        return me() in adminsOf(d);
-      }
-
-      // what : 'send' (écrire), 'info' (nom et description), 'add' (ajouter
-      // des membres). Réglé sur 'all' (tous les membres) ou 'admins'.
-      function allowed(d, what) {
-        return d.get('perms', {}).get(what, 'all') == 'all' || isAdmin(d);
-      }
-
-      function validPerms(p) {
-        return p is map
-          && p.keys().hasOnly(['send', 'info', 'add'])
-          && p.keys().hasAll(['send', 'info', 'add'])
-          && p.send in ['all', 'admins']
-          && p.info in ['all', 'admins']
-          && p.add in ['all', 'admins'];
-      }
-
-      function validTitle(t) {
-        return t is string && t.size() >= 1 && t.size() <= 60;
-      }
-
-      function validDescription(t) {
-        return t is string && t.size() <= 300;
-      }
 
       function validCreate() {
         let d = request.resource.data;
@@ -235,7 +338,8 @@ service cloud.firestore {
 
       // Message chiffré (public/e2e.js) : une clé emballée pour chaque
       // membre, et pour personne d'autre. v1 : texte ; v2 : enveloppe
-      // (photo, message vocal, journal d'appel, événement du groupe).
+      // (texte avec réponse ou mentions, photo, message vocal, fichier,
+      // sondage, journal d'appel, événement du groupe).
       function validEnc(e, members) {
         return e is map
           && e.keys().hasOnly(['v', 'e', 'iv', 'ct', 'k'])
@@ -243,7 +347,7 @@ service cloud.firestore {
           && e.v in [1, 2]
           && e.e is string && e.e.size() == 88
           && e.iv is string && e.iv.size() == 16
-          && e.ct is string && e.ct.size() >= 24 && e.ct.size() <= 8200
+          && e.ct is string && e.ct.size() >= 24 && e.ct.size() <= 12000
           && e.k is map
           && e.k.keys().hasAll(members)
           && e.k.keys().hasOnly(members);
@@ -264,7 +368,8 @@ service cloud.firestore {
       // cette même écriture groupée, et l'aperçu recopie son texte chiffré.
       function isFreshMessage(lm) {
         let msg = getAfter(/databases/$(database)/documents/conversations/$(cid)/messages/$(lm.id)).data;
-        return msg.uid == me() && msg.createdAt == request.time && msg.enc == lm.enc;
+        return msg.uid == me() && msg.createdAt == request.time && msg.enc == lm.enc
+          && msg.get('exp', null) == lm.get('exp', null);
       }
 
       // Envoi d'un message : l'aperçu est mis à jour dans la même écriture
@@ -275,13 +380,31 @@ service cloud.firestore {
         return d.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'updatedAt', 'lastRead'])
           && d.updatedAt == request.time
           && lm is map
-          && lm.keys().hasOnly(['id', 'uid', 'enc', 'at'])
+          && lm.keys().hasOnly(['id', 'uid', 'enc', 'at', 'exp'])
           && lm.uid == me()
           && lm.at == request.time
           && lm.id is string
           && isFreshMessage(lm)
           && d.lastRead.diff(resource.data.lastRead).affectedKeys().hasOnly([me()])
           && d.lastRead[me()] == request.time;
+      }
+
+      // Dernier message modifié ou supprimé : l'aperçu recopie son nouvel
+      // état (texte chiffré modifié, ou plus rien), sans rien changer d'autre.
+      function isPreviewSync() {
+        let d = request.resource.data;
+        let lm = d.lastMessage;
+        let old = resource.data.lastMessage;
+        let msg = getAfter(/databases/$(database)/documents/conversations/$(cid)/messages/$(old.id)).data;
+        return d.diff(resource.data).affectedKeys().hasOnly(['lastMessage'])
+          && lm is map
+          && lm.keys().hasOnly(['id', 'uid', 'enc', 'at', 'exp', 'deleted'])
+          && lm.id == old.id
+          && lm.uid == old.uid
+          && lm.at == old.at
+          && lm.get('exp', null) == old.get('exp', null)
+          && lm.get('enc', null) == msg.get('enc', null)
+          && lm.get('deleted', false) == msg.get('deleted', false);
       }
 
       // Accusé de lecture : chacun ne touche qu'à sa propre date de lecture.
@@ -301,14 +424,15 @@ service cloud.firestore {
           && d.typing[me()] == request.time;
       }
 
-      // Nom et description du groupe.
+      // Nom, description et photo du groupe.
       function isInfoUpdate() {
         let d = request.resource.data;
         return resource.data.type == 'group'
-          && d.diff(resource.data).affectedKeys().hasOnly(['title', 'description'])
+          && d.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'photo'])
           && allowed(resource.data, 'info')
           && validTitle(d.title)
-          && validDescription(d.get('description', ''));
+          && validDescription(d.get('description', ''))
+          && (!('photo' in d) || d.photo == resource.data.get('photo', null) || d.photo == request.time);
       }
 
       // Qui peut écrire, modifier les infos, ajouter des membres : les admins.
@@ -318,6 +442,40 @@ service cloud.firestore {
           && d.diff(resource.data).affectedKeys().hasOnly(['perms'])
           && isAdmin(resource.data)
           && validPerms(d.perms);
+      }
+
+      // Messages éphémères : 0 (désactivés), 24 heures ou 7 jours. Dans un
+      // groupe, qui peut modifier les infos règle aussi ce délai.
+      function isTtlUpdate() {
+        let d = request.resource.data;
+        return d.diff(resource.data).affectedKeys().hasOnly(['ttl'])
+          && d.ttl in [0, 86400, 604800]
+          && (resource.data.type == 'dm' || allowed(resource.data, 'info'));
+      }
+
+      // Créer, remplacer ou désactiver le lien d'invitation.
+      function isInviteUpdate() {
+        let d = request.resource.data;
+        return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['invite'])
+          && allowed(resource.data, 'add')
+          && (!('invite' in d)
+            || (d.invite is string
+              && getAfter(/databases/$(database)/documents/invites/$(d.invite)).data.cid == cid));
+      }
+
+      // Rejoindre un groupe par son lien d'invitation (sans en être membre).
+      function isJoinUpdate() {
+        let d = request.resource.data;
+        return signedIn()
+          && resource.data.type == 'group'
+          && !(me() in resource.data.members)
+          && resource.data.get('invite', '') != ''
+          && d.diff(resource.data).affectedKeys().hasOnly(['members', 'joinCode'])
+          && d.joinCode == resource.data.invite
+          && d.members == resource.data.members.concat([me()])
+          && d.members.size() <= 20
+          && exists(/databases/$(database)/documents/users/$(me()));
       }
 
       // Ajouter UN membre : un compte qui existe, et qui n'a pas bloqué
@@ -387,49 +545,157 @@ service cloud.firestore {
               && d.admins == [me()]));
       }
 
+      // Appel de groupe en cours : annoncé par le membre qui le lance
+      // (il en fait partie), effacé quand il n'y reste personne.
+      function isRoomUpdate() {
+        let d = request.resource.data;
+        return resource.data.type == 'group'
+          && d.diff(resource.data).affectedKeys().hasOnly(['room'])
+          && ((d.get('room', null) == null
+              && getAfter(/databases/$(database)/documents/rooms/$(resource.data.room.id)).data.participants.size() == 0)
+            || (d.room is map
+              && d.room.keys().hasOnly(['id', 'video', 'at', 'by'])
+              && d.room.by == me()
+              && d.room.at == request.time
+              && d.room.video is bool
+              && getAfter(/databases/$(database)/documents/rooms/$(d.room.id)).data.cid == cid
+              && me() in getAfter(/databases/$(database)/documents/rooms/$(d.room.id)).data.participants));
+      }
+
       allow get: if isMember(resource.data);
       // Seule la requête « mes conversations » (members array-contains moi)
       // passe cette règle.
       allow list: if signedIn() && me() in resource.data.members;
       allow create: if signedIn() && validCreate();
-      allow update: if isMember(resource.data)
-        && (isPostUpdate() || isReadUpdate() || isTypingUpdate() || isLeaveUpdate()
-          || isInfoUpdate() || isPermsUpdate() || isAddUpdate() || isRemoveUpdate()
-          || isRoleUpdate());
+      allow update: if (isMember(resource.data)
+          && (isPostUpdate() || isReadUpdate() || isTypingUpdate() || isLeaveUpdate()
+            || isInfoUpdate() || isPermsUpdate() || isAddUpdate() || isRemoveUpdate()
+            || isRoleUpdate() || isPreviewSync() || isTtlUpdate() || isInviteUpdate()
+            || isRoomUpdate()))
+        || isJoinUpdate();
       allow delete: if false;
 
       match /messages/{mid} {
-        allow read: if isMember(get(/databases/$(database)/documents/conversations/$(cid)).data);
+        function conv() {
+          return get(/databases/$(database)/documents/conversations/$(cid)).data;
+        }
+
+        // Réaction ou vote chiffré (avec la clé du message) : une case par
+        // membre, que lui seul remplit ou vide.
+        function validNote(n) {
+          return n is map
+            && n.keys().hasOnly(['iv', 'ct'])
+            && n.keys().hasAll(['iv', 'ct'])
+            && n.iv is string && n.iv.size() == 16
+            && n.ct is string && n.ct.size() >= 24 && n.ct.size() <= 400;
+        }
+
+        function isNoteUpdate() {
+          let d = request.resource.data;
+          return !resource.data.get('deleted', false)
+            && d.diff(resource.data).affectedKeys().hasOnly(['notes'])
+            && d.notes is map
+            && d.notes.diff(resource.data.get('notes', {})).affectedKeys().hasOnly([me()])
+            && (!(me() in d.notes) || validNote(d.notes[me()]))
+            && canPost(conv());
+        }
+
+        // Modifier son message, dans les 48 heures : nouveau texte chiffré
+        // pour les membres actuels.
+        function isEditUpdate() {
+          let d = request.resource.data;
+          return resource.data.uid == me()
+            && !resource.data.get('deleted', false)
+            && d.diff(resource.data).affectedKeys().hasOnly(['enc', 'editedAt'])
+            && validEnc(d.enc, conv().members)
+            && d.editedAt == request.time
+            && request.time < resource.data.createdAt + duration.value(2, 'd')
+            && canPost(conv());
+        }
+
+        // Supprimer pour tout le monde : l'auteur, ou un admin du groupe. Il
+        // ne reste qu'une trace « message supprimé », sans contenu.
+        function isDeleteUpdate() {
+          let d = request.resource.data;
+          return (resource.data.uid == me() || (conv().type == 'group' && isAdmin(conv())))
+            && !resource.data.get('deleted', false)
+            && d.keys().hasOnly(['uid', 'createdAt', 'exp', 'deleted', 'deletedBy', 'deletedAt'])
+            && d.uid == resource.data.uid
+            && d.createdAt == resource.data.createdAt
+            && d.get('exp', null) == resource.data.get('exp', null)
+            && d.deleted == true
+            && d.deletedBy == me()
+            && d.deletedAt == request.time;
+        }
+
+        // Délai d'un message éphémère : celui de la conversation, à dix
+        // minutes près (horloge de l'appareil).
+        function validExp() {
+          let d = request.resource.data;
+          let ttl = conv().get('ttl', 0);
+          return (ttl == 0 && !('exp' in d))
+            || (ttl > 0
+              && d.get('exp', null) is timestamp
+              && d.exp > request.time + duration.value(ttl - 600, 's')
+              && d.exp < request.time + duration.value(ttl + 600, 's'));
+        }
+
+        allow read: if isMember(conv());
         // Tout nouveau message est chiffré : le texte en clair est refusé.
         allow create: if signedIn()
-          && isMember(get(/databases/$(database)/documents/conversations/$(cid)).data)
-          && request.resource.data.keys().hasOnly(['uid', 'enc', 'createdAt'])
+          && isMember(conv())
+          && request.resource.data.keys().hasOnly(['uid', 'enc', 'createdAt', 'exp'])
           && request.resource.data.uid == me()
-          && validEnc(request.resource.data.enc,
-                      get(/databases/$(database)/documents/conversations/$(cid)).data.members)
+          && validEnc(request.resource.data.enc, conv().members)
           && request.resource.data.createdAt == request.time
-          && canPost(get(/databases/$(database)/documents/conversations/$(cid)).data)
+          && validExp()
+          && canPost(conv())
           // L'aperçu de la conversation doit pointer sur ce message.
           && getAfter(/databases/$(database)/documents/conversations/$(cid)).data.lastMessage.id == mid;
-        allow update, delete: if false;
+        allow update: if signedIn() && isMember(conv())
+          && (isNoteUpdate() || isEditUpdate() || isDeleteUpdate());
+        // Un message éphémère expiré est effacé par le premier membre qui
+        // ouvre la conversation.
+        allow delete: if signedIn() && isMember(conv())
+          && resource.data.get('exp', null) != null
+          && resource.data.exp < request.time;
       }
 
-      // Photo ou message vocal : uniquement des octets chiffrés (e2e.js),
-      // créés dans la même écriture que leur message {mid}, par son auteur.
-      // Leur clé ne voyage que dans l'enveloppe chiffrée de ce message.
+      // Photo, message vocal ou fichier : uniquement des octets chiffrés
+      // (e2e.js), créés dans la même écriture que leur message {mid}, par son
+      // auteur. Leur clé ne voyage que dans l'enveloppe chiffrée du message.
       match /media/{mid} {
-        allow read: if isMember(get(/databases/$(database)/documents/conversations/$(cid)).data);
+        function msgPath() {
+          return /databases/$(database)/documents/conversations/$(cid)/messages/$(mid);
+        }
+
+        allow read: if isMember(convOf(cid));
         allow create: if signedIn()
-          && isMember(get(/databases/$(database)/documents/conversations/$(cid)).data)
+          && isMember(convOf(cid))
           && request.resource.data.keys().hasOnly(['uid', 'data', 'createdAt'])
           && request.resource.data.uid == me()
           && request.resource.data.data is bytes
           && request.resource.data.data.size() >= 17
           && request.resource.data.data.size() <= 1000000
           && request.resource.data.createdAt == request.time
-          && getAfter(/databases/$(database)/documents/conversations/$(cid)/messages/$(mid)).data.uid == me()
-          && getAfter(/databases/$(database)/documents/conversations/$(cid)/messages/$(mid)).data.createdAt == request.time;
-        allow update, delete: if false;
+          && getAfter(msgPath()).data.uid == me()
+          && getAfter(msgPath()).data.createdAt == request.time;
+        allow update: if false;
+        // Effacé avec son message (supprimé ou expiré).
+        allow delete: if signedIn() && isMember(convOf(cid))
+          && (!existsAfter(msgPath())
+            || getAfter(msgPath()).data.get('deleted', false) == true
+            || getAfter(msgPath()).data.get('exp', request.time + duration.value(36500, 'd')) < request.time);
+      }
+
+      // Photo du groupe : lisible par ses membres, changée par qui peut
+      // modifier les infos.
+      match /photo/{doc} {
+        allow read: if isMember(convOf(cid));
+        allow create, update: if isMember(convOf(cid)) && convOf(cid).type == 'group'
+          && allowed(convOf(cid), 'info') && validPhoto();
+        allow delete: if isMember(convOf(cid)) && convOf(cid).type == 'group'
+          && allowed(convOf(cid), 'info');
       }
 
       // Membre privé de parole jusqu'à `until` (30 jours au plus), par un
@@ -470,13 +736,6 @@ service cloud.firestore {
         return signedIn() && (d.caller == me() || d.callee == me());
       }
 
-      function validSdp(s, type) {
-        return s is map
-          && s.keys().hasOnly(['type', 'sdp'])
-          && s.type == type
-          && s.sdp is string && s.sdp.size() >= 1 && s.sdp.size() <= 40000;
-      }
-
       function changes(keys) {
         return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
       }
@@ -509,16 +768,6 @@ service cloud.firestore {
           && request.resource.data.endedAt == request.time;
       }
 
-      function validCandidate() {
-        let c = request.resource.data;
-        return c.keys().hasOnly(['candidate', 'sdpMid', 'sdpMLineIndex', 'usernameFragment'])
-          && c.candidate is string && c.candidate.size() <= 2000
-          && (c.get('sdpMid', null) == null || (c.sdpMid is string && c.sdpMid.size() <= 64))
-          && (c.get('sdpMLineIndex', null) == null || c.sdpMLineIndex is int)
-          && (c.get('usernameFragment', null) == null
-            || (c.usernameFragment is string && c.usernameFragment.size() <= 256));
-      }
-
       allow get: if isParty(resource.data);
       // Seule la requête « les appels qui me sonnent » (callee == moi) passe.
       allow list: if signedIn() && resource.data.callee == me();
@@ -533,9 +782,8 @@ service cloud.firestore {
         && validSdp(request.resource.data.offer, 'offer')
         && request.resource.data.createdAt == request.time
         && request.resource.data.cid is string
-        && get(/databases/$(database)/documents/conversations/$(request.resource.data.cid)).data.type == 'dm'
-        && get(/databases/$(database)/documents/conversations/$(request.resource.data.cid)).data.members
-          .hasAll([me(), request.resource.data.callee])
+        && convOf(request.resource.data.cid).type == 'dm'
+        && convOf(request.resource.data.cid).members.hasAll([me(), request.resource.data.callee])
         && !blockedBy(request.resource.data.callee);
       allow update: if isParty(resource.data) && (isAnswer() || isRefusal() || isHangUp());
       allow delete: if false;
@@ -554,6 +802,125 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/calls/$(callId)).data.callee == me()
           && validCandidate();
         allow update, delete: if false;
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Appels de groupe (4 personnes au plus) : chaque participant est relié
+    // directement à chacun des autres (WebRTC). Le nouveau venu envoie une
+    // offre à chaque participant déjà là (links). Chacun signale sa présence
+    // toutes les 20 s (beats) : un participant silencieux depuis plus d'une
+    // minute (onglet fermé brutalement) peut être retiré par les autres.
+    // ------------------------------------------------------------------
+    match /rooms/{rid} {
+
+      function roomConv() {
+        return convOf(resource.data.cid);
+      }
+
+      function myBeatOnly(d) {
+        return d.beats is map
+          && d.beats.diff(resource.data.get('beats', {})).affectedKeys().hasOnly([me()]);
+      }
+
+      function isJoin() {
+        let d = request.resource.data;
+        return d.diff(resource.data).affectedKeys().hasOnly(['participants', 'beats'])
+          && !(me() in resource.data.participants)
+          && d.participants == resource.data.participants.concat([me()])
+          && d.participants.size() <= 4
+          && myBeatOnly(d)
+          && d.beats[me()] == request.time;
+      }
+
+      function isLeave() {
+        let d = request.resource.data;
+        return d.diff(resource.data).affectedKeys().hasOnly(['participants', 'beats'])
+          && me() in resource.data.participants
+          && d.participants == resource.data.participants.removeAll([me()])
+          && myBeatOnly(d)
+          && !(me() in d.beats);
+      }
+
+      function isBeat() {
+        let d = request.resource.data;
+        return d.diff(resource.data).affectedKeys().hasOnly(['beats'])
+          && me() in resource.data.participants
+          && myBeatOnly(d)
+          && d.beats[me()] == request.time;
+      }
+
+      function isSweep() {
+        let d = request.resource.data;
+        let gone = resource.data.participants.removeAll(d.participants);
+        return d.diff(resource.data).affectedKeys().hasOnly(['participants', 'beats'])
+          && gone.size() == 1
+          && d.participants == resource.data.participants.removeAll(gone)
+          && resource.data.beats[gone[0]] < request.time - duration.value(60, 's')
+          && d.beats.diff(resource.data.beats).affectedKeys().hasOnly(gone)
+          && !(gone[0] in d.beats);
+      }
+
+      allow get: if isMember(roomConv());
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['cid', 'by', 'video', 'createdAt', 'participants', 'beats'])
+        && request.resource.data.keys().hasAll(['cid', 'by', 'video', 'createdAt', 'participants', 'beats'])
+        && request.resource.data.by == me()
+        && request.resource.data.video is bool
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.participants == [me()]
+        && request.resource.data.beats.keys().hasOnly([me()])
+        && request.resource.data.beats[me()] == request.time
+        && request.resource.data.cid is string
+        && convOf(request.resource.data.cid).type == 'group'
+        && isMember(convOf(request.resource.data.cid));
+      allow update: if isMember(roomConv()) && (isJoin() || isLeave() || isBeat() || isSweep());
+      allow delete: if false;
+
+      match /links/{lid} {
+        function room() {
+          return get(/databases/$(database)/documents/rooms/$(rid)).data;
+        }
+
+        function isLinkParty(d) {
+          return signedIn() && (d.from == me() || d.to == me());
+        }
+
+        allow get: if isLinkParty(resource.data);
+        // Seules les requêtes « mes liens » (from ou to == moi) passent.
+        allow list: if isLinkParty(resource.data);
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['from', 'to', 'offer', 'createdAt'])
+          && request.resource.data.from == me()
+          && request.resource.data.to is string
+          && request.resource.data.to != me()
+          && me() in room().participants
+          && request.resource.data.to in room().participants
+          && validSdp(request.resource.data.offer, 'offer')
+          && request.resource.data.createdAt == request.time;
+        allow update: if signedIn()
+          && resource.data.to == me()
+          && !('answer' in resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer'])
+          && validSdp(request.resource.data.answer, 'answer');
+        allow delete: if false;
+
+        match /fromCandidates/{id} {
+          allow read: if isLinkParty(get(/databases/$(database)/documents/rooms/$(rid)/links/$(lid)).data);
+          allow create: if signedIn()
+            && get(/databases/$(database)/documents/rooms/$(rid)/links/$(lid)).data.from == me()
+            && validCandidate();
+          allow update, delete: if false;
+        }
+
+        match /toCandidates/{id} {
+          allow read: if isLinkParty(get(/databases/$(database)/documents/rooms/$(rid)/links/$(lid)).data);
+          allow create: if signedIn()
+            && get(/databases/$(database)/documents/rooms/$(rid)/links/$(lid)).data.to == me()
+            && validCandidate();
+          allow update, delete: if false;
+        }
       }
     }
   }
