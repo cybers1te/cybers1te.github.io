@@ -110,6 +110,28 @@ rooms/{rid}/links/{lid}              { from, to, offer, answer } + candidats
   membres un par un ; les règles vérifient ainsi, à chaque ajout, que la
   personne n'a pas bloqué celle qui l'ajoute.
 
+### Application Android : [`android/`](android/)
+
+Une *Trusted Web Activity* : l'application ouvre <https://cybers1te.github.io/>
+en plein écran dans Chrome, sans barre d'adresse. Le site reste son seul code,
+donc chaque mise à jour du site arrive dans l'application sans nouvel APK.
+Chrome lui confie les notifications du site, et les liens du site (invitations
+à un groupe) l'ouvrent directement.
+
+- `public/.well-known/assetlinks.json` prouve à Chrome que l'application et le
+  site vont ensemble (empreinte SHA-256 de la clé de signature). Sans lui, ou
+  avec une autre clé, l'application affiche une barre d'adresse.
+- `public/message-me.apk` est l'APK signé, proposé dans Paramètres →
+  Application sur Android.
+- Le workflow `.github/workflows/android.yml` construit l'APK avec les outils
+  Android de GitHub, l'essaie sur un émulateur et dépose l'APK **non signé**
+  dans `android/dist/`. La clé de signature n'est jamais publiée : l'APK est
+  signé à part (v1 + v2, `apksig`), puis copié dans `public/`.
+
+Pour une nouvelle version (nom, icône, couleurs), augmenter `versionCode` dans
+`android/app/build.gradle` et signer avec **la même clé**, sinon Android refuse
+la mise à jour.
+
 ### Développement local et tests
 
 Node.js 20+ et Java 21 (pour les émulateurs Firebase) :
@@ -138,6 +160,8 @@ public/groupcall.js          Appels de groupe (4 personnes, maillage WebRTC)
 public/qr.js                 Générateur de codes QR (qrcode-generator, MIT)
 public/sw.js                 Service worker : copie hors ligne, notifications
 public/manifest.webmanifest  Application installable (nom, icônes)
+public/.well-known/          Lien entre le site et l'application Android
+android/                     Application Android (Trusted Web Activity)
 public/notify.js             Notifications du navigateur et sonneries
 public/style.css             Thème clair/sombre et mise en page responsive
 public/firebase-config.js    Configuration web du projet Firebase (à remplir)

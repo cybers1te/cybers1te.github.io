@@ -1747,8 +1747,19 @@ function renderOffline() {
 
 /* Installation comme une application (écran d'accueil, plein écran). */
 let installPrompt = null;
-const standalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+// L'application Android (dossier android/) ouvre le site avec ce référent.
+const APK = 'message-me.apk';
+const inAndroidApp = (() => {
+  try {
+    if (document.referrer.startsWith('android-app://io.github.cybers1te.messageme')) sessionStorage.setItem('mm-app', '1');
+    return sessionStorage.getItem('mm-app') === '1';
+  } catch {
+    return false;
+  }
+})();
+const standalone = () => inAndroidApp || window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = () => /android/i.test(navigator.userAgent);
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -1758,6 +1769,16 @@ window.addEventListener('appinstalled', () => {
   installPrompt = null;
   toast('message-me est installé sur cet appareil.', 'success');
 });
+
+/* Sur Android, l'APK à installer soi-même, à côté de l'installation par le
+   navigateur. */
+function apkSetting() {
+  if (!isAndroid() || standalone()) return null;
+  return h('div', { class: 'setting' }, icon('download'),
+    h('span', { class: 'setting-txt' }, h('b', { text: 'Application Android (APK)' }),
+      h('small', { text: 'À installer en autorisant ton navigateur à installer des applications. Elle s\'ouvre avec Chrome.' })),
+    h('a', { class: 'btn ghost sm', href: APK, download: 'message-me.apk' }, 'Télécharger'));
+}
 
 function installSetting() {
   if (standalone()) {
@@ -5385,7 +5406,7 @@ function openSettings() {
       notificationsSetting(),
       toggleSetting('volume', 'Sons', 'Petit son à l\'arrivée d\'un message.', 'sons'),
       toggleSetting('eye', 'Aperçu des messages', 'Affiche le contenu dans les notifications.', 'apercu')),
-    section('Application', installSetting()),
+    section('Application', installSetting(), apkSetting()),
     section('Apparence', theme),
     section('Confidentialité', presenceSetting()),
     section(h('span', {}, 'Personnes bloquées ', blockedCount), blocked),
