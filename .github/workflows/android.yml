@@ -9,7 +9,7 @@ name: message-me — application Android
 on:
   push:
     branches: ['claude/**']
-    paths: ['android/**', '!android/dist/**', '.github/workflows/android.yml']
+    paths: ['android/**', '!android/dist/**', 'public/message-me.apk', 'public/.well-known/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
