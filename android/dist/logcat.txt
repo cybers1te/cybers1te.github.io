@@ -1,0 +1,80 @@
+09-27 16:47:06.001  1406  2748 W bwft    : Succeeded but not registered: com.google.android.libraries.consentverifier#com.google.android.gms [CONTEXT service_id=51 ]
+09-27 16:47:06.071  2544  3472 W id.gms.unstable: Verification of void fu.a() took 274.674ms (36.41 bytecodes/s) (1544B approximate peak alloc)
+09-27 16:47:06.833  1452  2367 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@e92892bb, relation delegate_permission/common.handle_all_urls, and target # dmsa@8482d4e2 --> false. [CONTEXT service_id=244 ]
+09-27 16:47:06.833  1452  1492 I IntentFilterIntentOp: Verification 2 complete. Success:false. Failed hosts:cybers1te.github.io. [CONTEXT service_id=244 ]
+09-27 16:47:06.838  1452  1492 I IntentFilterIntentOp: Verifying IntentFilter. verificationId:3 scheme:"https" hosts:"messages.google.com" package:"com.google.android.apps.messaging". [CONTEXT service_id=244 ]
+09-27 16:47:06.838  1452  1492 I AppLinksUtilsV1: Legacy cross-profile verification enabled [CONTEXT service_id=244 ]
+09-27 16:47:07.149  1520  1572 I SnapshotHandler: Unable to retrieve flag snapshot for com.google.android.libraries.consentverifier#com.google.android.apps.wellbeing, using defaults.
+09-27 16:47:07.238  1406  1475 W bwft    : Succeeded but not registered: com.google.android.libraries.consentverifier#com.google.android.gms [CONTEXT service_id=51 ]
+09-27 16:47:07.540   520  1736 E ActivityTaskManager: setVisibility=false while transition is not collecting or finishing ActivityRecord{f7a651a u0 io.github.cybers1te.messageme/com.google.androidbrowserhelper.trusted.LauncherActivity t8} caller=com.android.server.wm.ActivityRecord.setVisibility:5287 com.android.server.wm.ActivityRecord.makeInvisible:6077 com.android.server.wm.EnsureActivitiesVisibleHelper.setActivityVisibilityState:226 com.android.server.wm.EnsureActivitiesVisibleHelper.process:144 com.android.server.wm.TaskFragment.updateActivityVisibilities:1157 com.android.server.wm.Task.lambda$ensureActivitiesVisible$20:4878 com.android.server.wm.Task.$r8$lambda$glAS06h6u0gde7lZWW7SuxTbP1w:0 com.android.server.wm.Task$$ExternalSyntheticLambda16.accept:0 
+09-27 16:47:07.542   520  1736 E ActivityTaskManager: setVisibility=false while transition is not collecting or finishing ActivityRecord{13f616a u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t7} caller=com.android.server.wm.ActivityRecord.setVisibility:5287 com.android.server.wm.ActivityRecord.makeInvisible:6077 com.android.server.wm.EnsureActivitiesVisibleHelper.setActivityVisibilityState:226 com.android.server.wm.EnsureActivitiesVisibleHelper.process:144 com.android.server.wm.TaskFragment.updateActivityVisibilities:1157 com.android.server.wm.Task.lambda$ensureActivitiesVisible$20:4878 com.android.server.wm.Task.$r8$lambda$glAS06h6u0gde7lZWW7SuxTbP1w:0 com.android.server.wm.Task$$ExternalSyntheticLambda16.accept:0 
+09-27 16:47:07.850   520  1235 D CoreBackPreview: Window{55e162b u0 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@fada114, mPriority=0, mIsAnimationCallback=false}
+09-27 16:47:07.913  1452  2367 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@2417f782, relation delegate_permission/common.handle_all_urls, and target # dmsa@e7ecee0c --> true. [CONTEXT service_id=244 ]
+09-27 16:47:07.914  1452  1492 I IntentFilterIntentOp: Verification 3 complete. Success:true. Failed hosts:. [CONTEXT service_id=244 ]
+09-27 16:47:07.915  1452  1492 I IntentFilterIntentOp: Verifying IntentFilter. verificationId:4 scheme:"https" hosts:"gmail.app.goo.gl dynamite-autopush.sandbox.google.com tel.meet d.meet chat.google.com t.meet dynamite-preprod.sandbox.google.com enterprise.google.com client-side-encryption.google.com dial.meet meet.google.com krahsc.google.com" package:"com.google.android.gm". [CONTEXT service_id=244 ]
+09-27 16:47:07.917  1452  1492 I AppLinksUtilsV1: Legacy cross-profile verification enabled [CONTEXT service_id=244 ]
+09-27 16:47:08.225  1452  2811 W AppLinksIntentOperation: SC+ verification of app links not yet enabled [CONTEXT service_id=244 ]
+09-27 16:47:08.610  1452  3720 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@a2bd2fdf, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.611  1452  3730 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@ae3dda2d, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.614  1452  2708 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@f69fa8f2, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.623  1452  2367 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@6c48dee7, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.907  1452  1484 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@3ec27e04, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.929  1050  1050 D BatterySettingsMigrateChecker: invoke verifySaverConfiguration()
+09-27 16:47:08.935  1050  1050 D BatterySettingsMigrateChecker: invoke verifyOptimizationModes()
+09-27 16:47:08.939  1452  3699 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@9efa86af, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.985  1452  3731 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@d0d54563, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.985  1452  3729 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@381d73, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.985  1452  3728 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@50d41111, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.985  1452  3721 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@9b9c271f, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:08.997  1452  3716 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@8a6327e6, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:09.191  1452  3732 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@8ce3ec58, relation delegate_permission/common.handle_all_urls, and target # dmsa@2cbe911d --> true. [CONTEXT service_id=244 ]
+09-27 16:47:09.201  1452  1492 I IntentFilterIntentOp: Verification 4 complete. Success:true. Failed hosts:. [CONTEXT service_id=244 ]
+09-27 16:47:09.215  1452  1492 I IntentFilterIntentOp: Verifying IntentFilter. verificationId:5 scheme:"https" hosts:"cybers1te.github.io" package:"io.github.cybers1te.messageme". [CONTEXT service_id=244 ]
+09-27 16:47:09.217  1452  1492 I AppLinksUtilsV1: Legacy cross-profile verification enabled [CONTEXT service_id=244 ]
+09-27 16:47:10.690  1452  3764 V Backup  : [ClearcutLoggerWithVerifier] Logging to Clearcut eventCode: 30, event: # dirw@b5357b6b
+09-27 16:47:11.123  1452  3732 I SingleHostAsyncVerifier: Verification result: checking for a statement with source # dmsa@e92892bb, relation delegate_permission/common.handle_all_urls, and target # dmsa@8482d4e2 --> false. [CONTEXT service_id=244 ]
+09-27 16:47:11.125  1452  1492 I IntentFilterIntentOp: Verification 5 complete. Success:false. Failed hosts:cybers1te.github.io. [CONTEXT service_id=244 ]
+09-27 16:47:11.343  1200  1200 D CellBroadcastReceiver: disable launcher activity: com.android.cellbroadcastreceiver.CellBroadcastListLauncherActivity
+09-27 16:47:15.608  1862  4347 W earchbox:search: Long monitor contention with owner ThreadPoolForeg (4346) at org.chromium.net.AndroidCertVerifyResult org.chromium.net.X509Util.verifyServerCertificates(byte[][], java.lang.String, java.lang.String)(PG:22) waiters=0 in void org.chromium.net.X509Util.ensureInitialized() for 303ms
+09-27 16:47:23.061  1452  4761 V Backup  : [ClearcutLoggerWithVerifier] Logging to Clearcut eventCode: 30, event: # dirw@b5357b6b
+09-27 16:47:30.714  4876  4901 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.googlequicksearchbox
+09-27 16:47:30.942  4876  4909 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.googlequicksearchbox
+09-27 16:47:30.978  4536  4636 I SnapshotHandler: Unable to retrieve flag snapshot for com.google.android.libraries.consentverifier#com.google.android.apps.messaging, using defaults.
+09-27 16:47:31.051  2724  2928 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.tts
+09-27 16:47:31.264  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:31.271  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:31.274  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:31.286  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:31.354  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:32.155  1050  4693 E SystemServiceRegistry: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:32.200  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:32.201  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:32.225  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:32.240  1050  4693 W SliceDataConverter: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:32.250  1050  4693 E HardwareInfoFeatureProviderImpl: 	at com.android.settings.slices.SlicesDatabaseAccessor.verifyIndexing(SlicesDatabaseAccessor.java:194)
+09-27 16:47:33.042  1507  2168 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.inputmethod.latin
+09-27 16:47:33.044  1507  2168 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.inputmethod.latin
+09-27 16:47:35.016  1520  1666 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.apps.wellbeing
+09-27 16:47:36.243  4536  4638 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.apps.messaging
+09-27 16:47:39.443  4536  4657 I Bugle   : VerifiedSmsEnabledCheckerImpl: VSMS is disabled via Phenotype flag.
+09-27 16:47:39.449  4536  4632 I Bugle   : VerifiedSmsStartupTask: Checking if Verified SMS tasks should be enqueued. feature supported: false, feature enabled: false, eligible / has registered key: false, C11N: false
+09-27 16:47:39.449  4536  4632 I Bugle   : VerifiedSmsStartupTask: Not enqueuing VSMS periodic task, VSMS is disabled or not supported.
+09-27 16:47:39.449  4536  4647 I Bugle   : VerifiedSmsStartupTask: Not calling C11N to get phone numbers.
+09-27 16:47:40.204  4037  5272 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.projection.gearhead
+09-27 16:47:40.373  2724  2928 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.tts
+09-27 16:47:40.839  2985  3066 I PhenotypeBackgroundRecv: Successfully updated snapshot for com.google.android.libraries.consentverifier#com.google.android.dialer
+09-27 16:47:41.225  1089  1089 I ActivityThread: Schedule relaunch activity: com.google.android.apps.nexuslauncher.NexusLauncherActivity
+09-27 16:47:41.300   520   592 D CoreBackPreview: Window{3c9c347 u0 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity}: Setting back callback null
+09-27 16:47:41.317   520   816 W InputManager-JNI: Input channel object '3c9c347 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity (client)' was disposed without first being removed with the input manager!
+09-27 16:47:41.504   520   592 D CoreBackPreview: Window{fb8eaa8 u0 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@e267043, mPriority=0, mIsAnimationCallback=false}
+09-27 16:47:41.508  1089  1089 D b/254119092: Set mActivity=com.google.android.apps.nexuslauncher.NexusLauncherActivity@8dd7882
+09-27 16:47:41.509  1089  1089 D MainContentCaptureSession: handleScheduleFlush(act:com.google.android.apps.nexuslauncher/.NexusLauncherActivity [state=1 (WAITING_FOR_SERVER), disabled=false], reason=FORCE_FLUSH): not a timeout reason because mDirectServiceInterface is not ready yet
+09-27 16:47:41.513   520   816 I ActivityTaskManager: Activity reported stop, but no longer stopping: ActivityRecord{13f616a u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t7} STOPPED
+09-27 16:47:41.536   520  1960 D CoreBackPreview: Window{55e162b u0 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity}: Setting back callback null
+09-27 16:47:41.536   520   816 W InputManager-JNI: Input channel object '55e162b com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity (client)' was disposed without first being removed with the input manager!
+09-27 16:47:41.567   520   816 D CoreBackPreview: Window{359bb3e u0 com.google.android.apps.nexuslauncher/com.google.android.apps.nexuslauncher.NexusLauncherActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@ab24d4a, mPriority=0, mIsAnimationCallback=false}
+09-27 16:47:42.343  5312  5312 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+09-27 16:47:42.370  5312  5312 I AndroidRuntime: Using default boot image
+09-27 16:47:42.370  5312  5312 I AndroidRuntime: Leaving lock profiling enabled
+09-27 16:47:42.676  5312  5312 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+09-27 16:47:43.805  5312  5312 D AndroidRuntime: Shutting down VM
