@@ -22,6 +22,16 @@ export function callsSupported() {
   return Boolean(window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
+/* Partage d'écran : ordinateurs (les navigateurs mobiles ne le proposent pas). */
+export function screenShareSupported() {
+  return Boolean(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+}
+
+/* Canal vidéo de la connexion (caméra, ou réservé pour le partage d'écran). */
+function videoTransceiver(pc) {
+  return pc.getTransceivers().find((t) => t.receiver && t.receiver.track && t.receiver.track.kind === 'video') || null;
+}
+
 function capture(video) {
   return navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -74,6 +84,9 @@ export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog
     pc.ontrack = (e) => {
       if (e.streams && e.streams[0]) c.remote = e.streams[0];
       else c.remote.addTrack(e.track);
+      // Une piste vidéo n'a d'images que si l'autre filme ou partage son écran.
+      e.track.onmute = () => change(c);
+      e.track.onunmute = () => change(c);
       change(c);
     };
     pc.onconnectionstatechange = () => {
@@ -91,6 +104,9 @@ export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog
       change(c);
     };
     for (const track of c.local.getTracks()) pc.addTrack(track, c.local);
+    // L'appelant réserve toujours un canal vidéo : on peut ainsi partager son
+    // écran, même pendant un appel vocal, sans renégocier la connexion.
+    if (c.role === 'caller' && !c.local.getVideoTracks().length) pc.addTransceiver('video', { direction: 'sendrecv' });
     return pc;
   }
 
@@ -132,6 +148,8 @@ export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog
     c.unsubs = [];
     try { if (c.pc) c.pc.close(); } catch { /* déjà fermée */ }
     if (c.local) c.local.getTracks().forEach((t) => t.stop());
+    if (c.screen) c.screen.getTracks().forEach((t) => t.stop());
+    c.screen = null;
     c.duration = c.startedAt ? Math.round((Date.now() - c.startedAt) / 1000) : 0;
 
     const write = async () => {
@@ -243,6 +261,10 @@ export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog
       const out = F.collection(ref, 'calleeCandidates');
       pc.onicecandidate = (e) => { if (e.candidate) F.addDoc(out, candidateData(e.candidate)).catch(() => {}); };
       await pc.setRemoteDescription(inc.offer);
+      // Sans caméra, le canal vidéo proposé reste ouvert dans les deux sens
+      // (partage d'écran possible).
+      const vt = videoTransceiver(pc);
+      if (vt && !vt.sender.track && vt.direction === 'recvonly') vt.direction = 'sendrecv';
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       await F.updateDoc(ref, {
@@ -327,6 +349,37 @@ export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog
     change();
   }
 
+  /* Partager son écran à la place de la caméra, puis revenir à la caméra. */
+  async function toggleShare() {
+    const c = call;
+    if (!c || !c.pc) return;
+    const vt = videoTransceiver(c.pc);
+    if (!vt) throw Object.assign(new Error('no-video-channel'), { code: 'no-video-channel' });
+    if (c.screen) {
+      c.screen.getTracks().forEach((t) => t.stop());
+      c.screen = null;
+      await vt.sender.replaceTrack(c.local.getVideoTracks()[0] || null).catch(() => {});
+      change();
+      return;
+    }
+    const display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    const track = display.getVideoTracks()[0];
+    if (call !== c || c.ended) {
+      display.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    try {
+      await vt.sender.replaceTrack(track);
+    } catch (err) {
+      display.getTracks().forEach((t) => t.stop());
+      throw err;
+    }
+    c.screen = display;
+    // « Arrêter le partage » dans la barre du navigateur.
+    track.onended = () => { if (c.screen === display) toggleShare().catch(() => {}); };
+    change();
+  }
+
   function dispose() {
     if (unsubRinging) unsubRinging();
     unsubRinging = null;
@@ -336,7 +389,7 @@ export function createCalls({ F, db, uid, iceServers, onChange, onRinging, onLog
   }
 
   return {
-    watch, start, accept, decline, hangUp, toggleMic, toggleCam, dispose,
+    watch, start, accept, decline, hangUp, toggleMic, toggleCam, toggleShare, dispose,
     get current() { return call; },
     get ringing() { return [...ringing.values()]; },
   };

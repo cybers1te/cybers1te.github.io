@@ -12,27 +12,36 @@ messagerie en temps réel construite sur Firebase.
 
 ## message-me
 
-Inscription par e-mail avec un **pseudo** unique, discussions à deux ou en
-**groupe** (jusqu'à 20 membres), messages synchronisés en temps réel,
-**photos** et **messages vocaux**, **appels audio et vidéo** (discussions à
-deux), **notifications** du navigateur pour les messages et les appels,
-indicateur « … écrit », non-lus et accusé de lecture « Vu », liens cliquables,
-interface adaptée au mobile. Messages, photos et vocaux sont chiffrés de bout
-en bout.
+Inscription par e-mail (adresse à confirmer) ou avec **Google**, **pseudo**
+unique, discussions à deux ou en **groupe** (jusqu'à 20 membres), messages
+synchronisés en temps réel et chiffrés de bout en bout.
 
-Groupes : nom et description, **admins** (propriétaire, nommer ou retirer un
-admin), ajout et retrait de membres, **privation de parole temporaire** (de
-15 minutes à 7 jours), réglages « qui peut écrire / modifier les infos /
-ajouter des membres », événements dans la conversation (« Alice a ajouté
-Bob »). Pour chacun : **blocage** (plus de message privé, d'appel ni d'ajout
-à un groupe ; messages masqués dans les groupes en commun), **sourdine** d'une
-conversation (1 h, 8 h, 1 semaine ou toujours), paramètres (sons, aperçu dans
-les notifications, thème clair/sombre/auto, personnes bloquées).
+- **Messages** : répondre en citant, **réactions** 👍 ❤️ 😂, **modifier**
+  (48 h) et **supprimer pour tout le monde**, @**mentions** dans les groupes,
+  **recherche** dans une conversation, **sondages**, **photos**, **fichiers**
+  (PDF, documents…), **messages vocaux**, **messages éphémères** (24 h ou
+  7 jours), « … écrit », « Vu » et « Vu par N » dans les groupes, appui long
+  ou clic droit pour le menu d'un message, glisser pour y répondre.
+- **Conversations** : épingler, archiver, sourdine (1 h, 8 h, 1 semaine,
+  toujours), photo de profil et de groupe, **lien d'invitation** pour
+  rejoindre un groupe, « en ligne » / « vu à » (masquable).
+- **Appels** audio et vidéo à deux, avec **partage d'écran** ; **appels de
+  groupe** jusqu'à 4 personnes ; notifications des messages et des appels.
+- **Groupes** : admins (propriétaire, nommer ou retirer un admin), ajout et
+  retrait de membres, **privation de parole temporaire**, réglages « qui peut
+  écrire / modifier les infos / ajouter des membres », événements dans la
+  conversation (« Alice a ajouté Bob »).
+- **Sécurité** : **vérification du chiffrement** (numéro de sécurité et code
+  QR), alerte si la clé d'un contact change, **blocage**, suppression du
+  compte.
+- **Application** : **installable** (écran d'accueil, plein écran),
+  **hors ligne**, thème clair/sombre/auto, interface pensée pour le mobile.
 
 ### Configuration : [FIREBASE.md](FIREBASE.md)
 
 Le site a besoin d'un projet Firebase. Le guide [FIREBASE.md](FIREBASE.md)
-explique pas à pas comment le créer, activer la connexion par e-mail, créer la
+explique pas à pas comment le créer, activer la connexion par e-mail (et, si
+on veut, avec Google), créer la
 base Firestore, y publier les règles et coller la configuration dans
 `public/firebase-config.js`. Tant que ce n'est pas fait, le site affiche un
 écran d'aide au lieu de la messagerie.
@@ -42,34 +51,44 @@ base Firestore, y publier les règles et coller la configuration dans
 GitHub Pages ne sert que des fichiers statiques : tout s'exécute dans le
 navigateur, qui parle directement à Firebase.
 
-- **Firebase Authentication** gère les comptes (e-mail + mot de passe).
+- **Firebase Authentication** gère les comptes (e-mail + mot de passe, ou
+  Google).
 - **Cloud Firestore** stocke les profils, les conversations et les messages ;
   le site s'y abonne et se met à jour dès qu'un message arrive.
 - **`firestore.rules`** est la vraie barrière de sécurité : la configuration
   web de Firebase est publique par conception, ce sont ces règles qui
   décident qui lit et écrit quoi (membres seuls, pas d'usurpation d'auteur,
-  pseudos uniques, messages non modifiables…).
+  pseudos uniques, seul l'auteur modifie son message…).
 - **`public/e2e.js`** chiffre les messages de bout en bout dans le navigateur
   (Web Crypto : ECDH P-256, HKDF, AES-GCM) : Firestore ne stocke que du texte
   chiffré, illisible même pour le propriétaire du projet. La clé privée de
   chaque compte est scellée par son mot de passe et par un code de secours
   (PBKDF2-SHA-256), affiché une seule fois à l'inscription. Les noms, pseudos,
-  noms, descriptions et membres des groupes restent en clair.
+  photos de profil, ainsi que les titres, descriptions, photos et membres des
+  groupes restent en clair. Réactions et votes sont chiffrés avec la clé du
+  message ; le numéro de sécurité (60 chiffres, ou code QR) permet de vérifier
+  la clé d'un contact.
 
 ```text
 usernames/{pseudo}                   { uid }
-users/{uid}                          { name, username, createdAt, publicKey }
+users/{uid}                          { name, username, createdAt, publicKey, photo }
+avatars/{uid}                        { data, updatedAt }   (photo de profil)
+presence/{uid}                       { at }                (« en ligne », « vu à »)
 keys/{uid}                           { v, publicKey, byPassword, byRecovery, updatedAt }
-settings/{uid}                       { blocked, muted }   (privé : bloqués, sourdines)
+settings/{uid}                       { blocked, muted, pinned, archived, keys, verified, hidePresence }
+invites/{code}                       { cid, title, by, createdAt }   (lien d'invitation)
 conversations/{cid}                  { type, members, title, createdBy,
-                                       createdAt, updatedAt, lastMessage, lastRead, typing,
-                                       admins, perms, description }   (groupes)
-conversations/{cid}/messages/{mid}   { uid, enc, createdAt }
+                                       createdAt, updatedAt, lastMessage, lastRead, typing, ttl,
+                                       admins, perms, description, photo, invite, room }   (groupes)
+conversations/{cid}/messages/{mid}   { uid, enc, createdAt, exp, editedAt, notes, deleted… }
 conversations/{cid}/media/{mid}      { uid, data, createdAt }   (photo ou vocal chiffré)
 conversations/{cid}/restrictions/{uid} { until, by, at }   (membre privé de parole)
+conversations/{cid}/photo/current    { data, updatedAt }   (photo du groupe)
 calls/{callId}                       { cid, caller, callee, video, status, offer, answer, … }
 calls/{callId}/callerCandidates/*    candidats ICE (WebRTC)
 calls/{callId}/calleeCandidates/*
+rooms/{rid}                          { cid, by, video, participants, beats }   (appel de groupe)
+rooms/{rid}/links/{lid}              { from, to, offer, answer } + candidats
 ```
 
 - **Photos et messages vocaux** (`public/media.js`) : redimensionnés ou
@@ -79,8 +98,14 @@ calls/{callId}/calleeCandidates/*
 - **Appels** (`public/calls.js`) : WebRTC de navigateur à navigateur ;
   Firestore ne sert qu'à la mise en relation (offre, réponse, candidats ICE).
   Serveurs STUN publics par défaut, relais TURN facultatif (`iceServers`).
+  Les appels de groupe (`public/groupcall.js`) relient chaque participant à
+  chacun des autres (4 au plus) via `rooms/{rid}/links`.
 - **Notifications** (`public/notify.js`, `public/sw.js`) : notifications du
   navigateur et sonneries synthétisées, tant qu'un onglet est ouvert.
+- **Hors ligne** : le service worker garde une copie du site et du SDK
+  Firebase, et Firestore conserve les données déjà lues dans le navigateur
+  (IndexedDB, effacé à la déconnexion) ; les messages écrits sans réseau
+  partent à son retour.
 - **Groupes** : un groupe naît avec son seul créateur, qui y ajoute les
   membres un par un ; les règles vérifient ainsi, à chaque ajout, que la
   personne n'a pas bloqué celle qui l'ajoute.
@@ -108,8 +133,12 @@ public/index.html            Page unique de la messagerie
 public/main.js               Application (Auth, Firestore, interface)
 public/e2e.js                Chiffrement de bout en bout (Web Crypto)
 public/media.js              Photos (compression), messages vocaux (enregistrement, lecture)
-public/calls.js              Appels audio/vidéo (WebRTC + signalisation Firestore)
-public/notify.js, sw.js      Notifications du navigateur et sonneries
+public/calls.js              Appels audio/vidéo à deux, partage d'écran (WebRTC)
+public/groupcall.js          Appels de groupe (4 personnes, maillage WebRTC)
+public/qr.js                 Générateur de codes QR (qrcode-generator, MIT)
+public/sw.js                 Service worker : copie hors ligne, notifications
+public/manifest.webmanifest  Application installable (nom, icônes)
+public/notify.js             Notifications du navigateur et sonneries
 public/style.css             Thème clair/sombre et mise en page responsive
 public/firebase-config.js    Configuration web du projet Firebase (à remplir)
 firestore.rules              Règles de sécurité de la base
