@@ -1,0 +1,10 @@
+Activity Resolver Table:
+        e95fff9 io.github.cybers1te.messageme/com.google.androidbrowserhelper.trusted.LauncherActivity filter 8efdd9f
+        e95fff9 io.github.cybers1te.messageme/com.google.androidbrowserhelper.trusted.LauncherActivity filter d720b3e
+Service Resolver Table:
+        ba1feec io.github.cybers1te.messageme/com.google.androidbrowserhelper.trusted.DelegationService filter 62da2b5
+    versionName=1.0.0
+    requested permissions:
+      android.permission.POST_NOTIFICATIONS
+      runtime permissions:
+        android.permission.POST_NOTIFICATIONS: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
