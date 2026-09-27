@@ -13,9 +13,16 @@ import {
   generateIdentity,
   importPrivateKey,
   isRecoveryCodeShaped,
+  keyFingerprint,
+  newNoteSeed,
   newRecoveryCode,
   normalizeRecoveryCode,
+  noteKeyFromMessage,
+  noteKeyFromSeed,
+  openNote,
+  safetyNumber,
   seal,
+  sealNote,
   unseal,
 } from '../public/e2e.js';
 
@@ -49,9 +56,9 @@ test('un texte chiffré modifié est rejeté', async () => {
   await assert.rejects(decryptMessage({ ...enc, ct: flipped }, 'bob', bob.privateKey, 'c1', 'alice'));
 });
 
-test('le plus long message tient dans la limite des règles (8200)', async () => {
+test('le plus long message tient dans la limite des règles (12 000)', async () => {
   const enc = await encryptMessage('€'.repeat(2000), members, 'c1', 'alice');
-  assert.ok(enc.ct.length <= 8200, 'ct = ' + enc.ct.length);
+  assert.ok(enc.ct.length <= 12000, 'ct = ' + enc.ct.length);
   assert.equal(enc.e.length, 88);
   assert.equal(enc.iv.length, 16);
   assert.equal(alice.publicKey.length, 88);
@@ -112,5 +119,43 @@ test('enveloppe v2 la plus longue (légende de 2000 caractères) sous la limite 
   const payload = { t: 'image', caption: 'é'.repeat(2000), mime: 'image/jpeg', w: 1600, h: 1200,
     key: 'A'.repeat(44), iv: 'B'.repeat(16) };
   const enc = await encryptPayload(payload, members, 'c1', 'alice');
-  assert.ok(enc.ct.length <= 8200, 'ct = ' + enc.ct.length);
+  assert.ok(enc.ct.length <= 12000, 'ct = ' + enc.ct.length);
+});
+
+test('texte le plus riche (2000 caractères, réponse, 19 mentions) sous la limite des règles', async () => {
+  const uid = 'u'.repeat(28);
+  const payload = {
+    t: 'text', text: '€'.repeat(2000), nk: newNoteSeed(),
+    reply: { id: 'm'.repeat(20), uid, s: '€'.repeat(120) },
+    mentions: Array.from({ length: 19 }, () => uid),
+  };
+  const enc = await encryptPayload(payload, members, 'c1', 'alice');
+  assert.ok(enc.ct.length <= 12000, 'ct = ' + enc.ct.length);
+});
+
+test('réactions et votes : lisibles par les membres, liés au message et à leur auteur', async () => {
+  const enc = await encryptMessage('Qui vient ?', members, 'c1', 'alice');
+  const byAlice = await noteKeyFromMessage(enc, 'alice', alice.privateKey);
+  const byBob = await noteKeyFromMessage(enc, 'bob', bob.privateKey);
+  const note = await sealNote(byBob, { r: '👍', v: [1] }, 'c1', 'm1', 'bob');
+  assert.equal(note.iv.length, 16);
+  assert.ok(note.ct.length <= 400);
+  assert.deepEqual(await openNote(byAlice, note, 'c1', 'm1', 'bob'), { r: '👍', v: [1] });
+  await assert.rejects(openNote(byAlice, note, 'c1', 'm2', 'bob'));
+  await assert.rejects(openNote(byAlice, note, 'c1', 'm1', 'alice'));
+  await assert.rejects(noteKeyFromMessage(enc, 'mallory', mallory.privateKey));
+  // Graine de l'enveloppe : la même clé pour tous, et après modification.
+  const seed = newNoteSeed();
+  const k1 = await noteKeyFromSeed(seed);
+  const k2 = await noteKeyFromSeed(seed);
+  assert.deepEqual(await openNote(k2, await sealNote(k1, { r: '❤️' }, 'c', 'm', 'u'), 'c', 'm', 'u'), { r: '❤️' });
+});
+
+test('numéro de sécurité : 60 chiffres, le même des deux côtés, change avec la clé', async () => {
+  const ab = await safetyNumber('alice', alice.publicKey, 'bob', bob.publicKey);
+  const ba = await safetyNumber('bob', bob.publicKey, 'alice', alice.publicKey);
+  assert.equal(ab, ba);
+  assert.match(ab, /^(\d{5} ){11}\d{5}$/);
+  assert.notEqual(await safetyNumber('alice', alice.publicKey, 'bob', mallory.publicKey), ab);
+  assert.notEqual(await keyFingerprint(alice.publicKey), await keyFingerprint(bob.publicKey));
 });
