@@ -11,6 +11,7 @@
 <meta property="og:title" content="marketbuss — les meilleures IA du moment">
 <meta property="og:description" content="Le marché des IA en direct : classements, prix et nouveautés, mis à jour toutes les 3 heures.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="alternate" type="application/atom+xml" title="marketbuss — mouvements du marché des IA" href="data/feed.xml">
 <!-- ?v=__V__ : remplacé par la version publiée, pour ne jamais servir un ancien fichier. -->
 <link rel="stylesheet" href="marketbuss.css?v=__V__">
@@ -25,7 +26,7 @@
 <header class="top">
   <div class="wrap top-row">
     <a class="brand" href="#/" aria-label="marketbuss, accueil">
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M7 21.5l5.5-6 4.5 3.5 8-9.5"/><circle cx="25" cy="9.5" r="2.2"/></svg>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="logo-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a78d6"/><stop offset="1" stop-color="#13a06e"/></linearGradient></defs><rect width="32" height="32" rx="9"/><path d="M7 21.5l5.5-6 4.5 3.5 8-9.5"/><circle cx="25" cy="9.5" r="2.2"/></svg>
       <span>marketbuss</span>
     </a>
     <nav class="nav" aria-label="Sections">
@@ -51,12 +52,35 @@
   <div class="wrap loading"><div class="spinner" aria-hidden="true"></div><p>Chargement du marché des IA…</p></div>
 </main>
 <footer class="foot">
-  <div class="wrap foot-row">
-    <p><b>marketbuss</b> — gratuit, sans compte. Données : <a href="https://arena.ai/leaderboard" target="_blank" rel="noopener">Arena AI</a>,
-      <a href="https://github.com/BerriAI/litellm" target="_blank" rel="noopener">LiteLLM</a>,
-      <a href="https://openrouter.ai/models" target="_blank" rel="noopener">OpenRouter</a>.</p>
-    <p>Mise à jour automatique toutes les 3 heures · <a href="data/latest.json">données ouvertes (JSON)</a> · <a href="data/feed.xml">flux Atom</a> · <a href="#/methode">méthode</a></p>
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <a class="brand" href="#/" aria-label="marketbuss, accueil">
+        <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9"/><path d="M7 21.5l5.5-6 4.5 3.5 8-9.5"/><circle cx="25" cy="9.5" r="2.2"/></svg>
+        <span>marketbuss</span>
+      </a>
+      <p>Les meilleures IA du moment, classées par usage, avec leurs prix et leurs nouveautés. Gratuit, sans compte, mis à jour automatiquement toutes les 3 heures.</p>
+    </div>
+    <div>
+      <h4>Explorer</h4>
+      <ul>
+        <li><a href="#/classement">Classements</a></li>
+        <li><a href="#/choisir">Trouver mon IA</a></li>
+        <li><a href="#/comparer">Comparer</a></li>
+        <li><a href="#/calculateur">Calculateur de coût</a></li>
+        <li><a href="#/nouveautes">Nouveautés</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Données</h4>
+      <ul>
+        <li><a href="#/methode">Méthode</a></li>
+        <li><a href="data/latest.json">Données ouvertes (JSON)</a></li>
+        <li><a href="data/feed.xml">Flux Atom</a></li>
+        <li><a href="https://arena.ai/leaderboard" target="_blank" rel="noopener">Arena AI</a> · <a href="https://github.com/BerriAI/litellm" target="_blank" rel="noopener">LiteLLM</a> · <a href="https://openrouter.ai/models" target="_blank" rel="noopener">OpenRouter</a></li>
+      </ul>
+    </div>
   </div>
+  <div class="wrap foot-bottom">marketbuss n'est affilié à aucun éditeur d'IA. Les classements reflètent les votes publics d'Arena AI ; les prix sont les tarifs catalogue des fournisseurs.</div>
 </footer>
 <div class="toast-zone" id="toasts" aria-live="polite"></div>
 <div class="tip" id="tip" role="tooltip" hidden></div>

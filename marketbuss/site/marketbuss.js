@@ -67,7 +67,23 @@ const ICONS = {
   copy: '<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V5.5a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/>',
   chart: '<path d="M4 19.5h16M6.5 16l4-5 3.5 3 5-6.5"/>',
   refresh: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4"/>',
+  arrow: '<path d="M5 12h14M13.5 6.5L19 12l-5.5 5.5"/>',
+  trophy: '<path d="M8 4.5h8v4a4 4 0 0 1-8 0zM8 6.5H5.5a2.5 2.5 0 0 0 2.6 3.4M16 6.5h2.5a2.5 2.5 0 0 1-2.6 3.4M12 12.5v3.5M8.5 19.5h7M10 16h4v3.5h-4z"/>',
+  text: '<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/>',
+  code: '<path d="M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5M13.5 5l-3 14"/>',
+  vision: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  document: '<path d="M6.5 3.5h7l4 4v13h-11z"/><path d="M13.5 3.5v4h4M9 12h6M9 15.5h6"/>',
+  web: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.8 2.6 14.2 0 17M12 3.5c-2.6 2.8-2.6 14.2 0 17"/>',
+  agent: '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>',
+  'text-to-image': '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17.5l5-4.5 4 3 3-2.5 4 3.5"/>',
+  'image-edit': '<path d="M4 20l9.5-9.5M15 4l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/>',
+  'text-to-video': '<rect x="3.5" y="5.5" width="12" height="13" rx="2"/><path d="M15.5 10l5-3v10l-5-3"/>',
+  'image-to-video': '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M10 9l5 3-5 3z"/>',
+  'video-edit': '<circle cx="6.5" cy="7" r="2.5"/><circle cx="6.5" cy="17" r="2.5"/><path d="M8.7 8.3L20 17M8.7 15.7L20 7"/>',
+  general: '<path d="M8 4.5h8v4a4 4 0 0 1-8 0zM8 6.5H5.5a2.5 2.5 0 0 0 2.6 3.4M16 6.5h2.5a2.5 2.5 0 0 1-2.6 3.4M12 12.5v3.5M8.5 19.5h7M10 16h4v3.5h-4z"/>',
 };
+// Icône d'une arène (« search » est déjà la loupe).
+const catIcon = (id, cls) => icon(id === 'search' ? 'web' : id, cls);
 function icon(name, cls = 'ic') {
   const el = document.createElementNS(SVG_NS, 'svg');
   el.setAttribute('viewBox', '0 0 24 24');
@@ -299,10 +315,22 @@ function badges(m) {
     m.or && m.or.free ? h('span', { class: 'badge free', title: 'Version gratuite disponible sur OpenRouter' }, 'gratuit') : null);
 }
 
+/* Pastille d'éditeur : initiale sur une teinte stable (décorative). */
+function avatar(vendor, cls = '') {
+  const v = String(vendor || '?');
+  let hash = 0;
+  for (const ch of v) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  const letter = (v.replace(/[^\p{L}\p{N}]/gu, '').charAt(0) || '?').toUpperCase();
+  return h('span', { class: `av av${hash % 8} ${cls}`.trim(), 'aria-hidden': 'true', text: letter });
+}
+const rankChip = (n) => h('span', { class: 'rank-chip' + (n <= 3 ? ' r' + n : ''), text: String(n), title: 'Rang ' + n });
+
 function modelLink(m, extra) {
   return h('a', { class: 'model-link', href: '#/modele/' + encodeURIComponent(m.id) },
-    h('span', { class: 'model-name', text: m.name }),
-    h('span', { class: 'model-meta' }, h('span', { text: m.vendor || '—' }), extra ? h('span', { text: extra }) : null));
+    avatar(m.vendor),
+    h('span', { class: 'ml-txt' },
+      h('span', { class: 'model-name', text: m.name }),
+      h('span', { class: 'model-meta' }, h('span', { text: m.vendor || '—' }), extra ? h('span', { text: extra }) : null)));
 }
 
 function bar(value, max = 100) {
@@ -311,9 +339,12 @@ function bar(value, max = 100) {
 }
 
 function section(title, sub, ...kids) {
+  // « Surtitre|Titre » : petit libellé au-dessus du titre.
+  const [kicker, main] = title.includes('|') ? title.split('|') : [null, title];
   return h('section', { class: 'section' },
     h('div', { class: 'section-head' },
-      h('div', {}, h('h2', { text: title }), sub ? h('p', { class: 'sub', text: sub }) : null)),
+      h('div', {}, kicker ? h('span', { class: 'kicker', text: kicker }) : null,
+        h('h2', { text: main }), sub ? h('p', { class: 'sub', text: sub }) : null)),
     ...kids);
 }
 function sectionWith(title, sub, actions, ...kids) {
@@ -570,7 +601,7 @@ function render({ keepScroll = false } = {}) {
     case 'modele': node = viewModel(decodeURIComponent(arg || '')); break;
     case 'comparer': node = viewCompare(arg ? decodeURIComponent(arg) : ''); break;
     case 'calculateur': node = viewCalc(); break;
-    case 'choisir': node = viewWizard(); break;
+    case 'choisir': node = viewWizard(arg ? decodeURIComponent(arg) : null); break;
     case 'nouveautes': node = viewNews(); break;
     case 'methode': node = viewMethod(); break;
     default: node = viewHome();
@@ -589,88 +620,107 @@ function render({ keepScroll = false } = {}) {
 }
 
 /* Accueil */
-function viewHome() {
-  const list = ranked();
+const USE_CHIPS = [['text', 'Écrire et discuter'], ['code', 'Programmer'], ['document', 'Lire des PDF'],
+  ['vision', 'Analyser des images'], ['search', 'Chercher sur le web'], ['text-to-image', 'Créer des images'],
+  ['text-to-video', 'Créer des vidéos']];
+
+function podiumCard(list) {
+  if (!list.length) return null;
   const top = list[0];
   const notes = [['text', 'En conversation'], ['code', 'En code']]
     .map(([c, label]) => [label, leaderOf(c)])
     .filter(([, m]) => m && m !== top)
     .map(([label, m]) => `${label}, le n° 1 est ${m.name}.`);
-  const frag = h('div', { class: 'wrap' });
+  return h('div', { class: 'podium' },
+    h('div', { class: 'podium-head' }, h('span', {}, icon('trophy'), 'Le podium du moment'),
+      h('span', { class: 'muted', text: 'indice sur 100' })),
+    h('ol', {}, list.map((m) => h('li', {}, h('a', { href: '#/modele/' + encodeURIComponent(m.id) },
+      rankChip(m.rank), avatar(m.vendor),
+      h('span', { class: 'pd-txt' }, h('b', { text: m.name }), h('small', { text: m.vendor || '' })),
+      h('span', { class: 'pd-score' }, h('b', { text: fmt(m.index, 1) }), bar(m.index)))))),
+    notes.length ? h('p', { class: 'podium-note', text: notes.join(' ') }) : null,
+    h('a', { class: 'podium-foot', href: '#/classement' }, `Voir les ${snap.stats.ranked} modèles classés`, icon('arrow')));
+}
 
-  frag.append(h('section', { class: 'hero' },
+function viewHome() {
+  const list = ranked();
+  const page = document.createDocumentFragment();
+  page.append(h('section', { class: 'hero-band' }, h('div', { class: 'wrap hero' },
     h('div', { class: 'hero-main' },
       h('p', { class: 'eyebrow' }, h('span', { class: 'live', 'aria-hidden': 'true' }),
         `Marché des IA en direct · collecte ${relTime(snap.generatedAt)}`),
-      h('h1', {}, 'Les meilleures IA du moment, ', h('span', { class: 'hl', text: 'classées en continu.' })),
-      h('p', { class: 'lead', text: 'marketbuss croise les votes à l\'aveugle de millions d\'utilisateurs (Arena AI), '
-        + 'les prix publics des fournisseurs et les nouvelles sorties. Le classement se met à jour tout seul, '
-        + 'toutes les 3 heures.' }),
+      h('h1', {}, 'Trouve la meilleure IA ', h('span', { class: 'hl', text: 'pour ce que tu veux faire.' })),
+      h('p', { class: 'lead', text: `Classements par usage, prix réels et nouveautés : marketbuss suit ${snap.stats.models} modèles `
+        + 'et se met à jour tout seul, toutes les 3 heures.' }),
+      h('p', { class: 'chips-label', text: 'Je veux…' }),
+      h('div', { class: 'use-chips' }, USE_CHIPS.filter(([id]) => catById.has(id)).map(([id, label]) =>
+        h('a', { class: 'use-chip', href: '#/choisir/' + id }, catIcon(id), label))),
       h('div', { class: 'actions' },
-        h('a', { class: 'btn primary', href: '#/classement' }, icon('chart'), 'Voir le classement'),
-        h('a', { class: 'btn', href: '#/choisir' }, 'Trouver l\'IA qu\'il me faut'))),
-    top ? h('a', { class: 'hero-card', href: '#/modele/' + encodeURIComponent(top.id) },
-      h('span', { class: 'hc-label' }, icon('crown'), 'N° 1 du moment · indice marketbuss'),
-      h('span', { class: 'hc-name', text: top.name }),
-      h('span', { class: 'hc-vendor', text: top.vendor || '' }),
-      h('span', { class: 'hc-figure' }, fmt(top.index, 1), h('small', { text: ' / 100' })),
-      h('span', { class: 'hc-facts' },
-        top.cats.text ? h('span', { text: `Texte : n° ${top.cats.text.rank}` }) : null,
-        top.cats.code ? h('span', { text: `Code : n° ${top.cats.code.rank}` }) : null,
-        top.price ? h('span', { text: `${fmtPrice(top.price.input)} / ${fmtPrice(top.price.output)} par M de jetons` }) : null),
-      notes.length ? h('span', { class: 'hc-note', text: notes.join(' ') }) : null)
-      : null));
+        h('a', { class: 'btn primary', href: '#/classement' }, icon('trophy'), 'Voir le classement'),
+        h('a', { class: 'btn', href: '#/comparer' }, 'Comparer des modèles'))),
+    podiumCard(list.slice(0, 3)))));
+
+  const body = h('div', { class: 'wrap' });
+  page.append(body);
+  body.append(h('div', { class: 'stats' },
+    stat(fmt(snap.stats.models), 'modèles suivis'),
+    stat(fmt(snap.stats.vendors), 'éditeurs'),
+    stat(fmt(snap.categories.length), 'arènes, du texte à la vidéo'),
+    stat(fmt(snap.stats.fresh), 'nouveaux en 14 jours'),
+    stat(nextRunText().replace(/^vers /, ''), 'prochaine mise à jour')));
 
   const since = sinceVisit();
-  if (since) frag.append(since);
-
-  frag.append(h('div', { class: 'tiles' },
-    tile('Modèles suivis', fmt(snap.stats.models), `${snap.stats.vendors} éditeurs`),
-    tile('Classés au général', fmt(snap.stats.ranked), `${snap.stats.priced} avec un prix public`),
-    tile('Arènes', fmt(snap.categories.length), 'texte, code, images, vidéo…'),
-    tile('Nouveaux (14 jours)', fmt(snap.stats.fresh), snap.stats.releases ? `${snap.stats.releases} sorties sur OpenRouter` : 'entrés dans les classements'),
-    tile('Prochaine collecte', nextRunText().replace(/^vers /, ''), 'automatique, toutes les 3 h')));
+  if (since) body.append(since);
 
   // Top 10
-  frag.append(sectionWith('Le top 10', 'Indice marketbuss : la qualité mesurée dans les arènes Texte, Code, Vision et Documents.',
-    h('a', { class: 'btn ghost sm', href: '#/classement' }, 'Tout le classement'),
+  body.append(sectionWith('Classement général|Le top 10', 'Indice marketbuss : la qualité mesurée dans les arènes Texte, Code, Vision et Documents.',
+    h('a', { class: 'btn ghost sm', href: '#/classement' }, 'Tout le classement', icon('arrow', 'ic sm')),
     h('ol', { class: 'top-list' }, list.slice(0, 10).map((m) => h('li', {},
-      h('span', { class: 'pos', text: String(m.rank) }),
+      h('span', { class: 'pos' }, rankChip(m.rank)),
       delta(m.rank, m.rank7),
       h('div', { class: 'tl-name' }, modelLink(m), badges(m)),
       h('span', { class: 'idx' }, bar(m.index), h('b', { text: fmt(m.index, 1) })),
-      h('span', { class: 'price', text: m.price ? fmtPrice(m.price.blended) : 'prix ?' , title: 'Prix mixte par million de jetons' }),
+      h('span', { class: 'price', text: m.price ? fmtPrice(m.price.blended) : 'prix ?', title: 'Prix mixte par million de jetons' }),
       favButton(m))))));
 
   // Les meilleurs par usage
-  frag.append(section('Les meilleurs par usage', 'Le n° 1 de chaque arène, et son dauphin.',
+  body.append(section('Par usage|Les meilleurs pour chaque tâche', 'Le n° 1 de chaque arène, et ceux qui le suivent.',
     h('div', { class: 'cat-grid' }, snap.categories.map((c) => {
       const lead = leaderOf(c.id);
-      const second = snap.models.filter((m) => m.cats[c.id] && m.cats[c.id].rank === 2)[0];
       if (!lead) return null;
       const cell = lead.cats[c.id];
+      const next = [2, 3].map((r) => snap.models.find((m) => m.cats[c.id] && m.cats[c.id].rank === r)).filter(Boolean);
       return h('a', { class: 'cat-card', href: '#/classement/' + c.id },
-        h('span', { class: 'cat-label', text: c.label }),
-        h('span', { class: 'cat-desc', text: c.desc }),
-        h('span', { class: 'cat-lead', text: lead.name }),
-        h('span', { class: 'cat-score', text: c.id === 'agent' ? `${fmt(cell.score, 2)} d'amélioration nette` : `Elo ${fmt(cell.score)}` }),
-        second ? h('span', { class: 'cat-second', text: `puis ${second.name}` }) : null);
+        h('div', { class: 'cat-top' }, h('span', { class: 'cat-ic' }, catIcon(c.id)),
+          h('span', {}, h('span', { class: 'cat-label', text: c.label }), h('br'), h('span', { class: 'cat-desc', text: c.desc }))),
+        h('div', { class: 'cat-lead-row' }, rankChip(1), h('span', { class: 'cat-lead', text: lead.name })),
+        h('span', { class: 'cat-score', text: (lead.vendor ? lead.vendor + ' · ' : '')
+          + (c.id === 'agent' ? `${fmt(cell.score, 2)} d'amélioration nette` : `Elo ${fmt(cell.score)}`) }),
+        next.length ? h('ol', { class: 'cat-next' }, next.map((m) => h('li', {},
+          h('b', { text: String(m.cats[c.id].rank) }), h('span', { text: m.name })))) : null);
     }))));
 
   // Qualité / prix
-  frag.append(section('Qualité ou prix : qui en donne le plus ?',
+  body.append(section('Rapport qualité/prix|Qui en donne le plus pour son prix ?',
     'Chaque point est un modèle classé. En haut à gauche : les meilleurs pour leur prix.',
     h('div', { class: 'card' }, chartBox('chart-scatter', (box, w) => drawScatter(box, w, list)))));
 
   // Mouvements
-  const evs = snap.events.slice(0, 7);
+  const evs = snap.events.slice(0, 6);
   if (evs.length) {
-    frag.append(sectionWith('Les derniers mouvements', 'Nouveaux n° 1, entrées dans les classements, prix, sorties.',
-      h('a', { class: 'btn ghost sm', href: '#/nouveautes' }, 'Toutes les nouveautés'),
+    body.append(sectionWith('En direct|Les derniers mouvements', 'Nouveaux n° 1, entrées dans les classements, prix, sorties.',
+      h('a', { class: 'btn ghost sm', href: '#/nouveautes' }, 'Toutes les nouveautés', icon('arrow', 'ic sm')),
       h('ul', { class: 'events' }, evs.map(eventRow))));
   }
-  return frag;
+
+  body.append(h('section', { class: 'cta' },
+    h('div', {}, h('h2', { text: 'Pas sûr de ton choix ?' }),
+      h('p', { text: 'Trois questions, et les trois meilleures IA du moment pour ce que tu veux faire.' })),
+    h('a', { class: 'btn lg', href: '#/choisir' }, 'Trouver mon IA', icon('arrow'))));
+  return page;
 }
+
+const stat = (value, label) => h('div', { class: 'stat' }, h('b', { text: value }), h('span', { text: label }));
 
 function tile(label, value, sub) {
   return h('div', { class: 'tile' }, h('span', { class: 'tile-label', text: label }),
@@ -706,7 +756,9 @@ function viewRanking(catId) {
   const st = ui.rank;
   const frag = h('div', { class: 'wrap' });
   frag.append(h('div', { class: 'page-head' },
-    h('h1', { text: isGeneral ? 'Classement général' : 'Classement ' + cat.label }),
+    h('span', { class: 'kicker', text: isGeneral ? 'Indice marketbuss' : 'Arène ' + cat.label }),
+    h('h1', {}, h('span', { class: 'page-ic' }, catIcon(isGeneral ? 'general' : catId)),
+      isGeneral ? 'Classement général' : 'Classement ' + cat.label),
     h('p', { class: 'sub', text: isGeneral
       ? 'L\'indice marketbuss résume la qualité mesurée dans les arènes Texte, Code, Vision et Documents (sur 100).'
       : `${cat.desc}. Score Elo de l'arène ${cat.label} d'Arena AI${cat.updated ? ', mise à jour du ' + cat.updated : ''}.` })));
@@ -715,7 +767,7 @@ function viewRanking(catId) {
     [['general', 'Général'], ...snap.categories.map((c) => [c.id, c.label])].map(([id, label]) =>
       h('a', { role: 'tab', class: 'tab' + ((isGeneral ? 'general' : catId) === id ? ' on' : ''),
         'aria-selected': (isGeneral ? 'general' : catId) === id ? 'true' : 'false',
-        href: '#/classement/' + id }, label))));
+        href: '#/classement/' + id }, catIcon(id), label))));
 
   const base = isGeneral ? ranked() : snap.models.filter((m) => m.cats[catId]);
   const isMedia = cat && cat.group === 'media';
@@ -832,7 +884,7 @@ function rankingTable(rows, catId, isGeneral, isMedia, redraw) {
     h('tbody', {}, rows.map((m) => {
       if (isGeneral) {
         return h('tr', {},
-          h('td', { class: 'num pos', text: String(m.rank) }),
+          h('td', { class: 'pos' }, rankChip(m.rank)),
           h('td', { class: 'num' }, delta(m.rank, m.rank7)),
           h('td', {}, h('div', { class: 'model-cell' }, modelLink(m), badges(m))),
           h('td', { class: 'idx-cell' }, h('span', { class: 'idx' }, bar(m.index), h('b', { text: fmt(m.index, 1) }))),
@@ -844,7 +896,7 @@ function rankingTable(rows, catId, isGeneral, isMedia, redraw) {
       }
       const c = m.cats[catId];
       return h('tr', {},
-        h('td', { class: 'num pos', text: String(c.rank) }),
+        h('td', { class: 'pos' }, rankChip(c.rank)),
         h('td', { class: 'num' }, delta(c.rank, c.rank7)),
         h('td', {}, h('div', { class: 'model-cell' }, modelLink(m, c.variant ? 'réglage ' + c.variant : ''), badges(m))),
         h('td', { class: 'num strong', text: catId === 'agent' ? fmt(c.score, 2) : fmt(c.score) }),
@@ -863,7 +915,7 @@ function rankingTable(rows, catId, isGeneral, isMedia, redraw) {
       : [c.variant ? 'réglage ' + c.variant : null, `${fmt(c.votes)} ${catId === 'agent' ? 'sessions' : 'votes'}`,
         !isMedia && m.price ? `${fmtPrice(m.price.blended)} / M` : null];
     return h('li', { class: 'rank-card' },
-      h('span', { class: 'pos', text: String(rank) }),
+      rankChip(rank),
       h('div', { class: 'rc-main' },
         h('div', { class: 'rc-top' }, modelLink(m), favButton(m)),
         h('div', { class: 'rc-facts' }, badges(m), facts.filter(Boolean).map((f) => h('span', { text: f })))),
@@ -913,13 +965,13 @@ function viewModel(id) {
   const inCompare = ui.compare.includes(m.id);
   frag.append(h('nav', { class: 'crumbs', 'aria-label': 'Fil d\'Ariane' },
     h('a', { href: '#/classement', text: 'Classements' }), h('span', { text: ' / ' }), h('span', { text: m.name })));
-  frag.append(h('div', { class: 'model-head' },
-    h('div', {},
+  frag.append(h('div', { class: 'model-hero' },
+    h('div', { class: 'mh-id' }, avatar(m.vendor, 'lg'), h('div', {},
       h('h1', { text: m.name }),
       h('p', { class: 'sub' }, h('span', { text: m.vendor || 'Éditeur inconnu' }),
         m.license ? h('span', { text: m.license === 'open' ? ' · poids ouverts' : ' · propriétaire' }) : null,
         m.firstSeen ? h('span', { text: ` · dans les arènes depuis le ${fmtDay(m.firstSeen)}` }) : null),
-      badges(m)),
+      badges(m))),
     h('div', { class: 'actions' },
       favButton(m),
       h('a', { class: 'btn', href: '#/comparer/' + encodeURIComponent([...new Set([...ui.compare.filter((x) => x !== m.id), m.id])].slice(-MAX_COMPARE).join(',')),
@@ -941,7 +993,7 @@ function viewModel(id) {
     h('div', { class: 'card' }, h('ul', { class: 'hbars' }, catRows.map((c) => {
       const cell = m.cats[c.id];
       const row = h('li', { class: 'hbar-row', tabindex: 0 },
-        h('a', { class: 'hb-label', href: '#/classement/' + c.id, text: c.label }),
+        h('a', { class: 'hb-label', href: '#/classement/' + c.id }, catIcon(c.id), c.label),
         h('span', { class: 'hb-track' }, h('span', { class: 'hb-fill', style: `width:${Math.max(2, cell.points)}%` })),
         h('span', { class: 'hb-value' }, h('b', { text: 'n° ' + cell.rank }),
           h('span', { text: c.id === 'agent' ? ` · ${fmt(cell.score, 2)}` : ` · Elo ${fmt(cell.score)}` }),
@@ -1205,8 +1257,9 @@ const USES = [
   ['image-edit', 'Retoucher des images', 'Modifier une photo'],
   ['text-to-video', 'Créer des vidéos', 'À partir d\'un texte'],
 ];
-function viewWizard() {
+function viewWizard(pre) {
   const st = ui.wizard;
+  if (pre && catById.has(pre)) st.use = pre;
   const frag = h('div', { class: 'wrap' });
   frag.append(h('div', { class: 'page-head' }, h('h1', { text: 'Trouver l\'IA qu\'il me faut' }),
     h('p', { class: 'sub', text: 'Trois questions, et les trois meilleurs choix du moment pour toi, d\'après les classements du jour.' })));
@@ -1219,8 +1272,8 @@ function viewWizard() {
     h('fieldset', { class: 'card' }, h('legend', {}, h('span', { class: 'step', text: '1' }), 'Pour quoi faire ?'),
       h('div', { class: 'choices' }, uses.map(([id, label, sub]) => h('button', {
         type: 'button', class: 'choice' + (st.use === id ? ' on' : ''), 'aria-pressed': st.use === id ? 'true' : 'false',
-        onclick: () => { st.use = id; rerender(); },
-      }, h('b', { text: label }), h('small', { text: sub }))))),
+        onclick: () => { st.use = id; location.hash = '#/choisir/' + id; },
+      }, catIcon(id), h('b', { text: label }), h('small', { text: sub }))))),
     h('fieldset', { class: 'card', disabled: isMedia ? 'disabled' : null },
       h('legend', {}, h('span', { class: 'step', text: '2' }), 'Quel budget ?'),
       isMedia ? h('p', { class: 'fineprint', text: 'Les prix des modèles d\'images et de vidéo ne sont pas comparables au jeton : ce critère est ignoré.' })
@@ -1253,8 +1306,8 @@ function viewWizard() {
       ].filter(Boolean);
       return h('a', { class: 'reco' + (i === 0 ? ' first' : ''), href: '#/modele/' + encodeURIComponent(m.id) },
         h('span', { class: 'reco-rank', text: i === 0 ? 'Notre choix' : i === 1 ? 'Alternative' : 'Aussi bien' }),
-        h('span', { class: 'reco-name', text: m.name }),
-        h('span', { class: 'reco-vendor', text: m.vendor || '' }),
+        h('div', { class: 'reco-head' }, avatar(m.vendor),
+          h('div', {}, h('span', { class: 'reco-name', text: m.name }), h('br'), h('span', { class: 'reco-vendor', text: m.vendor || '' }))),
         h('ul', {}, why.map((w) => h('li', { text: w }))));
     }))
     : h('p', { class: 'empty', text: 'Aucun modèle ne remplit toutes ces conditions aujourd\'hui. Assouplis un critère.' }));
