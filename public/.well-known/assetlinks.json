@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.cybers1te.messageme",
+      "sha256_cert_fingerprints": [
+        "18:3A:E3:76:41:EC:05:0A:44:B7:B8:FC:D6:91:80:7D:53:36:5E:DA:C5:90:16:DE:84:40:F9:29:12:A5:C4:59"
+      ]
+    }
+  }
+]

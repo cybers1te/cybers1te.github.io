@@ -1,16 +1,100 @@
-# cybers1te.github.io
+# marketbuss.github.io
 
-Le site publié sur <https://cybers1te.github.io/> est **message-me**, une
-messagerie en temps réel construite sur Firebase.
+Le site publié par GitHub Pages est **marketbuss**, un micro-SaaS gratuit qui
+classe les meilleures IA du moment et se met à jour tout seul. La messagerie
+**message-me**, publiée avant lui, est gardée intacte dans le dépôt et se
+remet en ligne en changeant une ligne (voir
+[Remettre message-me](#remettre-message-me)).
+
+> **Adresse du site.** GitHub Pages publie un dépôt nommé
+> `<compte>.github.io` à la racine de `https://<compte>.github.io/`. Le compte
+> s'appelle désormais `marketbuss` : pour que le site soit à
+> <https://marketbuss.github.io/>, le dépôt doit s'appeler
+> `marketbuss.github.io` (Settings → General → Repository name). Le
+> déploiement suit tout seul l'adresse donnée par GitHub.
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **message-me** — le site publié | `public/`, `firestore.rules`, `firebase.json` | Site statique + Firebase (Auth, Firestore) |
-| **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique |
+| **marketbuss** — le site publié | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
+| **message-me** — en réserve | `public/`, `firestore.rules`, `firebase.json`, `android/` | Site statique + Firebase (Auth, Firestore) |
+| **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique, publié à côté |
 | **Trueware** — boutique | `trueware/` | Application Flask + SQLite |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
 
-## message-me
+## marketbuss
+
+Les meilleures IA du moment, classées en continu.
+
+- **Classement général** : l'indice marketbuss (sur 100) résume la qualité
+  mesurée dans les arènes Texte, Code, Vision et Documents d'Arena AI, avec
+  la variation sur 7 jours, les prix et la taille du contexte.
+- **Classements par usage** : texte, code, vision, documents, recherche web,
+  agents, images, retouche, vidéo, image → vidéo, montage vidéo (score Elo,
+  intervalle de confiance, votes).
+- **Fiche de chaque modèle** : résultats par arène, courbe sur 30 jours,
+  prix (entrée, sortie, cache), capacités, alternatives moins chères.
+- **Comparateur** (jusqu'à 4 modèles, lien partageable), **calculateur de
+  coût** mensuel, **« Trouver mon IA »** (usage, budget, exigences), graphique
+  **qualité / prix** avec la frontière des meilleurs rapports.
+- **Nouveautés** : nouveaux n° 1, entrées dans les classements, sorties,
+  changements de prix ; « depuis ta dernière visite », favoris, flux Atom
+  (`data/feed.xml`), données ouvertes (`data/latest.json`), export CSV.
+- Thème clair/sombre, pensé pour le téléphone, sans compte ni dépendance.
+
+### Mise à jour automatique
+
+```text
+GitHub Actions (toutes les 3 h, et à chaque push sur main)
+  └─ marketbuss/tools/update.mjs
+       ├─ Arena AI      classements du jour + 30 jours d'historique
+       ├─ LiteLLM       prix publics des fournisseurs, contextes, capacités
+       ├─ OpenRouter    sorties récentes, versions gratuites
+       └─ instantané en ligne précédent (changements de prix, secours)
+     → _site/data/latest.json + feed.xml → GitHub Pages
+```
+
+- Les sources sont publiques et gratuites, sans clé : la copie quotidienne
+  en JSON des classements [Arena AI](https://arena.ai/leaderboard) par
+  [arena-ai-leaderboards](https://github.com/oolong-tea-2026/arena-ai-leaderboards)
+  (MIT), la base de prix de [LiteLLM](https://github.com/BerriAI/litellm) et
+  l'API publique d'[OpenRouter](https://openrouter.ai/models).
+- Si Arena AI est injoignable, l'instantané en ligne est republié tel quel
+  (marqué « données anciennes ») ; si la base de prix l'est, les prix
+  précédents sont gardés. Le site n'est jamais publié sans données.
+- Une page ouverte relit `data/latest.json` toutes les 5 minutes et se met
+  à jour sans rechargement.
+- Le passage programmé réactive lui-même la tâche, que GitHub suspend
+  sinon après 60 jours sans activité sur un dépôt public.
+
+```text
+marketbuss/site/index.html     Page unique
+marketbuss/site/marketbuss.js  Application (classements, fiche, comparateur, graphiques SVG…)
+marketbuss/site/style.css      Thème clair/sombre, mise en page responsive
+marketbuss/site/data/          Instantané de secours (remplacé à chaque publication)
+marketbuss/lib/engine.js       Calcul : regroupement des réglages, prix, indice, frontière, événements
+marketbuss/lib/sources.js      Téléchargement des sources
+marketbuss/tools/update.mjs    Le robot de collecte
+marketbuss/tools/serve.mjs     Serveur local
+marketbuss/tests/              Tests du moteur (node:test, données inventées)
+```
+
+```bash
+npm run marketbuss:update   # collecte réelle → marketbuss/site/data/
+npm run marketbuss:dev      # http://127.0.0.1:5100/
+npm run test:marketbuss     # tests du moteur
+```
+
+### Remettre message-me
+
+Dans `.github/workflows/pages.yml`, remplacer `SITE: marketbuss` par
+`SITE: message-me`, puis pousser sur `main` : le workflow republie `public/`
+tel quel, sans collecte programmée. Les comptes, messages et réglages sont
+dans Firebase et n'ont pas bougé. Si l'adresse du site a changé depuis (nom
+du compte ou du dépôt), l'ajouter dans Firebase : Authentication →
+Paramètres → Domaines autorisés ; l'application Android, elle, vise
+`cybers1te.github.io` et devra être reconstruite pour la nouvelle adresse.
+
+## message-me (en réserve)
 
 Inscription par e-mail (adresse à confirmer) ou avec **Google**, **pseudo**
 unique, discussions à deux ou en **groupe** (jusqu'à 20 membres), messages
@@ -110,6 +194,28 @@ rooms/{rid}/links/{lid}              { from, to, offer, answer } + candidats
   membres un par un ; les règles vérifient ainsi, à chaque ajout, que la
   personne n'a pas bloqué celle qui l'ajoute.
 
+### Application Android : [`android/`](android/)
+
+Une *Trusted Web Activity* : l'application ouvre <https://cybers1te.github.io/>
+en plein écran dans Chrome, sans barre d'adresse. Le site reste son seul code,
+donc chaque mise à jour du site arrive dans l'application sans nouvel APK.
+Chrome lui confie les notifications du site, et les liens du site (invitations
+à un groupe) l'ouvrent directement.
+
+- `public/.well-known/assetlinks.json` prouve à Chrome que l'application et le
+  site vont ensemble (empreinte SHA-256 de la clé de signature). Sans lui, ou
+  avec une autre clé, l'application affiche une barre d'adresse.
+- `public/message-me.apk` est l'APK signé, proposé dans Paramètres →
+  Application sur Android.
+- Le workflow `.github/workflows/android.yml` construit l'APK avec les outils
+  Android de GitHub, l'essaie sur un émulateur et dépose l'APK **non signé**
+  dans `android/dist/`. La clé de signature n'est jamais publiée : l'APK est
+  signé à part (v1 + v2, `apksig`), puis copié dans `public/`.
+
+Pour une nouvelle version (nom, icône, couleurs), augmenter `versionCode` dans
+`android/app/build.gradle` et signer avec **la même clé**, sinon Android refuse
+la mise à jour.
+
 ### Développement local et tests
 
 Node.js 20+ et Java 21 (pour les émulateurs Firebase) :
@@ -126,7 +232,8 @@ projet n'est touché, et il n'est pas nécessaire de remplir
 `public/firebase-config.js`.
 
 Le workflow GitHub Actions lance ces tests à chaque push et pull request,
-puis publie `public/` (et la fiche de révision) sur GitHub Pages depuis `main`.
+puis publie depuis `main` le site choisi par `SITE` (marketbuss, ou `public/`
+pour message-me), avec la fiche de révision.
 
 ```text
 public/index.html            Page unique de la messagerie
@@ -138,6 +245,8 @@ public/groupcall.js          Appels de groupe (4 personnes, maillage WebRTC)
 public/qr.js                 Générateur de codes QR (qrcode-generator, MIT)
 public/sw.js                 Service worker : copie hors ligne, notifications
 public/manifest.webmanifest  Application installable (nom, icônes)
+public/.well-known/          Lien entre le site et l'application Android
+android/                     Application Android (Trusted Web Activity)
 public/notify.js             Notifications du navigateur et sonneries
 public/style.css             Thème clair/sombre et mise en page responsive
 public/firebase-config.js    Configuration web du projet Firebase (à remplir)

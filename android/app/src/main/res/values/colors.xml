@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mêmes couleurs que le site (theme-color de index.html). -->
+    <color name="background">#F5F4F0</color>
+    <color name="backgroundDark">#101014</color>
+    <color name="accent">#5B4CF0</color>
+</resources>

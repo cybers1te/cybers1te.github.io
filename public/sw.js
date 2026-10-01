@@ -68,6 +68,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(request));
     return;
   }
+  // L'APK Android se télécharge sans passer par la copie hors ligne.
+  if (url.pathname.endsWith('.apk')) return;
   if (url.origin === self.location.origin && url.pathname.startsWith(new URL(self.registration.scope).pathname)) {
     event.respondWith(networkFirst(request));
   }

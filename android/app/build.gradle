@@ -1,0 +1,48 @@
+// Application Android de message-me : une « Trusted Web Activity » qui
+// ouvre https://cybers1te.github.io/ en plein écran dans Chrome. Le site
+// reste le seul code de l'application : chaque mise à jour du site arrive
+// sans republier l'APK.
+plugins {
+    id 'com.android.application'
+}
+
+def host = 'cybers1te.github.io'
+def launchUrl = "https://${host}/"
+
+android {
+    namespace 'io.github.cybers1te.messageme'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.cybers1te.messageme'
+        minSdk 21
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+
+        manifestPlaceholders = [
+            host: host,
+            launchUrl: launchUrl,
+            providerAuthority: 'io.github.cybers1te.messageme.fileprovider'
+        ]
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

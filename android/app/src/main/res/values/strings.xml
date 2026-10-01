@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appName">message-me</string>
+    <!-- Le site que l'application a le droit d'ouvrir en plein écran ; le site
+         confirme de son côté dans /.well-known/assetlinks.json. -->
+    <string name="assetStatements" translatable="false">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {\"namespace\": \"web\", \"site\": \"https://cybers1te.github.io\"}
+        }]
+    </string>
+</resources>
