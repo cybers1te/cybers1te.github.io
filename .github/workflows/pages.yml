@@ -134,6 +134,8 @@ jobs:
           base="${BASE_URL%/}"
           mkdir _site
           cp -r marketbuss/site/. _site/
+          # Fichiers versionnés : un navigateur ne garde jamais l'ancien CSS ou JS.
+          sed -i "s/__V__/${GITHUB_SHA::8}/g" _site/index.html
           node marketbuss/tools/update.mjs --out _site/data --site "$base/" --previous "$base/data/latest.json"
 
       - name: Prepare message-me

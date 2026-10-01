@@ -1389,6 +1389,17 @@ function renderError(err) {
 
 /* ---------- Démarrage ---------- */
 
+// La messagerie publiée avant à cette adresse avait un service worker et une
+// copie hors ligne : on les retire pour qu'ils ne servent plus d'anciens fichiers.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+    .catch(() => {});
+}
+if (window.caches) {
+  caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('message-me')).map((k) => caches.delete(k)))).catch(() => {});
+}
+
 let theme = store.get('mb-theme', 'auto');
 applyTheme(theme);
 document.getElementById('theme').addEventListener('click', () => {
