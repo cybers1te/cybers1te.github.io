@@ -780,7 +780,7 @@ function render({ keepScroll = false } = {}) {
     case 'editeur': node = viewVendor(param); break;
     case 'comparer': node = viewCompare(param); break;
     case 'calculateur': node = viewCalc(); break;
-    case 'choisir': node = viewWizard(); break;
+    case 'choisir': node = viewWizard(param); break;
     case 'nouveautes': node = viewNews(); break;
     case 'methode': node = viewMethod(); break;
     default: node = viewHome();
@@ -844,6 +844,10 @@ function viewHome() {
     figure('Nouveaux en 14 jours', fmt(snap.stats.fresh), 'entrés dans les classements', '#/nouveautes'),
     figure('Prix médian', market.medianPrice != null ? fmtPrice(market.medianPrice) : '—', 'par million de jetons, modèles classés', '#/calculateur'),
     figure('Poids ouverts', fmt(open), 'modèles à héberger soi-même')));
+
+  body.append(h('nav', { class: 'use-links', 'aria-label': 'Trouver une IA par usage' },
+    h('span', { class: 'use-label', text: 'Je veux' }),
+    USES.filter(([id]) => catById.has(id)).map(([id, label]) => h('a', { class: 'chip', href: '#/choisir/' + id, text: label.toLowerCase() }))));
 
   const since = sinceVisit();
   if (since) body.append(since);
@@ -2006,8 +2010,9 @@ const USES = [
   ['image-to-video', 'Animer une image', 'D\'une photo à une vidéo'],
   ['video-edit', 'Monter une vidéo', 'Modifier une vidéo existante'],
 ];
-function viewWizard() {
+function viewWizard(use) {
   const st = ui.wizard;
+  if (use && catById.has(use)) st.use = use;
   const frag = h('div', { class: 'wrap' });
   frag.append(h('div', { class: 'page-head' }, h('h1', { text: 'Trouver l\'IA qu\'il me faut' }),
     h('p', { class: 'sub', text: 'Trois questions, et les trois meilleurs choix du moment pour toi, d\'après les classements du jour.' })));
@@ -2019,7 +2024,12 @@ function viewWizard() {
     h('fieldset', { class: 'panel' }, h('legend', {}, h('span', { class: 'step', text: '1' }), 'Pour quoi faire ?'),
       h('div', { class: 'choices' }, uses.map(([id, label, sub]) => h('button', {
         type: 'button', class: 'choice' + (st.use === id ? ' on' : ''), 'aria-pressed': st.use === id ? 'true' : 'false',
-        onclick: () => { st.use = id; rerender(); },
+        onclick: () => {
+          st.use = id;
+          // L'adresse suit le choix : un lien partagé rouvre le même usage.
+          if (location.hash.startsWith('#/choisir/')) history.replaceState(null, '', '#/choisir/' + id);
+          rerender();
+        },
       }, h('b', { text: label }), h('small', { text: sub }))))),
     h('fieldset', { class: 'panel', disabled: isMedia ? 'disabled' : null },
       h('legend', {}, h('span', { class: 'step', text: '2' }), 'Quel budget ?'),

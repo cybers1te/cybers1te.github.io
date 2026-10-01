@@ -298,6 +298,9 @@ a.fig:hover .fig-value { color: var(--accent-ink); }
 @keyframes grow { from { transform: scaleX(0); } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
+.use-links { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 30px; }
+.use-label { font-weight: 750; font-stretch: 85%; font-size: 17px; margin-right: 6px; }
+a.chip { text-decoration: none; }
 .since { display: flex; align-items: center; gap: 12px; margin-top: 28px; padding: 14px 16px; border-radius: var(--r-ctl); background: var(--signal-wash); color: var(--ink); text-decoration: none; }
 .since .ic { color: var(--signal-ink); }
 .since > span:nth-child(2) { flex: 1; min-width: 0; }
@@ -691,6 +694,7 @@ dialog.search::backdrop { background: rgba(8, 13, 31, 0.55); }
 .foot p { margin-top: 8px; max-width: 46ch; }
 .foot h2 { font-size: 15px; font-stretch: 90%; color: var(--board-ink); margin-bottom: 10px; }
 .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.foot-note { padding-top: 16px; padding-bottom: 22px; border-top: 1px solid var(--board-line); font-size: 13px; }
 
 /* ---------- Tablettes ---------- */
 
