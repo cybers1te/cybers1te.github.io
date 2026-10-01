@@ -1,17 +1,40 @@
-name: message-me — tests et déploiement
+name: Site — tests, données et déploiement
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # marketbuss : nouvelles données toutes les 3 heures (à h + 17 min, UTC).
+    - cron: '17 */3 * * *'
 
 permissions:
   contents: read
 
+env:
+  # Le site publié à l'adresse GitHub Pages du dépôt :
+  #   marketbuss  — le comparateur des meilleures IA, mis à jour toutes les 3 h ;
+  #   message-me  — remet la messagerie telle qu'elle était (dossier public/,
+  #                 données Firebase intactes). Voir « Remettre message-me »
+  #                 dans le README.
+  SITE: marketbuss
+
 jobs:
+  config:
+    name: Site choisi
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.site.outputs.site }}
+    steps:
+      - id: site
+        run: |
+          case "$SITE" in marketbuss|message-me) ;; *) echo "SITE inconnu : $SITE" >&2; exit 1 ;; esac
+          echo "site=$SITE" >> "$GITHUB_OUTPUT"
+
   test:
-    name: Règles Firestore
+    name: message-me — règles Firestore
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -44,15 +67,42 @@ jobs:
       - name: Run tests
         run: npm test
 
+  marketbuss:
+    name: marketbuss — moteur et sources
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Tests du moteur
+        run: node --test marketbuss/tests/engine.test.js
+
+      # Collecte réelle, sans publier : vérifie que les sources répondent
+      # et que leur format n'a pas changé (résumé dans le journal).
+      - name: Collecte d'essai
+        run: node marketbuss/tools/update.mjs --out "$RUNNER_TEMP/data"
+
   deploy:
     name: GitHub Pages
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: [config, test, marketbuss]
+    # Les tests sont sautés lors des collectes programmées : seul un échec bloque.
+    # Une collecte programmée ne republie rien quand message-me est le site choisi.
+    if: >-
+      !cancelled() && !contains(needs.*.result, 'failure')
+      && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      && (github.event_name != 'schedule' || needs.config.outputs.site == 'marketbuss')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
       id-token: write
+      actions: write
     concurrency:
       group: pages
       cancel-in-progress: true
@@ -64,14 +114,37 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure Pages
+        id: pages
         uses: actions/configure-pages@v5
 
-      - name: Prepare static site
+      - name: Set up Node
+        if: needs.config.outputs.site == 'marketbuss'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # marketbuss : le site, plus les données du moment. L'instantané en
+      # ligne sert de point de comparaison (changements de prix) et de
+      # secours si une source est injoignable.
+      - name: Prepare marketbuss
+        if: needs.config.outputs.site == 'marketbuss'
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          base="${BASE_URL%/}"
+          mkdir _site
+          cp -r marketbuss/site/. _site/
+          node marketbuss/tools/update.mjs --out _site/data --site "$base/" --previous "$base/data/latest.json"
+
+      - name: Prepare message-me
+        if: needs.config.outputs.site == 'message-me'
         run: |
           mkdir _site
           cp -r public/. _site/
-          # Fiche de révision « L'Appel de la forêt », publiée à côté.
-          cp london.html styles.css app.js _site/
+
+      # Fiche de révision « L'Appel de la forêt », publiée à côté.
+      - name: Add the revision sheet
+        run: cp london.html styles.css app.js _site/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -81,3 +154,12 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # Un dépôt public sans activité pendant 60 jours voit ses tâches
+      # programmées suspendues : on réactive celle-ci à chaque passage.
+      - name: Keep the schedule alive
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/pages.yml/enable"
