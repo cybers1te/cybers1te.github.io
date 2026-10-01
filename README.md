@@ -71,6 +71,7 @@ marketbuss/site/index.html     Page unique
 marketbuss/site/marketbuss.js  Application (classements, fiche, comparateur, graphiques SVG…)
 marketbuss/site/marketbuss.css Thème clair/sombre, mise en page responsive
 marketbuss/site/sw.js          Retire le service worker de l'ancienne messagerie
+marketbuss/site/fonts/         Police Inter (licence OFL), servie avec le site
 marketbuss/site/data/          Instantané de secours (remplacé à chaque publication)
 marketbuss/lib/engine.js       Calcul : regroupement des réglages, prix, indice, frontière, événements
 marketbuss/lib/sources.js      Téléchargement des sources
