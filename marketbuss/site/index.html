@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>marketbuss — les meilleures IA du moment</title>
-<meta name="description" content="Classement des meilleures intelligences artificielles, mis à jour automatiquement : qualité (Arena AI), prix, nouveautés, comparateur et calculateur de coût.">
+<meta name="description" content="Classement des meilleures intelligences artificielles, mis à jour automatiquement : qualité (Arena AI), prix, éditeurs, nouveautés, comparateur et calculateur de coût.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0f1b45">
 <meta property="og:title" content="marketbuss — les meilleures IA du moment">
-<meta property="og:description" content="Le marché des IA en direct : classements, prix et nouveautés, mis à jour toutes les 3 heures.">
+<meta property="og:description" content="Le marché des IA en direct : classements, prix, éditeurs et nouveautés, mis à jour toutes les 3 heures.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate" type="application/atom+xml" title="marketbuss — mouvements du marché des IA" href="data/feed.xml">
+<link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 <!-- ?v=__V__ : remplacé par la version publiée, pour ne jamais servir un ancien fichier. -->
 <link rel="stylesheet" href="marketbuss.css?v=__V__">
 <script>
@@ -25,11 +25,12 @@
 <header class="top">
   <div class="wrap top-row">
     <a class="brand" href="#/" aria-label="marketbuss, accueil">
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M7 21.5l5.5-6 4.5 3.5 8-9.5"/><circle cx="25" cy="9.5" r="2.2"/></svg>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect class="bg" width="32" height="32" rx="7"/><rect class="bar" x="7" y="18" width="4" height="7" rx="1"/><rect class="bar" x="14" y="13" width="4" height="12" rx="1"/><rect class="bar" x="21" y="15" width="4" height="10" rx="1"/><circle cx="23" cy="9" r="3"/></svg>
       <span>marketbuss</span>
     </a>
     <nav class="nav" aria-label="Sections">
       <a href="#/classement" data-nav="classement">Classements</a>
+      <a href="#/editeurs" data-nav="editeurs">Éditeurs</a>
       <a href="#/comparer" data-nav="comparer">Comparer</a>
       <a href="#/calculateur" data-nav="calculateur">Calculateur</a>
       <a href="#/choisir" data-nav="choisir">Trouver mon IA</a>
@@ -37,8 +38,11 @@
       <a href="#/methode" data-nav="methode">Méthode</a>
     </nav>
     <div class="top-tools">
+      <button class="icon-btn" id="find" type="button" aria-label="Chercher un modèle ou un éditeur" aria-keyshortcuts="/" title="Chercher un modèle ou un éditeur (touche /)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      </button>
       <button class="status" id="status" type="button" title="État des données">
-        <span class="dot" aria-hidden="true"></span><span class="status-txt">Chargement…</span>
+        <span class="live-dot" aria-hidden="true"></span><span class="status-txt">Chargement…</span>
       </button>
       <button class="icon-btn" id="theme" type="button" aria-label="Thème : automatique" title="Thème">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>
@@ -48,16 +52,39 @@
   <div class="ticker" id="ticker" aria-label="Mouvements du marché"></div>
 </header>
 <main id="view" tabindex="-1">
-  <div class="wrap loading"><div class="spinner" aria-hidden="true"></div><p>Chargement du marché des IA…</p></div>
+  <div class="wrap loading"><div class="spinner" aria-hidden="true"></div><p>Chargement du classement…</p></div>
 </main>
 <footer class="foot">
-  <div class="wrap foot-row">
-    <p><b>marketbuss</b> — gratuit, sans compte. Données : <a href="https://arena.ai/leaderboard" target="_blank" rel="noopener">Arena AI</a>,
-      <a href="https://github.com/BerriAI/litellm" target="_blank" rel="noopener">LiteLLM</a>,
-      <a href="https://openrouter.ai/models" target="_blank" rel="noopener">OpenRouter</a>.</p>
-    <p>Mise à jour automatique toutes les 3 heures · <a href="data/latest.json">données ouvertes (JSON)</a> · <a href="data/feed.xml">flux Atom</a> · <a href="#/methode">méthode</a></p>
+  <div class="wrap foot-grid">
+    <div>
+      <div class="foot-brand">marketbuss</div>
+      <p>Les meilleures IA du moment, classées en continu. Gratuit, sans compte, mis à jour tout seul toutes les 3 heures.</p>
+    </div>
+    <nav aria-label="Pages">
+      <h2>Explorer</h2>
+      <ul>
+        <li><a href="#/classement">Classements</a></li>
+        <li><a href="#/editeurs">Éditeurs</a></li>
+        <li><a href="#/comparer">Comparer des modèles</a></li>
+        <li><a href="#/calculateur">Calculateur de coût</a></li>
+        <li><a href="#/choisir">Trouver mon IA</a></li>
+        <li><a href="#/nouveautes">Nouveautés</a></li>
+      </ul>
+    </nav>
+    <div>
+      <h2>Données</h2>
+      <ul>
+        <li><a href="#/methode">Méthode et lexique</a></li>
+        <li><a href="data/latest.json">Données ouvertes (JSON)</a></li>
+        <li><a href="data/feed.xml">Flux Atom des mouvements</a></li>
+        <li>Sources : <a href="https://arena.ai/leaderboard" target="_blank" rel="noopener">Arena AI</a>,
+          <a href="https://github.com/BerriAI/litellm" target="_blank" rel="noopener">LiteLLM</a>,
+          <a href="https://openrouter.ai/models" target="_blank" rel="noopener">OpenRouter</a></li>
+      </ul>
+    </div>
   </div>
 </footer>
+<dialog class="search" id="search" aria-label="Recherche"></dialog>
 <div class="toast-zone" id="toasts" aria-live="polite"></div>
 <div class="tip" id="tip" role="tooltip" hidden></div>
 </body>

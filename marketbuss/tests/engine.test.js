@@ -187,6 +187,60 @@ describe('instantané', () => {
     assert.match(xml, /<link rel="self" href="https:\/\/example.org\/data\/feed.xml"\/>/);
   });
 
+  it('détail des prix et des capacités', () => {
+    const litellm = { ...LITELLM, 'acme-one': { ...LITELLM['acme-one'],
+      cache_read_input_token_cost: 2e-7, cache_creation_input_token_cost: 2.5e-6,
+      input_cost_per_token_batches: 1e-6, output_cost_per_token_batches: 4e-6,
+      input_cost_per_token_above_272k_tokens: 4e-6, output_cost_per_token_above_272k_tokens: 1.2e-5,
+      input_cost_per_token_above_512k_tokens: 6e-6,
+      supports_response_schema: true, supports_prompt_caching: true, supports_computer_use: true,
+      deprecation_date: '2027-01-15', source: 'https://example.org/prix' } };
+    const snap = buildSnapshot({ now: NOW, arena: arena({ text, code }), litellm });
+    const acme = snap.models.find((m) => m.id === 'acme-one');
+    assert.equal(acme.price.cacheWrite, 2.5);
+    assert.deepEqual(acme.price.batch, { input: 1, output: 4 });
+    assert.deepEqual(acme.price.tier, { above: 272000, input: 4, output: 12 }, 'le premier palier');
+    assert.equal(acme.price.url, 'https://example.org/prix');
+    assert.equal(acme.caps.schema, true);
+    assert.equal(acme.caps.cache, true);
+    assert.equal(acme.caps.computer, true);
+    assert.equal(acme.caps.video, false);
+    assert.equal(acme.retire, '2027-01-15');
+    const globex = snap.models.find((m) => m.id === 'globex-pro');
+    assert.equal('cacheWrite' in globex.price, false, 'rien d\'inventé quand la source ne dit rien');
+    assert.equal(globex.retire, undefined);
+    // Une adresse qui n'est pas en https n'est jamais publiée.
+    const bad = { ...litellm, 'acme-one': { ...litellm['acme-one'], source: 'javascript:alert(1)' } };
+    const snap2 = buildSnapshot({ now: NOW, arena: arena({ text, code }), litellm: bad });
+    assert.equal('url' in snap2.models.find((m) => m.id === 'acme-one').price, false);
+  });
+
+  it('arènes : dauphin, écart avec le n° 1 et total des votes', () => {
+    const snap = buildSnapshot({ now: NOW, arena: arena({ text, code }), litellm: LITELLM });
+    const cat = snap.categories.find((c) => c.id === 'text');
+    assert.equal(cat.second, 'acme-one');
+    assert.equal(cat.gap, 20);
+    assert.equal(cat.votes, 3000, 'un vote par modèle regroupé, pas par réglage');
+  });
+
+  it('tendance de l\'indice sur 30 jours', () => {
+    const old = [row('globex-pro', 1500), row('initech-lite', 1400)];
+    const history = {
+      text: [{ date: day(8), models: old }, { date: day(7), models: old }, { date: day(2), models: text }, { date: day(0), models: text }],
+      code: [{ date: day(8), models: [row('globex-pro', 1600), row('initech-lite', 1300)] }, { date: day(0), models: code }],
+    };
+    const past = { text: { d7: { date: day(7), models: old } }, code: { d7: { date: day(8), models: [row('globex-pro', 1600), row('initech-lite', 1300)] } } };
+    const snap = buildSnapshot({ now: NOW, arena: arena({ text, code, history, past }), litellm: LITELLM });
+    const globex = snap.models.find((m) => m.id === 'globex-pro');
+    assert.deepEqual(globex.trend.map((p) => p[0]), [day(8), day(7), day(2), day(0)]);
+    assert.equal(globex.trend[0][2], 1, 'n° 1 au début de l\'historique');
+    assert.equal(globex.rank7, 1);
+    assert.deepEqual(globex.trend[3], [day(0), globex.index, globex.rank], 'le dernier point est l\'indice du jour');
+    const acme = snap.models.find((m) => m.id === 'acme-one');
+    assert.deepEqual(acme.trend.map((p) => p[0]), [day(2), day(0)], 'absent avant son entrée');
+    assert.equal(acme.rank7, 0);
+  });
+
   it('les lignes sans score sont ignorées', () => {
     const rows = groupBoard('text', [{ model: 'x', score: null }, null, { model: '', score: 3 }, row('ok', 1)]);
     assert.deepEqual(rows.map((r) => r.base), ['ok']);

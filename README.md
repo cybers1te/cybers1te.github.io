@@ -25,21 +25,38 @@ remet en ligne en changeant une ligne (voir
 
 Les meilleures IA du moment, classées en continu.
 
+- **Accueil** : le tableau des cinq premiers (indice, tendance sur 30 jours,
+  variation sur 7 jours), les chiffres clés du marché, ce qui bouge dans la
+  semaine, le n° 1 de chaque usage avec son avance sur le deuxième, le
+  meilleur modèle pour chaque budget, les éditeurs qui dominent.
 - **Classement général** : l'indice marketbuss (sur 100) résume la qualité
-  mesurée dans les arènes Texte, Code, Vision et Documents d'Arena AI, avec
-  la variation sur 7 jours, les prix et la taille du contexte.
+  mesurée dans les arènes Texte, Code, Vision et Documents, avec la courbe
+  de l'indice sur 30 jours, la variation sur 7 jours, les prix et la taille
+  du contexte. Vue « Essentiel » ou « Tout le détail ».
 - **Classements par usage** : texte, code, vision, documents, recherche web,
   agents, images, retouche, vidéo, image → vidéo, montage vidéo (score Elo,
-  intervalle de confiance, votes).
-- **Fiche de chaque modèle** : résultats par arène, courbe sur 30 jours,
-  prix (entrée, sortie, cache), capacités, alternatives moins chères.
-- **Comparateur** (jusqu'à 4 modèles, lien partageable), **calculateur de
-  coût** mensuel, **« Trouver mon IA »** (usage, budget, exigences), graphique
-  **qualité / prix** avec la frontière des meilleurs rapports.
+  intervalle de confiance dessiné, écart et chances face au n° 1, votes,
+  égalités statistiques signalées).
+- **Fiche de chaque modèle** : portrait en quelques phrases, résultats par
+  arène, courbe de l'indice et du score sur 30 jours, face-à-face contre les
+  meilleurs, tarif complet (lecture, écriture, cache, tarif différé, palier),
+  coût d'usages types, dix capacités, voisins au classement, actualité.
+- **Éditeurs** : qui fabrique quoi, meilleur modèle, podiums, arènes menées,
+  fourchette de prix ; une page par éditeur.
+- **Comparateur** (jusqu'à 4 modèles, lien partageable, verdict en phrases,
+  face-à-face), **calculateur de coût** mensuel (cache, tarif différé,
+  détail lecture/écriture), **« Trouver mon IA »** (usage, budget,
+  exigences), graphique **qualité / prix** avec la frontière des meilleurs
+  rapports.
 - **Nouveautés** : nouveaux n° 1, entrées dans les classements, sorties,
-  changements de prix ; « depuis ta dernière visite », favoris, flux Atom
-  (`data/feed.xml`), données ouvertes (`data/latest.json`), export CSV.
-- Thème clair/sombre, pensé pour le téléphone, sans compte ni dépendance.
+  changements de prix, plus fortes hausses et baisses ; « depuis ta dernière
+  visite », favoris, flux Atom (`data/feed.xml`), données ouvertes
+  (`data/latest.json`), export CSV.
+- **Méthode et lexique** : sources, calcul de l'indice, lexique des mots du
+  site, questions fréquentes, limites.
+- Recherche d'un modèle ou d'un éditeur depuis n'importe quelle page
+  (touche `/`), thème clair/sombre, pensé pour le téléphone, sans compte ni
+  dépendance : la police (Archivo, licence OFL) est hébergée avec le site.
 
 ### Mise à jour automatique
 
@@ -68,8 +85,9 @@ GitHub Actions (toutes les 3 h, et à chaque push sur main)
 
 ```text
 marketbuss/site/index.html     Page unique
-marketbuss/site/marketbuss.js  Application (classements, fiche, comparateur, graphiques SVG…)
-marketbuss/site/marketbuss.css Thème clair/sombre, mise en page responsive
+marketbuss/site/marketbuss.js  Application (classements, fiches, éditeurs, comparateur, graphiques SVG…)
+marketbuss/site/marketbuss.css Identité visuelle, thème clair/sombre, mise en page responsive
+marketbuss/site/fonts/         Police Archivo (variable, licence OFL)
 marketbuss/site/sw.js          Retire le service worker de l'ancienne messagerie
 marketbuss/site/data/          Instantané de secours (remplacé à chaque publication)
 marketbuss/lib/engine.js       Calcul : regroupement des réglages, prix, indice, frontière, événements

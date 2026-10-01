@@ -10,12 +10,12 @@ export const SOURCES = {
     repo: 'https://github.com/oolong-tea-2026/arena-ai-leaderboards',
   },
   litellm: {
-    name: 'LiteLLM — prix et contextes des fournisseurs',
+    name: 'LiteLLM, la base des prix des fournisseurs',
     url: 'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json',
     repo: 'https://github.com/BerriAI/litellm',
   },
   openrouter: {
-    name: 'OpenRouter — catalogue des modèles',
+    name: 'OpenRouter, le catalogue des modèles',
     url: 'https://openrouter.ai/api/v1/models',
     repo: 'https://openrouter.ai/models',
   },
