@@ -193,7 +193,9 @@ export function openrouterIndex(list) {
   return index;
 }
 
-const orName = (m) => String(m.name || '').replace(/^[^:]{1,40}:\s*/, '').trim() || null;
+// « Alibaba: Qwen3.8 Max (0902) » → « Qwen3.8 Max ».
+const orName = (m) => String(m.name || '').replace(/^[^:]{1,40}:\s*/, '')
+  .replace(/\s*\((\d{4}|\d{6}|\d{8}|free)\)\s*$/i, '').trim() || null;
 const orPrice = (m) => {
   const p = m && m.pricing;
   if (!p) return null;

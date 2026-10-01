@@ -167,6 +167,7 @@ describe('instantané', () => {
       { id: 'acme/acme-one', name: 'Acme: Acme One', created, context_length: 200000,
         pricing: { prompt: '0.000002', completion: '0.000008' }, architecture: { input_modalities: ['text', 'image'] } },
       { id: 'acme/acme-one:free', name: 'Acme: Acme One (free)', created, pricing: { prompt: '0', completion: '0' } },
+      { id: 'globex/globex-pro', name: 'Globex: Globex Pro (0902)', created: created - 90 * 86400, pricing: { prompt: '0.00001', completion: '0.00005' } },
       { id: 'old/ancient', name: 'Old: Ancient', created: created - 400 * 86400, pricing: { prompt: '0.000001', completion: '0.000001' } },
     ];
     const snap = buildSnapshot({ now: NOW, arena: arena({ text, code }), litellm: LITELLM, openrouter });
@@ -175,6 +176,7 @@ describe('instantané', () => {
     assert.deepEqual(acme.or, { id: 'acme/acme-one', created, free: true });
     assert.deepEqual(snap.releases.map((r) => r.id), ['acme/acme-one']);
     assert.equal(snap.releases[0].model, 'acme-one');
+    assert.equal(snap.models.find((m) => m.id === 'globex-pro').name, 'Globex Pro', 'date du nom retirée');
   });
 
   it('flux Atom : texte échappé', () => {
