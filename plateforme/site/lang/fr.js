@@ -42,7 +42,7 @@ export default {
 
   ui: {
     title: 'marketbuss — outils pour entrepreneurs et investisseurs',
-    description: 'marketbuss : des bornes gratuites pour entrepreneurs, indépendants, investisseurs et épargnants, et les vrais outils du moment. Sans compte.',
+    description: 'marketbuss : des bornes gratuites pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget, et les vrais outils du moment. Sans compte.',
     skip: 'Aller au contenu',
     loading: 'Chargement…',
     language: 'Langue',
@@ -79,8 +79,11 @@ export default {
 
     home: {
       insert: 'Outils gratuits, sans compte',
+      recent: 'Tes dernières bornes',
+      recentSub: 'Reprends là où tu en étais. Elles restent dans ce navigateur.',
+      stats: { tools: 'bornes', players: 'joueurs', arsenal: 'vrais outils', words: 'mots expliqués' },
       tagline: "La salle d'arcade des entrepreneurs et des investisseurs.",
-      lead: 'Chiffrer un projet, fixer un prix, préparer une levée, juger un placement : des bornes qui calculent, et les vrais outils du moment.',
+      lead: 'Chiffrer un projet, fixer un prix, préparer une levée, juger un placement, acheter un logement, vendre en ligne, tenir son budget : des bornes qui calculent et montrent le calcul, et les vrais outils du moment.',
       choose: 'Choisis ton joueur',
       tools: 'Les bornes',
       toolsSub: (n) => `${n} bornes qui répondent chacune à une question. Les chiffres de départ sont des exemples : remplace-les par les tiens.`,
@@ -106,7 +109,9 @@ export default {
 
     tools: {
       all: 'Toutes les bornes',
-      allSub: (n) => `${n} bornes, pour quatre joueurs.`,
+      allSub: (n) => `${n} bornes, pour sept joueurs.`,
+      search: 'Chercher une borne : crédit, TVA, stock, dette…',
+      noMatch: 'Aucune borne ne correspond. Essaie un autre mot.',
       crumb: 'Bornes',
       howRead: 'Comment lire le résultat',
       howUse: "Comment s'en servir",
@@ -222,7 +227,7 @@ export default {
       sub: "Ce qu'est marketbuss, et ce que ce n'est pas.",
       sections: (n) => [
         ['Ce que tu trouves ici', [
-          `${n.tools} bornes pour chiffrer un projet, fixer un prix, évaluer un investissement ou comprendre un placement.`,
+          `${n.tools} bornes pour chiffrer un projet, fixer un prix, évaluer un investissement, comprendre un placement, acheter ou louer un logement, vendre en ligne ou tenir son budget. Chacune montre son calcul, pas à pas.`,
           `Un arsenal de ${n.arsenal} vrais outils et services publics, un parcours en six niveaux, un lexique de ${n.words} mots et une carte de pitch à partager.`,
           'Tout est gratuit et sans compte.',
           'Tout se calcule dans ton navigateur : tes chiffres ne sont envoyés nulle part. Les listes cochées et tes brouillons restent dans ce navigateur.',
@@ -239,7 +244,7 @@ export default {
           'Les offres et les prix changent vite : le site officiel fait foi.',
         ]],
         ['Les personnages et les exemples', [
-          'Les joueurs et les guides (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit) sont des personnages inventés. Leurs conseils sont des repères généraux.',
+          'Les joueurs et les guides (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) sont des personnages inventés. Leurs conseils sont des repères généraux.',
           "Les valeurs affichées à l'ouverture de chaque borne sont des exemples inventés pour montrer le calcul. Elles ne décrivent aucune entreprise réelle.",
         ]],
         ['Fabrication', [
@@ -258,6 +263,9 @@ export default {
     independant: { name: 'Indépendant', pitch: 'Je vends mon travail', about: "Les outils pour fixer tes prix, trouver tes clients et savoir ce qu'il te reste." },
     investisseur: { name: 'Investisseur', pitch: 'Je finance des projets', about: 'Les outils pour évaluer un investissement et tester des scénarios.' },
     epargnant: { name: 'Épargnant', pitch: "Je m'occupe de mon épargne", about: "Les outils pour voir l'effet du temps, des frais et de la hausse des prix." },
+    immobilier: { name: 'Immobilier', pitch: "J'achète ou je loue un logement", about: 'Les outils pour un crédit, un achat, une location ou un investissement locatif.' },
+    ecommerce: { name: 'E-commerçant', pitch: 'Je vends en ligne', about: 'Les outils pour savoir ce que rapportent vraiment tes commandes, tes pubs et tes livraisons.' },
+    budget: { name: 'Budget', pitch: 'Je gère mon argent au quotidien', about: 'Les outils pour voir où part ton argent, rembourser une dette et chiffrer un achat.' },
   },
 
   guides: {
@@ -269,6 +277,8 @@ export default {
     banker: { name: 'Ada', job: 'la banquière', line: "Regarde la trésorerie d'abord, les promesses ensuite." },
     angel: { name: 'Iris', job: 'la business angel', line: 'Investit tôt, perd souvent, et compte sur quelques gros succès.' },
     robot: { name: 'Bit', job: 'le robot', line: "Garde l'arsenal à jour et fait les calculs sans se fatiguer." },
+    agent: { name: 'Zoé', job: "l'agente immobilière", line: 'Visite trois fois, mesure tout, et lit les comptes de la copropriété en entier.' },
+    shopkeeper: { name: 'Kai', job: 'le e-commerçant', line: 'Compte chaque colis, chaque retour et chaque euro de pub avant de fêter une vente.' },
   },
 
   /* Une borne : nom, question, présentation, champs {clé: [libellé, unité, aide]}, lecture, limites, conseil du guide. */
@@ -845,6 +855,297 @@ export default {
       limits: 'Une liste pour réfléchir, pas un conseil personnalisé : ta situation, tes impôts et tes projets comptent. En cas de doute, demande à un conseiller autorisé.',
       tip: "Rendement élevé, sans risque et urgent : les trois ensemble, c'est le signe d'une arnaque.",
     },
+    credit: {
+      name: 'Clé en main',
+      question: 'Combien me coûte mon crédit immobilier ?',
+      lead: "Le montant, le taux, la durée : l'outil donne la mensualité, le coût total et ce que tu rembourses chaque année.",
+      fields: {
+        amount: ['Montant emprunté', '€'],
+        rate: ['Taux du crédit', '% par an', "Le taux nominal, hors assurance."],
+        years: ['Durée', 'ans'],
+        insurance: ["Assurance de l'emprunteur", '% par an', 'En % du montant emprunté. Souvent entre 0,1 et 0,5 %.'],
+      },
+      read: [
+        "La mensualité reste la même du début à la fin. Ce qui change, c'est ce qu'elle paie : au début, surtout des intérêts.",
+        "Le coût total, ce sont les intérêts plus l'assurance : ce que tu paies en plus du montant emprunté.",
+        'Allonger la durée baisse la mensualité mais augmente le coût total : essaie les boutons « ans ».',
+      ],
+      limits: "Taux fixe, sans frais de dossier ni de garantie, et assurance calculée sur le montant de départ. L'offre de ta banque fait foi : regarde son TAEG.",
+      tip: "Compare les offres sur le TAEG, pas sur le taux seul : il compte aussi l'assurance et les frais.",
+    },
+    capacite: {
+      name: "Jauge d'emprunt",
+      question: 'Combien puis-je emprunter ?',
+      lead: "Tes revenus, tes crédits en cours et la part que tu veux y consacrer : l'outil en déduit la mensualité possible et le montant que tu peux emprunter.",
+      fields: {
+        income: ['Revenus nets du foyer', '€ par mois'],
+        debts: ['Crédits déjà en cours', '€ par mois'],
+        ratio: ['Part maximale pour les crédits', '% des revenus', 'Repère courant : 35 %.'],
+        rate: ['Taux, assurance comprise', '% par an'],
+        years: ['Durée', 'ans'],
+      },
+      read: [
+        "La mensualité possible, c'est la part de tes revenus réservée aux crédits, moins les crédits que tu as déjà.",
+        "Le montant dépend beaucoup de la durée et du taux : cinq ans de plus peuvent ajouter des dizaines de milliers d'euros.",
+        "Garde un reste à vivre confortable : ce n'est pas parce que la banque accepte que c'est prudent.",
+      ],
+      limits: 'Un ordre de grandeur. Chaque banque regarde aussi ton apport, ta situation professionnelle, ton reste à vivre et ses propres règles.',
+      tip: "Arrive à la banque avec des relevés de compte propres et une épargne qui reste après l'achat : c'est souvent ce qui fait la différence.",
+    },
+    rendement: {
+      name: 'Rendement locatif',
+      question: 'Combien rapporte vraiment ce logement loué ?',
+      lead: "Le prix, les frais, le loyer et les dépenses : l'outil calcule le rendement brut, celui des annonces, et le rendement net, celui qui compte.",
+      fields: {
+        price: ["Prix d'achat", '€'],
+        costs: ["Frais d'achat et travaux", '€', "Notaire ou droits d'enregistrement, agence, travaux avant la location."],
+        rent: ['Loyer, hors charges', '€ par mois'],
+        charges: ['Dépenses à ta charge', '€ par an', 'Taxe foncière, charges de copropriété non récupérables, assurance, entretien.'],
+        vacancy: ['Mois sans locataire', 'mois par an'],
+      },
+      read: [
+        "Rendement brut = loyers d'un an ÷ prix. C'est le chiffre des annonces, mais il oublie les frais et les dépenses.",
+        "Rendement net = (loyers encaissés − dépenses) ÷ (prix + frais). C'est lui qu'il faut comparer à un placement.",
+        'Le chiffre est avant impôts et sans crédit : pour le crédit, utilise la borne « Cash-flow ».',
+      ],
+      limits: "Avant impôts, sans crédit et sans revente. Les loyers, les dépenses et la vacance changent d'une année à l'autre.",
+      tip: 'Un rendement brut très élevé cache souvent un quartier difficile ou de gros travaux. Va voir sur place, deux fois.',
+    },
+    cashflow: {
+      name: 'Cash-flow',
+      question: 'Ce logement loué me rapporte ou me coûte chaque mois ?',
+      lead: "Le loyer d'un côté ; le crédit, les dépenses et une réserve pour les travaux de l'autre : l'outil donne ce qui reste chaque mois.",
+      fields: {
+        rent: ['Loyer', '€ par mois'],
+        vacancy: ["Part de l'année sans locataire", '%', 'Environ 5 % = un peu plus de deux semaines par an.'],
+        charges: ['Dépenses à ta charge', '€ par mois', 'Taxe foncière, copropriété, assurance, gestion, ramenées au mois.'],
+        loan: ['Mensualité du crédit', '€ par mois', 'La borne « Clé en main » la calcule.'],
+        works: ['Réserve pour les travaux', '% du loyer'],
+      },
+      read: [
+        "Positif : le logement paie son crédit et te laisse quelque chose. Négatif : tu complètes chaque mois de ta poche.",
+        'Un cash-flow un peu négatif peut rester un bon investissement, car tu rembourses du capital chaque mois. Mais il faut pouvoir le payer longtemps.',
+        'La réserve pour les travaux évite les mauvaises surprises : chaudière, toiture, remise en état entre deux locataires.',
+      ],
+      limits: 'Avant impôts. Le loyer peut baisser et un locataire peut ne plus payer : garde une épargne à côté.',
+      tip: 'Teste un loyer 10 % plus bas et deux mois sans locataire : si le chiffre reste supportable, le projet est solide.',
+    },
+    louer: {
+      name: 'Louer ou acheter',
+      question: 'Vaut-il mieux louer ou acheter mon logement ?',
+      lead: "Deux vies côte à côte : l'une achète, l'autre loue et place la différence. L'outil compare leur patrimoine, année après année.",
+      fields: {
+        price: ['Prix du logement', '€'],
+        buyCosts: ["Frais d'achat", '% du prix', "Notaire ou droits d'enregistrement, garantie, dossier."],
+        deposit: ['Apport', '€'],
+        rate: ['Taux du crédit', '% par an'],
+        years: ['Durée du crédit', 'ans'],
+        rent: ['Loyer pour un logement équivalent', '€ par mois'],
+        growth: ['Hausse des prix et des loyers', '% par an'],
+        invest: ["Rendement de l'argent placé", '% par an', "Ce que rapporterait l'apport s'il était placé au lieu d'être mis dans le logement."],
+        horizon: ['Comparer au bout de', 'ans'],
+      },
+      read: [
+        "Chaque colonne est l'écart de patrimoine entre l'acheteur et le locataire. Orange : acheter est devant. Cyan : louer est devant.",
+        "Le locataire place son apport, puis chaque mois ce qu'il dépense en moins que l'acheteur. Si le loyer coûte plus cher, c'est l'acheteur qui place la différence.",
+        "Plus tu restes longtemps, plus l'achat a de chances de gagner : les frais d'achat ne se paient qu'une fois.",
+      ],
+      limits: "Le propriétaire paie aussi 1 % du prix par an (taxe, entretien). Pas d'impôts ni de frais de revente, et des prix qui montent régulièrement : la réalité est moins régulière.",
+      tip: 'La vraie question est souvent : combien de temps vas-tu rester ? Sous cinq ans, la location gagne souvent.',
+    },
+    visite: {
+      name: 'Visite',
+      question: "Ai-je tout vérifié avant d'acheter ?",
+      lead: 'Dix points à regarder avant de signer pour un logement. Coche ceux qui sont réglés.',
+      limits: "Une liste pour ne rien oublier, pas un avis juridique : les règles changent d'un pays à l'autre. Fais relire l'avant-contrat par un notaire ou un juriste.",
+      tip: 'Visite un soir de semaine et un samedi : le bruit, le stationnement et le voisinage ne sont pas les mêmes.',
+    },
+    pub: {
+      name: 'Pub rentable',
+      question: "Mes publicités rapportent-elles vraiment de l'argent ?",
+      lead: "Ton panier, tes coûts, ton budget pub et les commandes obtenues : l'outil calcule le bénéfice, le ROAS, et le ROAS minimum pour ne pas perdre d'argent.",
+      fields: {
+        basket: ['Panier moyen', '€', 'TVA déduite.'],
+        cogs: ['Coût des produits', '€ par commande'],
+        shipping: ['Livraison à ta charge', '€ par commande'],
+        fees: ['Frais de paiement', '% du panier'],
+        spend: ['Budget publicitaire', '€'],
+        orders: ['Commandes venues de la pub', 'commandes'],
+      },
+      read: [
+        "ROAS = chiffre d'affaires ÷ budget pub. Un ROAS de 3 ne veut pas dire que tu gagnes de l'argent : tout dépend de ta marge.",
+        "Le ROAS d'équilibre est le minimum pour payer les produits, la livraison et les frais. En dessous, chaque commande te coûte.",
+        "Le coût par commande ne doit pas dépasser la marge d'une commande : c'est le coût par commande maximum.",
+      ],
+      limits: 'Une seule commande par client, sans retours : un client qui revient vaut plus. Les chiffres affichés par les plateformes de pub sont souvent optimistes.',
+      tip: "Calcule ton ROAS d'équilibre avant de lancer une campagne, et coupe ce qui reste en dessous après une semaine.",
+    },
+    livraison: {
+      name: 'Livraison offerte',
+      question: 'À partir de quel panier offrir la livraison ?',
+      lead: "Ce que coûte un envoi et ta marge : l'outil donne le panier à partir duquel la livraison offerte se paie toute seule.",
+      fields: {
+        basket: ["Panier moyen aujourd'hui", '€'],
+        margin: ['Marge sur les produits', '% du prix'],
+        shipping: ["Coût d'un envoi", '€'],
+        orders: ['Commandes par mois', 'commandes'],
+      },
+      read: [
+        "Offrir la livraison coûte un envoi sur chaque commande. Pour le payer, il faut un panier plus gros d'au moins : coût de l'envoi ÷ marge.",
+        'Placer le seuil un peu au-dessus de ton panier moyen pousse les clients à ajouter un article.',
+        'Si ta marge est faible, la livraison offerte coûte très cher : monte un peu les prix plutôt.',
+      ],
+      limits: "Ne compte pas les clients en plus qu'attire la livraison offerte, ni ceux qui abandonnent leur panier à cause des frais d'envoi.",
+      tip: "Propose un petit article à ajouter quand le client est juste sous le seuil : c'est souvent celui qu'il prend.",
+    },
+    stock: {
+      name: 'Stock',
+      question: 'Quand dois-je recommander du stock ?',
+      lead: "Tes ventes par jour, le délai du fournisseur et ta marge de sécurité : l'outil donne le seuil de commande et les jours de stock qu'il te reste.",
+      fields: {
+        daily: ['Ventes par jour', 'unités'],
+        lead: ['Délai du fournisseur', 'jours', "Entre ta commande et l'arrivée du stock."],
+        safety: ['Stock de sécurité', 'jours', 'Pour les retards et les pics de ventes.'],
+        stock: ["Stock aujourd'hui", 'unités'],
+        cost: ["Coût d'achat d'une unité", '€'],
+      },
+      read: [
+        'Seuil de commande = ventes par jour × (délai + sécurité). Quand ton stock passe dessous, commande.',
+        "Si ton stock est déjà sous le seuil, tu risques d'être en rupture avant la prochaine livraison.",
+        "Trop de stock immobilise de l'argent : sa valeur est affichée pour t'en rendre compte.",
+      ],
+      limits: 'Des ventes régulières. Avant les soldes, les fêtes ou une campagne, prévois plus large.',
+      tip: 'Note le vrai délai de chaque livraison du fournisseur : le délai annoncé est presque toujours plus court.',
+    },
+    retours: {
+      name: 'Retours',
+      question: 'Combien me coûtent les retours ?',
+      lead: "Tes commandes, ton taux de retour et ce que coûte un retour : l'outil donne le coût par mois et la part de ta marge qui part avec.",
+      fields: {
+        orders: ['Commandes par mois', 'commandes'],
+        rate: ['Taux de retour', '%'],
+        basket: ['Panier moyen remboursé', '€'],
+        cogs: ['Coût des produits', '€ par commande'],
+        back: ['Frais de retour à ta charge', '€ par colis'],
+        lost: ['Produits invendables après retour', '%'],
+      },
+      read: [
+        "Un retour te fait perdre la marge de la vente, les frais de retour et, si le produit est abîmé, ce qu'il t'a coûté.",
+        'Les vêtements et les chaussures sont souvent beaucoup retournés : un guide des tailles précis fait baisser les retours.',
+        'Compare ce coût à ce que coûteraient de meilleures photos, une fiche produit plus précise ou un guide des tailles.',
+      ],
+      limits: "Ne compte pas le temps passé à traiter les retours, ni la livraison aller déjà payée.",
+      tip: 'Demande le motif de chaque retour : quelques motifs expliquent souvent presque tous les retours.',
+    },
+    marketplace: {
+      name: 'Place de marché',
+      question: 'Vendre sur une place de marché ou sur ma boutique ?',
+      lead: "Le même produit, deux canaux : l'outil compare ce qu'il te reste par vente sur une place de marché et sur ta propre boutique.",
+      fields: {
+        price: ['Prix de vente', '€', 'TVA déduite.'],
+        cogs: ['Coût du produit', '€'],
+        commission: ['Commission de la place de marché', '%'],
+        fixedFee: ['Frais fixes par vente', '€'],
+        siteFees: ['Frais de paiement sur ta boutique', '%'],
+        siteAds: ['Pub par vente sur ta boutique', '€', 'Ce que tu dépenses en publicité pour obtenir une vente.'],
+      },
+      read: [
+        "Une place de marché prend une commission mais t'apporte des clients. Ta boutique coûte moins par vente, mais il faut payer pour faire venir les clients.",
+        'Le seuil de pub est le montant par vente au-delà duquel ta boutique rapporte moins que la place de marché.',
+        'Beaucoup de vendeurs utilisent les deux : la place de marché pour être trouvés, la boutique pour les clients qui reviennent.',
+      ],
+      limits: 'Sans abonnement, frais de stockage ni retours. Les commissions changent selon la catégorie : vérifie la grille de la plateforme.',
+      tip: 'Glisse une carte dans chaque colis vendu sur la place de marché : la prochaine fois, le client pourra commander chez toi.',
+    },
+    boutique: {
+      name: 'Ouverture',
+      question: 'Ma boutique en ligne est-elle prête à ouvrir ?',
+      lead: "Dix points à régler avant d'ouvrir une boutique en ligne. Coche ceux qui sont faits.",
+      limits: 'Les règles dépendent du pays où tu vends : vérifie les obligations exactes avec un comptable ou ta chambre de commerce.',
+      tip: "Passe une vraie commande sur ta boutique, de la page produit jusqu'au colis reçu, avant ton premier client.",
+    },
+    budget: {
+      name: 'Budget du mois',
+      question: 'Où part mon argent chaque mois ?',
+      lead: "Tes revenus, tes dépenses obligatoires et tes envies : l'outil montre ce qu'il te reste et le compare au repère 50 / 30 / 20.",
+      fields: {
+        income: ['Revenus nets du mois', '€'],
+        needs: ['Dépenses obligatoires', '€', 'Loyer, courses, énergie, transport, assurances, crédits.'],
+        wants: ['Envies', '€', 'Sorties, abonnements, vêtements, voyages…'],
+      },
+      read: [
+        "Le repère 50 / 30 / 20 : la moitié pour l'obligatoire, 30 % pour les envies, 20 % mis de côté. C'est un point de départ, pas une règle.",
+        "Si l'obligatoire dépasse la moitié, ce n'est pas forcément ta faute (un loyer élevé, par exemple) : la marge se trouve alors souvent dans les envies.",
+        "Ce qui reste n'est vraiment épargné que si tu le mets de côté au début du mois, pas à la fin.",
+      ],
+      limits: 'Un mois type. Les dépenses rares (cadeaux, réparations, impôts) comptent aussi : divise-les par douze.',
+      tip: 'Programme un virement vers ton épargne le jour où ta paie arrive : ce qui ne se voit pas ne se dépense pas.',
+    },
+    dette: {
+      name: 'Sortie de dette',
+      question: 'En combien de temps je rembourse ma dette ?',
+      lead: "Ce que tu dois, le taux et ton versement : l'outil donne le nombre de mois, les intérêts payés, et ce que tu économises en versant un peu plus.",
+      fields: {
+        balance: ['Reste à rembourser', '€'],
+        rate: ['Taux de la dette', '% par an', 'Le TAEG indiqué sur ton relevé ou ton contrat.'],
+        payment: ['Versement par mois', '€'],
+        extra: ['En plus chaque mois, pour comparer', '€'],
+      },
+      read: [
+        'Au début, une grande partie du versement ne paie que les intérêts. Si le versement les couvre à peine, la dette ne baisse presque pas.',
+        'Verser un peu plus chaque mois réduit à la fois la durée et les intérêts : le chiffre « économisé » le montre.',
+        "Avec plusieurs dettes, rembourse d'abord la plus chère, en payant le minimum sur les autres.",
+      ],
+      limits: 'Taux fixe et versement constant, sans frais ni pénalités. Un crédit renouvelable peut changer de taux : regarde ton contrat.',
+      tip: "Si tu n'arrives plus à payer, parle à ta banque ou à un service public d'aide aux personnes endettées avant le premier retard.",
+    },
+    heures: {
+      name: 'Prix en heures',
+      question: "Combien d'heures de travail coûte cet achat ?",
+      lead: "Le prix, ton revenu et tes heures : l'outil traduit l'achat en heures de travail, et montre ce que la somme deviendrait si elle était placée.",
+      fields: {
+        price: ["Prix de l'achat", '€'],
+        income: ['Revenu net', '€ par mois'],
+        hours: ['Heures travaillées', 'par mois', 'Un temps plein de 35 heures par semaine fait environ 151 heures par mois.'],
+        years: ['Si la somme était placée pendant', 'ans'],
+        rate: ['à un rendement de', '% par an'],
+      },
+      read: [
+        'Ton revenu par heure = revenu net ÷ heures travaillées. Le prix divisé par ce chiffre donne les heures à travailler.',
+        "Ce n'est pas pour culpabiliser, c'est pour choisir : un achat qui vaut ses heures est un bon achat.",
+        "La valeur placée montre le coût caché d'un achat : ce que l'argent aurait pu devenir.",
+      ],
+      limits: "Revenu net tel que tu le saisis, et rendement régulier, ce qui n'existe pas en vrai.",
+      tip: "Pour un achat qui n'est pas urgent, attends 48 heures : si tu y penses encore, il compte vraiment pour toi.",
+    },
+    voiture: {
+      name: 'Vraie facture auto',
+      question: 'Combien me coûte vraiment ma voiture ?',
+      lead: "L'achat, la revente, l'énergie et les frais fixes : l'outil donne le coût par mois et par kilomètre.",
+      fields: {
+        price: ["Prix d'achat", '€'],
+        years: ['Gardée pendant', 'ans'],
+        resale: ['Valeur à la revente', '% du prix'],
+        km: ['Kilomètres par an', 'km'],
+        use: ['Consommation', 'L ou kWh / 100 km'],
+        energy: ["Prix de l'énergie", '€ par L ou kWh'],
+        fixed: ['Assurance, entretien, stationnement', '€ par an'],
+      },
+      read: [
+        'La perte de valeur à la revente est souvent la plus grosse dépense, et la moins visible.',
+        'Le coût par kilomètre aide à comparer avec le train, le vélo, le covoiturage ou la location.',
+        'Pour une voiture électrique, entre la consommation en kWh et le prix du kWh.',
+      ],
+      limits: "Sans crédit, réparations imprévues, péages ni amendes. Les prix de l'énergie changent.",
+      tip: 'Compare le coût par mois avec des trajets en transports en commun plus quelques locations dans l\'année.',
+    },
+    menage: {
+      name: 'Grand ménage',
+      question: 'Mes finances sont-elles en ordre ?',
+      lead: 'Dix points pour mettre de l\'ordre dans ton argent. Coche ceux qui sont faits.',
+      limits: 'Une liste générale, pas un conseil personnalisé. En cas de dettes difficiles, des services publics et des associations aident gratuitement.',
+      tip: 'Fais ce ménage une fois par an, toujours le même mois : les abonnements oubliés reviennent toujours.',
+    },
   },
 
   checklists: {
@@ -897,6 +1198,42 @@ export default {
       ['Aucune promesse miracle', "Personne ne t'a promis un rendement élevé, garanti, à saisir tout de suite."],
       ['Plusieurs paniers', "Ton argent ne dépend pas d'une seule entreprise, d'un seul secteur ou d'un seul pays."],
       ['Les impôts', 'Tu sais comment les gains seront taxés dans ton pays.'],
+    ],
+    visite: [
+      ['Le budget complet', "Prix, frais d'achat, travaux, déménagement : tu as le total, et il te reste une épargne après."],
+      ['Un accord de la banque', "Une banque a regardé ton dossier et t'a donné un montant possible."],
+      ['Les diagnostics', 'Énergie, amiante, plomb, électricité, gaz : tu les as lus, pas seulement reçus.'],
+      ['Les charges réelles', 'Charges de copropriété, taxe foncière, énergie : les montants des dernières années.'],
+      ['La copropriété', 'Comptes rendus des dernières assemblées : travaux votés ou à venir, impayés.'],
+      ['Les travaux', 'Toiture, chauffage, fenêtres, humidité : un professionnel a donné un ordre de prix.'],
+      ['Le quartier, à plusieurs heures', 'Bruit, stationnement, transports, commerces : visité en semaine et le week-end.'],
+      ["Les règles d'urbanisme", 'Ce qui peut être construit autour, et ce que tu as le droit de modifier.'],
+      ['Les prix du quartier', 'Tu as comparé avec des ventes récentes, pas seulement avec des annonces.'],
+      ['Une porte de sortie', "L'avant-contrat prévoit que tu peux te retirer si ton crédit est refusé."],
+    ],
+    boutique: [
+      ['Le statut', "Ton activité est déclarée et tu sais comment la TVA s'applique à tes ventes."],
+      ['Les mentions légales', "Nom de l'entreprise, adresse, numéro d'entreprise, contact : visibles sur le site."],
+      ['Les conditions de vente', 'Prix, livraison, paiement, garanties, retours : écrits clairement.'],
+      ['Le droit de rétractation', "Dans l'Union européenne, le client a 14 jours pour changer d'avis : la marche à suivre est expliquée."],
+      ['Les données personnelles', 'Politique de confidentialité et bandeau des cookies conformes au RGPD.'],
+      ['Le paiement testé', "Une vraie commande payée, remboursée, et l'argent bien arrivé sur ton compte."],
+      ['La livraison chiffrée', 'Tarifs, délais et emballage testés, y compris pour un colis lourd ou lointain.'],
+      ['Des fiches produits complètes', 'Photos nettes, dimensions, matières, guide des tailles : de quoi éviter les retours.'],
+      ['Le service client', 'Une adresse e-mail suivie, et un délai de réponse annoncé.'],
+      ['Les chiffres de base', "Marge par produit, ROAS d'équilibre et coût d'un retour, calculés avant de payer de la pub."],
+    ],
+    menage: [
+      ['Les abonnements', 'Tu as listé tous les prélèvements du mois et arrêté ceux qui ne servent plus.'],
+      ['Un budget simple', 'Tu sais combien entre, combien sort, et ce qui reste à la fin du mois.'],
+      ['Une épargne de précaution', 'De quoi tenir quelques mois de dépenses, sur un compte à part.'],
+      ['Les dettes listées', 'Montant, taux et fin de chaque crédit : le plus cher est remboursé en premier.'],
+      ['Pas de découvert permanent', 'Ton compte ne reste pas dans le rouge chaque mois.'],
+      ['Les assurances revues', 'Pas de doublon (carte bancaire, habitation, téléphone) et les bonnes garanties.'],
+      ["L'énergie et le téléphone comparés", 'Tes contrats ont été comparés au moins une fois cette année.'],
+      ['Les aides', 'Tu as vérifié les aides et réductions auxquelles tu as droit.'],
+      ['Les papiers rangés', 'Contrats, fiches de paie, impôts : retrouvables en deux minutes.'],
+      ['Un virement automatique', "Une somme part vers l'épargne le jour où la paie arrive."],
     ],
   },
 
@@ -996,6 +1333,20 @@ export default {
     ['TVA', 'd', "Taxe ajoutée au prix de vente, que l'entreprise encaisse pour l'État puis lui reverse."],
     ['Valorisation', 'ei', "Le prix auquel on estime toute l'entreprise lors d'une levée."],
     ['Vesting', 'ei', "L'acquisition progressive de ses parts : un fondateur ou un salarié qui part tôt n'en garde qu'une partie."],
+    ['Apport', 'm', "L'argent personnel mis dans un achat immobilier, en plus du crédit."],
+    ['Cash-flow', 'mi', "Ce qu'un investissement laisse (ou coûte) chaque mois, une fois tout payé."],
+    ["Taux d'endettement", 'mb', 'La part de tes revenus qui part chaque mois dans tes crédits.'],
+    ['TAEG', 'mb', "Taux annuel effectif global : le vrai coût d'un crédit, avec les frais et l'assurance."],
+    ['Rendement locatif', 'm', "Les loyers d'un an, en % du prix du logement. Brut : avant les dépenses. Net : après."],
+    ['Vacance locative', 'm', 'Les périodes où un logement à louer reste sans locataire.'],
+    ['ROAS', 'c', "Le chiffre d'affaires rapporté par un euro de publicité."],
+    ['CPA', 'c', 'Coût par acquisition : ce que coûte une commande ou un client obtenu par la publicité.'],
+    ['Taux de retour', 'c', 'La part des commandes renvoyées par les clients.'],
+    ['Place de marché', 'c', "Un site qui vend les produits d'autres vendeurs, contre une commission."],
+    ['Point de commande', 'c', 'Le niveau de stock où il faut recommander pour ne pas tomber en rupture.'],
+    ['50 / 30 / 20', 'b', "Un repère de budget : 50 % pour l'obligatoire, 30 % pour les envies, 20 % pour l'épargne."],
+    ['Reste à vivre', 'bm', 'Ce qui reste chaque mois une fois les dépenses obligatoires et les crédits payés.'],
+    ['Crédit renouvelable', 'b', "Une réserve d'argent à rembourser, souvent à un taux élevé. À utiliser avec prudence."],
   ],
 
   arsenal: {
@@ -1421,6 +1772,133 @@ export default {
         ['Déjà couvert', `${F.money(v.saved)} ÷ ${F.money(v.expenses)} = ${F.nf(r.covered, 1)} mois`],
         r.missing > 0 ? ['Il manque', `${F.money(r.target)} − ${F.money(v.saved)} = ${F.money(r.missing)}`] : null,
         r.missing > 0 && v.monthly > 0 ? ['Temps pour y arriver', `${F.money(r.missing)} ÷ ${F.money(v.monthly)} = ${F.nf(r.missing / v.monthly, 1)} → ${r.wait} mois`] : null,
+      ];
+    },
+    credit(v, r, F) {
+      const n = v.years * 12;
+      const m = v.rate / 12;
+      return [
+        ['Taux par mois', `${F.pct(v.rate)} ÷ 12 = ${F.pct(m, 3)}`],
+        ['Mensualité, sans assurance', v.rate > 0 ? `${F.money(v.amount)} × ${F.pct(m, 3)} ÷ (1 − (1 + ${F.pct(m, 3)})^−${n}) = ${F.money(r.payment)}` : `${F.money(v.amount)} ÷ ${n} = ${F.money(r.payment)}`],
+        v.insurance > 0 ? ['Assurance par mois', `${F.money(v.amount)} × ${F.pct(v.insurance, 2)} ÷ 12 = ${F.money(r.insurance)}`] : null,
+        ['Payé en tout', `${F.money(r.monthly)} × ${n} mois = ${F.money(r.totalPaid)}`],
+        v.rate > 0 ? ['En clair, au premier mois, les intérêts font', `${F.money(v.amount)} × ${F.pct(m, 3)} = ${F.money(r.firstInterest)}`] : null,
+      ];
+    },
+    capacite(v, r, F) {
+      const n = v.years * 12;
+      const m = v.rate / 12;
+      return [
+        ['Part prévue pour les crédits', `${F.money(v.income)} × ${F.pct(v.ratio)} = ${F.money(r.room)}`],
+        v.debts > 0 ? ['Moins tes crédits en cours', `${F.money(r.room)} − ${F.money(v.debts)} = ${F.money(r.maxMonthly)}`] : null,
+        ['Montant empruntable', v.rate > 0 ? `${F.money(r.maxMonthly)} × (1 − (1 + ${F.pct(m, 3)})^−${n}) ÷ ${F.pct(m, 3)} = ${F.money(r.loan)}` : `${F.money(r.maxMonthly)} × ${n} = ${F.money(r.loan)}`],
+        r.loan > 0 ? ['En clair, les intérêts payés en tout', `${F.money(r.totalPaid)} − ${F.money(r.loan)} = ${F.money(r.interest)}`] : null,
+      ];
+    },
+    rendement(v, r, F) {
+      return [
+        ["Loyers d'un an", `${F.money(v.rent)} × (12 − ${F.nf(v.vacancy, 1)}) = ${F.money(r.yearRent)}`],
+        ['Rendement brut', `${F.money(v.rent)} × 12 ÷ ${F.money(v.price)} = ${F.pct(r.gross, 2)}`],
+        ['Ce qui reste', `${F.money(r.yearRent)} − ${F.money(v.charges)} = ${F.money(r.netIncome)}`],
+        ['Rendement net', `${F.money(r.netIncome)} ÷ (${F.money(v.price)} + ${F.money(v.costs)}) = ${F.pct(r.net, 2)}`],
+        ['En clair, par mois', `${F.money(r.netIncome)} ÷ 12 = ${F.money(r.netIncome / 12)}`],
+      ];
+    },
+    cashflow(v, r, F) {
+      return [
+        ['Loyer encaissé', `${F.money(v.rent)} × (1 − ${F.pct(v.vacancy)}) = ${F.money(r.income)}`],
+        v.works > 0 ? ['Réserve pour les travaux', `${F.money(v.rent)} × ${F.pct(v.works)} = ${F.money(r.reserve)}`] : null,
+        ['Ce qui reste', `${F.money(r.income)} − ${F.money(v.charges)} − ${F.money(v.loan)} − ${F.money(r.reserve)} = ${F.money(r.cash)}`],
+        ['En clair, sur un an', `${F.money(r.cash)} × 12 = ${F.money(r.yearly)}`],
+      ];
+    },
+    louer(v, r, F) {
+      const diff = r.firstOwnerOut - v.rent;
+      return [
+        ["Coût de l'achat", `${F.money(v.price)} × (1 + ${F.pct(v.buyCosts)}) = ${F.money(r.cost)}`],
+        ['Montant emprunté', `${F.money(r.cost)} − ${F.money(Math.min(v.deposit, r.cost))} = ${F.money(r.loan)}`],
+        ['Dépense du propriétaire, le premier mois', `${F.money(r.payment)} + ${F.money(v.price)} × 1 % ÷ 12 = ${F.money(r.firstOwnerOut)}`],
+        diff >= 0 ? ['Le locataire place, le premier mois', `${F.money(r.firstOwnerOut)} − ${F.money(v.rent)} = ${F.money(diff)}`]
+          : ['Le propriétaire place, le premier mois', `${F.money(v.rent)} − ${F.money(r.firstOwnerOut)} = ${F.money(-diff)}`],
+        [`Patrimoine au bout de ${v.horizon} an${v.horizon > 1 ? 's' : ''}`, `${F.money(r.buy)} en achetant, ${F.money(r.rent)} en louant`],
+      ];
+    },
+    pub(v, r, F) {
+      return [
+        ['Marge par commande', `${F.money(v.basket)} − ${F.money(v.cogs)} − ${F.money(v.shipping)} − ${F.money(v.basket * v.fees / 100)} = ${F.money(r.margin)}`],
+        r.breakEvenRoas != null ? ["ROAS d'équilibre", `${F.money(v.basket)} ÷ ${F.money(r.margin)} = ${F.nf(r.breakEvenRoas, 2)}`] : null,
+        r.roas != null ? ['Ton ROAS', `${F.money(r.revenue)} ÷ ${F.money(v.spend)} = ${F.nf(r.roas, 2)}`] : null,
+        ['Bénéfice', `${F.nf(v.orders)} × ${F.money(r.margin)} − ${F.money(v.spend)} = ${F.money(r.profit)}`],
+        r.cpa != null ? ['En clair, une commande te coûte en pub', `${F.money(v.spend)} ÷ ${F.nf(v.orders)} = ${F.money(r.cpa)}`] : null,
+      ];
+    },
+    livraison(v, r, F) {
+      return [
+        ["Marge d'un panier moyen", `${F.money(v.basket)} × ${F.pct(v.margin)} = ${F.money(v.basket * v.margin / 100)}`],
+        ["Panier en plus pour payer l'envoi", `${F.money(v.shipping)} ÷ ${F.pct(v.margin)} = ${F.money(r.extra)}`],
+        ['Seuil', `${F.money(v.basket)} + ${F.money(r.extra)} = ${F.money(r.threshold)}`],
+        v.orders > 0 ? ['En clair, tout offrir coûterait par mois', `${F.nf(v.orders)} × ${F.money(v.shipping)} = ${F.money(r.monthly)}`] : null,
+      ];
+    },
+    stock(v, r, F) {
+      return [
+        ['Seuil de commande', `${F.nf(v.daily, 1)} × (${F.nf(v.lead)} + ${F.nf(v.safety)}) = ${F.nf(r.point)}`],
+        ['Jours de stock', `${F.nf(v.stock)} ÷ ${F.nf(v.daily, 1)} = ${F.nf(r.daysLeft, 1)}`],
+        r.late ? null : ['Commander dans', `(${F.nf(v.stock)} − ${F.nf(r.point)}) ÷ ${F.nf(v.daily, 1)} ≈ ${F.nf(r.orderIn)} jours`],
+        v.cost > 0 ? ['En clair, ton stock vaut', `${F.nf(v.stock)} × ${F.money(v.cost)} = ${F.money(r.value)}`] : null,
+      ];
+    },
+    retours(v, r, F) {
+      return [
+        ['Retours par mois', `${F.nf(v.orders)} × ${F.pct(v.rate)} = ${F.nf(r.returned, 1)}`],
+        ["Coût d'un retour", `(${F.money(v.basket)} − ${F.money(v.cogs)}) + ${F.money(v.back)} + ${F.money(v.cogs)} × ${F.pct(v.lost)} = ${F.money(r.perReturn)}`],
+        ['Par mois', `${F.nf(r.returned, 1)} × ${F.money(r.perReturn)} = ${F.money(r.total)}`],
+        v.rate > 0 ? ['En clair, sur 100 commandes', `${F.nf(v.rate, 1)} reviennent et coûtent ${F.money(v.rate * r.perReturn)}`] : null,
+      ];
+    },
+    marketplace(v, r, F) {
+      return [
+        ['Frais sur la place de marché', `${F.money(v.price)} × ${F.pct(v.commission)} + ${F.money(v.fixedFee)} = ${F.money(r.mpCost)}`],
+        ['Il reste, sur la place de marché', `${F.money(v.price)} − ${F.money(v.cogs)} − ${F.money(r.mpCost)} = ${F.money(r.mp)}`],
+        ['Frais sur ta boutique', `${F.money(v.price)} × ${F.pct(v.siteFees)} + ${F.money(v.siteAds)} = ${F.money(r.siteCost)}`],
+        ['Il reste, sur ta boutique', `${F.money(v.price)} − ${F.money(v.cogs)} − ${F.money(r.siteCost)} = ${F.money(r.site)}`],
+        ['En clair, sur 100 ventes', `100 × ${F.money(Math.abs(r.gap))} = ${F.money(100 * Math.abs(r.gap))} d'écart`],
+      ];
+    },
+    budget(v, r, F) {
+      return [
+        ['Ce qui reste', `${F.money(v.income)} − ${F.money(v.needs)} − ${F.money(v.wants)} = ${F.money(r.savings)}`],
+        ["Repère pour l'obligatoire", `${F.money(v.income)} × ${F.pct(50, 0)} = ${F.money(r.target.needs)}`],
+        ['Repère pour les envies', `${F.money(v.income)} × ${F.pct(30, 0)} = ${F.money(r.target.wants)}`],
+        ["Repère pour l'épargne", `${F.money(v.income)} × ${F.pct(20, 0)} = ${F.money(r.target.savings)}`],
+        r.savings > 0 ? ['En clair, en dix ans', `${F.money(r.savings)} × 120 mois = ${F.money(r.savings * 120)}`] : null,
+      ];
+    },
+    dette(v, r, F) {
+      const m = v.rate / 12;
+      return [
+        ['Taux par mois', `${F.pct(v.rate)} ÷ 12 = ${F.pct(m, 2)}`],
+        ['Intérêts du premier mois', `${F.money(v.balance)} × ${F.pct(m, 2)} = ${F.money(r.firstInterest)}`],
+        r.months != null ? ['Dette remboursée le premier mois', `${F.money(v.payment)} − ${F.money(r.firstInterest)} = ${F.money(v.payment - r.firstInterest)}`]
+          : ['Versement minimum', `plus de ${F.money(r.firstInterest)} par mois`],
+        r.months != null ? ['En clair, tu paies en tout', `${F.money(v.balance)} + ${F.money(r.interest)} = ${F.money(v.balance + r.interest)}`] : null,
+      ];
+    },
+    heures(v, r, F) {
+      return [
+        ['Ton revenu par heure', `${F.money(v.income)} ÷ ${F.nf(v.hours)} h = ${F.money(r.hourly)}`],
+        ['Heures de travail', `${F.money(v.price)} ÷ ${F.money(r.hourly)} = ${F.nf(r.hours, 1)} h`],
+        v.years > 0 ? ['La même somme placée', `${F.money(v.price)} × (1 + ${F.pct(v.rate)})^${v.years} = ${F.money(r.later)}`] : null,
+        ['En clair, en journées de 7 heures', `${F.nf(r.hours, 1)} ÷ 7 ≈ ${F.nf(r.days, 1)}`],
+      ];
+    },
+    voiture(v, r, F) {
+      return [
+        ['Perte de valeur par an', `${F.money(v.price)} × (1 − ${F.pct(v.resale)}) ÷ ${F.nf(v.years)} = ${F.money(r.loss)}`],
+        ['Énergie par an', `${F.nf(v.km)} km × ${F.nf(v.use, 1)} ÷ 100 × ${F.money(v.energy)} = ${F.money(r.fuel)}`],
+        ['Par an', `${F.money(r.loss)} + ${F.money(r.fuel)} + ${F.money(r.fixed)} = ${F.money(r.year)}`],
+        ['Par mois', `${F.money(r.year)} ÷ 12 = ${F.money(r.month)}`],
+        r.perKm != null ? ['En clair, un trajet de 20 km', `20 × ${F.money(r.perKm)} = ${F.money(20 * r.perKm)}`] : null,
       ];
     },
   },
@@ -1852,6 +2330,216 @@ export default {
         ['Déjà couvert', `${F.nf(r.covered, 1)} mois`],
         ['Il manque', F.money(r.missing)],
         ["Mois avant d'y être", r.wait === 0 ? 'atteint' : r.wait != null ? String(r.wait) : '—'],
+      ],
+    },
+    credit: {
+      invalid: 'Vérifie tes chiffres : un montant au-dessus de zéro, un taux de 0 à 30 %, une durée entière de 1 à 40 ans et une assurance de 0 à 5 %.',
+      label: 'par mois, assurance comprise',
+      verdict: (v, r, F) => `Pour ${F.money(v.amount)} sur ${v.years} an${v.years > 1 ? 's' : ''}, tu paies ${F.money(r.monthly)} par mois. Le crédit te coûte ${F.money(r.totalCost)} en plus du montant emprunté, soit ${F.pct((r.totalCost / v.amount) * 100, 0)} de ce montant.`,
+      chart: 'Ce que tu rembourses chaque année',
+      aria: 'Capital et intérêts remboursés, année par année',
+      bar: (p, F) => `Année ${p.year} : ${F.money(p.principal)} de capital, ${F.money(p.interest)} d'intérêts`,
+      legend: ['Capital remboursé', 'Intérêts'],
+      facts: (v, r, F) => [
+        ['Mensualité sans assurance', F.money(r.payment)],
+        ['Intérêts en tout', F.money(r.totalInterest)],
+        ['Assurance en tout', F.money(r.totalInsurance)],
+      ],
+      table: ['Année', 'Capital', 'Intérêts', 'Reste dû'],
+      row: (p, F) => ['Année ' + p.year, F.money(p.principal), F.money(p.interest), F.money(p.balance)],
+    },
+    capacite: {
+      invalid: 'Vérifie tes chiffres : des revenus au-dessus de zéro, une part de 1 à 100 %, un taux de 0 à 30 % et une durée entière de 1 à 40 ans.',
+      label: 'que tu peux emprunter',
+      verdict(v, r, F) {
+        if (r.maxMonthly === 0) return `Tes crédits en cours (${F.money(v.debts)} par mois) prennent déjà toute la part prévue : ${F.pct(v.ratio, 0)} de tes revenus.`;
+        return `Avec ${F.money(v.income)} de revenus, ${F.pct(v.ratio, 0)} font ${F.money(r.room)} par mois pour les crédits. Il en reste ${F.money(r.maxMonthly)} : de quoi emprunter ${F.money(r.loan)} sur ${v.years} an${v.years > 1 ? 's' : ''}.`;
+      },
+      rows: ['Part prévue pour les crédits', 'Crédits déjà en cours', 'Mensualité possible'],
+      facts: (v, r, F) => [
+        ['Mensualité possible', F.money(r.maxMonthly)],
+        ['Intérêts payés en tout', F.money(r.interest)],
+        ["Tes crédits aujourd'hui", `${F.pct(r.used)} des revenus`],
+      ],
+    },
+    rendement: {
+      invalid: 'Vérifie tes chiffres : un prix au-dessus de zéro, des montants qui ne sont pas négatifs et de 0 à 12 mois sans locataire.',
+      label: 'de rendement net par an',
+      verdict: (v, r, F) => (r.netIncome <= 0
+        ? `Les dépenses mangent tous les loyers : le logement te coûte ${F.money(-r.netIncome)} par an, avant même le crédit.`
+        : `Annoncé à ${F.pct(r.gross, 2)} brut, le logement rapporte ${F.pct(r.net, 2)} net : ${F.money(r.netIncome)} par an pour ${F.money(r.total)} investis. Il faudrait ${F.nf(r.payback, 1)} ans de loyers pour rembourser l'achat.`),
+      chart: 'Une année de loyers',
+      rows: ['Loyers encaissés', 'Dépenses', 'Ce qui reste'],
+      facts: (v, r, F) => [
+        ['Rendement brut', F.pct(r.gross, 2)],
+        ['Coût total', F.money(r.total)],
+        ["Années pour rembourser l'achat", r.payback != null ? F.nf(r.payback, 1) : 'jamais'],
+      ],
+    },
+    cashflow: {
+      invalid: 'Vérifie tes chiffres : des montants qui ne sont pas négatifs et des pourcentages de 0 à 100.',
+      label: 'par mois, après le crédit',
+      verdict: (v, r, F) => (r.cash >= 0
+        ? `Le logement paie son crédit et ses dépenses, et te laisse ${F.money(r.cash)} par mois : ${F.money(r.yearly)} par an, avant impôts.`
+        : `Le loyer ne couvre pas tout : tu complètes ${F.money(-r.cash)} par mois de ta poche, soit ${F.money(-r.yearly)} par an. En échange, tu rembourses du capital chaque mois.`),
+      chart: 'Le mois type',
+      rows: ['Loyer encaissé', 'Crédit', 'Dépenses', 'Réserve pour les travaux'],
+      facts: (v, r, F) => [
+        ['Sur un an', F.money(r.yearly)],
+        ['Le loyer couvre le crédit à', r.cover != null ? F.pct(r.cover, 0) : 'pas de crédit'],
+        ['Sorties par mois', F.money(r.out)],
+      ],
+    },
+    louer: {
+      invalid: 'Vérifie tes chiffres : un prix au-dessus de zéro, des durées entières de 1 à 40 ans, une hausse des prix de −20 à 20 % et des taux raisonnables.',
+      label: (r) => (r.gap >= 0 ? 'de patrimoine en plus en achetant' : 'de patrimoine en plus en louant'),
+      verdict(v, r, F) {
+        const y = `${v.horizon} an${v.horizon > 1 ? 's' : ''}`;
+        let t = r.gap >= 0
+          ? `Au bout de ${y}, l'acheteur a ${F.money(r.buy)} et le locataire ${F.money(r.rent)} : acheter gagne de ${F.money(r.gap)}.`
+          : `Au bout de ${y}, le locataire a ${F.money(r.rent)} et l'acheteur ${F.money(r.buy)} : louer gagne de ${F.money(-r.gap)}.`;
+        t += r.breakEven != null ? ` L'achat passe devant au bout de ${r.breakEven} an${r.breakEven > 1 ? 's' : ''}.` : " Sur cette durée, l'achat ne passe jamais devant.";
+        return t;
+      },
+      chart: 'Écart de patrimoine, année après année',
+      bar: (p, F) => `Année ${p.year} : acheteur ${F.money(p.buy)}, locataire ${F.money(p.rent)}`,
+      legend: ['Acheter est devant', 'Louer est devant'],
+      facts: (v, r, F) => [
+        ['Montant emprunté', F.money(r.loan)],
+        ['Mensualité', F.money(r.payment)],
+        ['Valeur du logement à la fin', F.money(r.home)],
+      ],
+      table: ['Année', 'Acheteur', 'Locataire'],
+      row: (p, F) => [p.year === 0 ? 'Départ' : 'Année ' + p.year, F.money(p.buy), F.money(p.rent)],
+    },
+    pub: {
+      invalid: 'Vérifie tes chiffres : un panier au-dessus de zéro, des montants qui ne sont pas négatifs et des frais de 0 à 100 %.',
+      label: 'de bénéfice après la pub',
+      verdict(v, r, F) {
+        if (r.breakEvenRoas == null) return `Chaque commande te coûte déjà ${F.money(-r.margin)} avant la pub : aucune campagne ne peut rattraper ça. Revois ton prix ou tes coûts.`;
+        const roas = r.roas != null ? `Ton ROAS est de ${F.nf(r.roas, 2)}, pour un ROAS d'équilibre de ${F.nf(r.breakEvenRoas, 2)}. ` : '';
+        return roas + (r.profit >= 0 ? `Ces publicités te laissent ${F.money(r.profit)}.`
+          : `Ces publicités te font perdre ${F.money(-r.profit)} : il faudrait ${F.nf(r.ordersNeeded)} commandes pour rentrer dans tes frais.`);
+      },
+      rows: ["Chiffre d'affaires", 'Marge avant la pub', 'Budget pub'],
+      facts: (v, r, F) => [
+        ["ROAS d'équilibre", r.breakEvenRoas != null ? F.nf(r.breakEvenRoas, 2) : '—'],
+        ['Coût par commande', r.cpa != null ? F.money(r.cpa) : '—'],
+        ['Coût par commande maximum', F.money(r.maxCpa)],
+      ],
+    },
+    livraison: {
+      invalid: 'Vérifie tes chiffres : un panier au-dessus de zéro, une marge de 1 à 100 % et des montants qui ne sont pas négatifs.',
+      label: 'de panier minimum pour la livraison offerte',
+      verdict: (v, r, F) => `Un envoi à ${F.money(v.shipping)} mange ${F.pct(r.eaten, 0)} de la marge d'un panier moyen. Pour le payer, il faut ${F.money(r.extra)} de panier en plus : offre la livraison à partir de ${F.money(r.threshold)}.`,
+      rows: ["Panier moyen aujourd'hui", 'Seuil de livraison offerte'],
+      facts: (v, r, F) => [
+        ['Panier en plus nécessaire', F.money(r.extra)],
+        ['Part de la marge mangée', F.pct(r.eaten, 0)],
+        ['Tout offrir coûterait, par mois', F.money(r.monthly)],
+      ],
+    },
+    stock: {
+      invalid: 'Vérifie tes chiffres : des ventes au-dessus de zéro et des nombres qui ne sont pas négatifs.',
+      label: 'unités : le seuil où recommander',
+      verdict(v, r, F) {
+        if (r.late) return `Ton stock (${F.nf(v.stock)}) est déjà sous le seuil : commande aujourd'hui. Il tient ${F.nf(r.daysLeft, 1)} jours, pour ${F.nf(v.lead)} jours de délai` + (r.gap > 0 ? ` : ${F.nf(r.gap, 1)} jours de rupture si rien ne change.` : '.');
+        return `Ton stock tient ${F.nf(r.daysLeft, 1)} jours. Recommande quand il passe sous ${F.nf(r.point)} unités : dans ${F.nf(r.orderIn)} jour${r.orderIn > 1 ? 's' : ''} environ.`;
+      },
+      rows: ["Stock aujourd'hui", 'Seuil de commande'],
+      facts: (v, r, F) => [
+        ['Jours de stock', F.nf(r.daysLeft, 1)],
+        ['Commander dans', r.late ? 'tout de suite' : `${F.nf(r.orderIn)} jour${r.orderIn > 1 ? 's' : ''}`],
+        ['Valeur du stock', F.money(r.value)],
+      ],
+    },
+    retours: {
+      invalid: 'Vérifie tes chiffres : un panier au-dessus de zéro, des montants qui ne sont pas négatifs et des pourcentages de 0 à 100.',
+      label: 'de coût des retours par mois',
+      verdict: (v, r, F) => `${F.nf(r.returned, 1)} retours par mois, à ${F.money(r.perReturn)} chacun : ${F.money(r.total)} par mois et ${F.money(r.yearly)} par an`
+        + (r.share != null ? `, soit ${F.pct(r.share)} de ta marge.` : '.'),
+      rows: ['Marge du mois, avant retours', 'Coût des retours'],
+      facts: (v, r, F) => [
+        ["Coût d'un retour", F.money(r.perReturn)],
+        ['Sur un an', F.money(r.yearly)],
+        ['Marge après retours', F.money(r.after)],
+      ],
+    },
+    marketplace: {
+      invalid: 'Vérifie tes chiffres : un prix au-dessus de zéro, des montants qui ne sont pas négatifs et des pourcentages de 0 à 100.',
+      label: (r) => (r.gap >= 0 ? 'de plus par vente sur ta boutique' : 'de plus par vente sur la place de marché'),
+      verdict(v, r, F) {
+        if (r.gap === 0) return 'Les deux canaux te laissent la même chose par vente.';
+        return r.gap > 0
+          ? `Ta boutique te laisse ${F.money(r.site)} par vente, la place de marché ${F.money(r.mp)}. Ta boutique reste devant tant que la pub y coûte moins de ${F.money(r.adsLimit)} par vente.`
+          : `La place de marché te laisse ${F.money(r.mp)} par vente, ta boutique ${F.money(r.site)} : la pub y coûte trop cher. Au-delà de ${F.money(r.adsLimit)} de pub par vente, la place de marché gagne.`;
+      },
+      rows: ['Sur ta boutique', 'Sur la place de marché'],
+      facts: (v, r, F) => [
+        ['Frais de la place de marché, par vente', F.money(r.mpCost)],
+        ['Frais de ta boutique, par vente', F.money(r.siteCost)],
+        ['Pub maximale par vente sur ta boutique', F.money(r.adsLimit)],
+      ],
+    },
+    budget: {
+      invalid: 'Vérifie tes chiffres : des revenus au-dessus de zéro et des dépenses qui ne sont pas négatives.',
+      label: 'qui restent à la fin du mois',
+      verdict(v, r, F) {
+        if (r.savings < 0) return `Tu dépenses ${F.money(-r.savings)} de plus que ce que tu gagnes chaque mois : commence par les envies, puis renégocie les grosses dépenses obligatoires.`;
+        return `Il te reste ${F.money(r.savings)} par mois, soit ${F.pct(r.savingsPct)} de tes revenus et ${F.money(r.yearly)} par an.`
+          + (r.savingsPct >= 20 ? ' Au-dessus du repère de 20 % : bravo.' : ` Le repère de 20 % serait ${F.money(r.target.savings)}.`);
+      },
+      parts: ['Obligatoire', 'Envies', 'Reste'],
+      chart: 'Toi et le repère 50 / 30 / 20',
+      table: ['', 'Toi', 'Repère'],
+      facts: (v, r, F) => [
+        ['Mis de côté sur un an', F.money(r.yearly)],
+        ['Obligatoire', F.pct(r.needsPct)],
+        ['Envies', F.pct(r.wantsPct)],
+      ],
+    },
+    dette: {
+      invalid: 'Vérifie tes chiffres : un reste dû et un versement au-dessus de zéro, et un taux de 0 à 100 %.',
+      never: 'Jamais',
+      neverLabel: 'le versement ne couvre pas les intérêts',
+      neverVerdict: (v, r, F) => `Les intérêts du premier mois font déjà ${F.money(r.firstInterest)} : avec ${F.money(v.payment)} par mois, la dette ne baisse pas. Il faut verser au moins ${F.money(r.minPayment)}, et nettement plus pour en sortir.`,
+      label: () => 'mois pour tout rembourser',
+      verdict(v, r, F) {
+        let t = `Avec ${F.money(v.payment)} par mois, tu as fini dans ${r.months} mois et tu paies ${F.money(r.interest)} d'intérêts.`;
+        if (r.saved != null) t += ` En versant ${F.money(v.extra)} de plus, ce serait ${r.moreMonths} mois, et ${F.money(r.saved)} d'intérêts en moins.`;
+        return t;
+      },
+      chart: 'Ce qui reste dû, année après année',
+      bar: (p, F) => `Année ${p.year} : ${F.money(p.balance)}`,
+      facts: (v, r, F) => [
+        ['Intérêts en tout', F.money(r.interest)],
+        ['Intérêts du premier mois', F.money(r.firstInterest)],
+        ['Économisé en versant plus', r.saved != null ? F.money(r.saved) : '—'],
+      ],
+    },
+    heures: {
+      invalid: 'Vérifie tes chiffres : un prix, un revenu et des heures au-dessus de zéro.',
+      label: 'heures de travail',
+      verdict: (v, r, F) => `À ${F.money(r.hourly)} de l'heure, cet achat te coûte ${F.nf(r.hours, 1)} heures de travail : environ ${F.nf(r.days, 1)} journée${r.days >= 2 ? 's' : ''} de 7 heures.`
+        + (v.years > 0 ? ` Placée ${v.years} an${v.years > 1 ? 's' : ''} à ${F.pct(v.rate)}, la somme deviendrait ${F.money(r.later)}.` : ''),
+      rows: ["Prix de l'achat", 'La même somme placée'],
+      facts: (v, r, F) => [
+        ['Ton revenu par heure', F.money(r.hourly)],
+        ['En journées de 7 heures', F.nf(r.days, 1)],
+        ['Part de ton revenu du mois', F.pct(r.share)],
+      ],
+    },
+    voiture: {
+      invalid: 'Vérifie tes chiffres : une durée de 1 à 40 ans, une revente de 0 à 100 % et des montants qui ne sont pas négatifs.',
+      label: 'par mois, tout compris',
+      verdict: (v, r, F) => `Ta voiture te coûte ${F.money(r.year)} par an, soit ${F.money(r.month)} par mois` + (r.perKm != null ? ` et ${F.money(r.perKm)} par kilomètre.` : '.')
+        + ` La plus grosse part : ${r.loss >= r.fuel && r.loss >= r.fixed ? 'la perte de valeur' : r.fuel >= r.fixed ? "l'énergie" : 'les frais fixes'}.`,
+      chart: 'Ce que coûte une année',
+      rows: ['Perte de valeur', 'Énergie', 'Assurance, entretien, stationnement'],
+      facts: (v, r, F) => [
+        ['Par an', F.money(r.year)],
+        ['Par kilomètre', r.perKm != null ? F.money(r.perKm) : '—'],
+        [`Sur ${v.years} an${v.years > 1 ? 's' : ''}`, F.money(r.total)],
       ],
     },
   },

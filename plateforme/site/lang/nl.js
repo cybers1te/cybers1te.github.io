@@ -41,7 +41,7 @@ export default {
 
   ui: {
     title: 'marketbuss — tools voor ondernemers en investeerders',
-    description: 'marketbuss: gratis arcademachines voor ondernemers, zelfstandigen, investeerders en spaarders, en de echte tools van het moment. Zonder account.',
+    description: 'marketbuss: gratis arcademachines om te ondernemen, te investeren, te sparen, een woning te kopen, online te verkopen en je budget te beheren, en de echte tools van het moment. Zonder account.',
     skip: 'Naar de inhoud',
     loading: 'Laden…',
     language: 'Taal',
@@ -78,8 +78,11 @@ export default {
 
     home: {
       insert: 'Gratis tools, zonder account',
+      recent: 'Je laatste machines',
+      recentSub: 'Ga verder waar je was. Ze blijven in deze browser.',
+      stats: { tools: 'machines', players: 'spelers', arsenal: 'echte tools', words: 'uitgelegde woorden' },
       tagline: 'De speelhal voor ondernemers en investeerders.',
-      lead: 'Een project doorrekenen, een prijs bepalen, een kapitaalronde voorbereiden, een belegging beoordelen: machines die rekenen, en de echte tools van het moment.',
+      lead: 'Een project doorrekenen, een prijs bepalen, een kapitaalronde voorbereiden, een belegging beoordelen, een woning kopen, online verkopen, je budget bijhouden: machines die rekenen en de berekening tonen, en de echte tools van het moment.',
       choose: 'Kies je speler',
       tools: 'De machines',
       toolsSub: (n) => `${n} machines die elk één vraag beantwoorden. De startcijfers zijn voorbeelden: vervang ze door de jouwe.`,
@@ -105,7 +108,9 @@ export default {
 
     tools: {
       all: 'Alle machines',
-      allSub: (n) => `${n} machines, voor vier spelers.`,
+      allSub: (n) => `${n} machines, voor zeven spelers.`,
+      search: 'Zoek een machine: lening, btw, voorraad, schuld…',
+      noMatch: 'Geen enkele machine past. Probeer een ander woord.',
       crumb: 'Machines',
       howRead: 'Hoe lees je het resultaat',
       howUse: 'Hoe gebruik je het',
@@ -221,7 +226,7 @@ export default {
       sub: 'Wat marketbuss is, en wat het niet is.',
       sections: (n) => [
         ['Wat je hier vindt', [
-          `${n.tools} machines om een project door te rekenen, een prijs te bepalen, een investering te beoordelen of een belegging te begrijpen.`,
+          `${n.tools} machines om een project door te rekenen, een prijs te bepalen, een investering te beoordelen, een belegging te begrijpen, een woning te kopen of te huren, online te verkopen of je budget te beheren. Elke machine toont haar berekening, stap voor stap.`,
           `Een arsenaal van ${n.arsenal} echte tools en overheidsdiensten, een traject in zes niveaus, een woordenlijst van ${n.words} woorden en een pitchkaart om te delen.`,
           'Alles is gratis en zonder account.',
           'Alles wordt in je browser berekend: je cijfers worden nergens naartoe gestuurd. Afgevinkte lijsten en kladversies blijven in deze browser.',
@@ -239,7 +244,7 @@ export default {
           'De selectie is gericht op België en Frankrijk: sommige overheidsdiensten bestaan alleen in het Frans.',
         ]],
         ['De personages en de voorbeelden', [
-          'De spelers en de gidsen (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit) zijn verzonnen personages. Hun tips zijn algemene richtlijnen.',
+          'De spelers en de gidsen (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) zijn verzonnen personages. Hun tips zijn algemene richtlijnen.',
           'De waarden die je ziet als een machine opent, zijn verzonnen voorbeelden om de berekening te tonen. Ze beschrijven geen echt bedrijf.',
         ]],
         ['Hoe het gemaakt is', [
@@ -258,6 +263,9 @@ export default {
     independant: { name: 'Zelfstandige', pitch: 'Ik verkoop mijn werk', about: 'De tools om je prijzen te bepalen, klanten te vinden en te weten wat je overhoudt.' },
     investisseur: { name: 'Investeerder', pitch: 'Ik financier projecten', about: 'De tools om een investering te beoordelen en scenario\'s te testen.' },
     epargnant: { name: 'Spaarder', pitch: 'Ik zorg voor mijn spaargeld', about: 'De tools om te zien wat tijd, kosten en stijgende prijzen doen.' },
+    immobilier: { name: 'Vastgoed', pitch: 'Ik koop of huur een woning', about: 'Tools voor een hypotheek, een aankoop, een huur of een woning om te verhuren.' },
+    ecommerce: { name: 'Webwinkelier', pitch: 'Ik verkoop online', about: 'Tools om te zien wat je bestellingen, advertenties en leveringen echt opbrengen.' },
+    budget: { name: 'Budget', pitch: 'Ik beheer mijn geld van elke dag', about: 'Tools om te zien waar je geld naartoe gaat, een schuld af te lossen en een aankoop te becijferen.' },
   },
 
   guides: {
@@ -269,6 +277,8 @@ export default {
     banker: { name: 'Ada', job: 'de bankier', line: 'Kijkt eerst naar de kas, dan naar de beloftes.' },
     angel: { name: 'Iris', job: 'de business angel', line: 'Investeert vroeg, verliest vaak, en rekent op enkele grote successen.' },
     robot: { name: 'Bit', job: 'de robot', line: 'Houdt het arsenaal bij en rekent zonder moe te worden.' },
+    agent: { name: 'Zoé', job: 'de vastgoedmakelaar', line: 'Bezoekt drie keer, meet alles op en leest de rekeningen van de mede-eigendom van begin tot eind.' },
+    shopkeeper: { name: 'Kai', job: 'de webwinkelier', line: 'Telt elk pakje, elke retour en elke euro advertentie voor hij een verkoop viert.' },
   },
 
   /* Een machine: naam, vraag, inleiding, velden {sleutel: [label, eenheid, hulp]}, uitleg, grenzen, tip van de gids. */
@@ -845,6 +855,297 @@ export default {
       limits: 'Een lijst om na te denken, geen persoonlijk advies: je situatie, je belastingen en je plannen tellen mee. Vraag bij twijfel raad aan een erkende adviseur.',
       tip: 'Hoog rendement, zonder risico en dringend: die drie samen wijzen op oplichting.',
     },
+    credit: {
+      name: 'Sleutel op zak',
+      question: 'Hoeveel kost mijn woonkrediet?',
+      lead: 'Het bedrag, de rentevoet, de looptijd: de tool geeft de maandlast, de totale kost en wat je elk jaar afbetaalt.',
+      fields: {
+        amount: ['Geleend bedrag', '€'],
+        rate: ['Rentevoet', '% per jaar', 'De nominale rentevoet, zonder verzekering.'],
+        years: ['Looptijd', 'jaar'],
+        insurance: ['Schuldsaldoverzekering', '% per jaar', 'In % van het geleende bedrag. Vaak tussen 0,1 en 0,5%.'],
+      },
+      read: [
+        'De maandlast blijft van begin tot eind dezelfde. Wat verandert, is wat ze betaalt: in het begin vooral rente.',
+        'De totale kost is de rente plus de verzekering: wat je betaalt bovenop het geleende bedrag.',
+        'Een langere looptijd verlaagt de maandlast maar verhoogt de totale kost: probeer de knoppen "jaar".',
+      ],
+      limits: 'Vaste rente, zonder dossier- of waarborgkosten, en verzekering berekend op het beginbedrag. Het aanbod van je bank telt: kijk naar het JKP.',
+      tip: 'Vergelijk aanbiedingen op het JKP, niet alleen op de rentevoet: het telt ook de verzekering en de kosten mee.',
+    },
+    capacite: {
+      name: 'Leenmeter',
+      question: 'Hoeveel kan ik lenen?',
+      lead: 'Je inkomen, je lopende kredieten en het deel dat je eraan wilt besteden: de tool berekent de mogelijke maandlast en hoeveel je kunt lenen.',
+      fields: {
+        income: ['Netto-inkomen van het gezin', '€ per maand'],
+        debts: ['Lopende kredieten', '€ per maand'],
+        ratio: ['Maximaal deel voor kredieten', '% van het inkomen', 'Een gangbaar richtpunt: 35%.'],
+        rate: ['Rentevoet, verzekering inbegrepen', '% per jaar'],
+        years: ['Looptijd', 'jaar'],
+      },
+      read: [
+        'De mogelijke maandlast is het deel van je inkomen voor kredieten, min de kredieten die je al hebt.',
+        'Het bedrag hangt sterk af van de looptijd en de rente: vijf jaar langer kan tienduizenden euro\'s extra opleveren.',
+        'Houd genoeg over om van te leven: dat de bank ja zegt, maakt het nog niet verstandig.',
+      ],
+      limits: 'Een grootteorde. Elke bank kijkt ook naar je eigen inbreng, je werksituatie, wat je overhoudt om van te leven en haar eigen regels.',
+      tip: 'Kom naar de bank met nette rekeninguittreksels en spaargeld dat na de aankoop overblijft: dat maakt vaak het verschil.',
+    },
+    rendement: {
+      name: 'Huurrendement',
+      question: 'Hoeveel brengt deze verhuurde woning echt op?',
+      lead: 'De prijs, de kosten, de huur en de uitgaven: de tool berekent het brutorendement, dat van de advertenties, en het nettorendement, dat telt.',
+      fields: {
+        price: ['Aankoopprijs', '€'],
+        costs: ['Aankoopkosten en werken', '€', 'Notaris of registratierechten, makelaar, werken voor de verhuur.'],
+        rent: ['Huur, zonder lasten', '€ per maand'],
+        charges: ['Uitgaven voor jou', '€ per jaar', 'Onroerende voorheffing, niet-verhaalbare lasten, verzekering, onderhoud.'],
+        vacancy: ['Maanden zonder huurder', 'maanden per jaar'],
+      },
+      read: [
+        'Brutorendement = huur van een jaar ÷ prijs. Het is het cijfer uit de advertenties, maar het vergeet de kosten en de uitgaven.',
+        'Nettorendement = (ontvangen huur − uitgaven) ÷ (prijs + kosten). Dat cijfer vergelijk je met een belegging.',
+        'Het cijfer is voor belastingen en zonder lening: voor de lening gebruik je de kast "Cashflow".',
+      ],
+      limits: 'Voor belastingen, zonder lening en zonder doorverkoop. Huur, uitgaven en leegstand veranderen van jaar tot jaar.',
+      tip: 'Een heel hoog brutorendement verbergt vaak een moeilijke buurt of grote werken. Ga het bekijken, twee keer.',
+    },
+    cashflow: {
+      name: 'Cashflow',
+      question: 'Brengt deze verhuurde woning elke maand op of kost ze me geld?',
+      lead: 'De huur aan de ene kant; de lening, de uitgaven en een reserve voor werken aan de andere: de tool geeft wat er elke maand overblijft.',
+      fields: {
+        rent: ['Huur', '€ per maand'],
+        vacancy: ['Deel van het jaar zonder huurder', '%', 'Ongeveer 5% = iets meer dan twee weken per jaar.'],
+        charges: ['Uitgaven voor jou', '€ per maand', 'Onroerende voorheffing, mede-eigendom, verzekering, beheer, per maand.'],
+        loan: ['Maandlast van de lening', '€ per maand', 'De kast "Sleutel op zak" berekent ze.'],
+        works: ['Reserve voor werken', '% van de huur'],
+      },
+      read: [
+        'Positief: de woning betaalt haar lening en laat je iets over. Negatief: je legt elke maand bij uit eigen zak.',
+        'Een licht negatieve cashflow kan nog een goede investering zijn, want je lost elke maand kapitaal af. Maar je moet het lang kunnen betalen.',
+        'De reserve voor werken voorkomt vervelende verrassingen: verwarmingsketel, dak, opfrissen tussen twee huurders.',
+      ],
+      limits: 'Voor belastingen. De huur kan dalen en een huurder kan stoppen met betalen: houd spaargeld achter de hand.',
+      tip: 'Test een 10% lagere huur en twee maanden zonder huurder: blijft het cijfer draaglijk, dan is het project stevig.',
+    },
+    louer: {
+      name: 'Huren of kopen',
+      question: 'Is het beter om mijn woning te huren of te kopen?',
+      lead: 'Twee levens naast elkaar: het ene koopt, het andere huurt en belegt het verschil. De tool vergelijkt hun vermogen, jaar na jaar.',
+      fields: {
+        price: ['Prijs van de woning', '€'],
+        buyCosts: ['Aankoopkosten', '% van de prijs', 'Notaris of registratierechten, waarborg, dossier.'],
+        deposit: ['Eigen inbreng', '€'],
+        rate: ['Rentevoet van de lening', '% per jaar'],
+        years: ['Looptijd van de lening', 'jaar'],
+        rent: ['Huur voor een vergelijkbare woning', '€ per maand'],
+        growth: ['Stijging van prijzen en huren', '% per jaar'],
+        invest: ['Rendement van belegd geld', '% per jaar', 'Wat de eigen inbreng zou opbrengen als ze belegd werd in plaats van in de woning te gaan.'],
+        horizon: ['Vergelijken na', 'jaar'],
+      },
+      read: [
+        'Elke kolom is het verschil in vermogen tussen de koper en de huurder. Oranje: kopen staat voor. Cyaan: huren staat voor.',
+        'De huurder belegt de eigen inbreng, en daarna elke maand wat hij minder uitgeeft dan de koper. Kost huren meer, dan belegt de koper het verschil.',
+        'Hoe langer je blijft, hoe groter de kans dat kopen wint: de aankoopkosten betaal je maar één keer.',
+      ],
+      limits: 'De eigenaar betaalt ook 1% van de prijs per jaar (belasting, onderhoud). Geen belastingen, geen verkoopkosten, en prijzen die regelmatig stijgen: de werkelijkheid is grilliger.',
+      tip: 'De echte vraag is vaak: hoe lang blijf je? Onder de vijf jaar wint huren vaak.',
+    },
+    visite: {
+      name: 'Bezoek',
+      question: 'Heb ik alles gecontroleerd voor ik koop?',
+      lead: 'Tien punten om na te kijken voor je tekent voor een woning. Vink aan wat geregeld is.',
+      limits: 'Een lijst om niets te vergeten, geen juridisch advies: de regels verschillen per land. Laat de voorlopige overeenkomst nalezen door een notaris of jurist.',
+      tip: 'Bezoek op een weekavond en op een zaterdag: lawaai, parkeren en buren zijn dan niet hetzelfde.',
+    },
+    pub: {
+      name: 'Rendabele advertenties',
+      question: 'Brengen mijn advertenties echt geld op?',
+      lead: 'Je winkelmandje, je kosten, je advertentiebudget en de bestellingen die het opleverde: de tool berekent de winst, de ROAS en de minimale ROAS om geen geld te verliezen.',
+      fields: {
+        basket: ['Gemiddeld winkelmandje', '€', 'Zonder btw.'],
+        cogs: ['Kost van de producten', '€ per bestelling'],
+        shipping: ['Levering voor jouw rekening', '€ per bestelling'],
+        fees: ['Betaalkosten', '% van het mandje'],
+        spend: ['Advertentiebudget', '€'],
+        orders: ['Bestellingen uit de advertenties', 'bestellingen'],
+      },
+      read: [
+        'ROAS = omzet ÷ advertentiebudget. Een ROAS van 3 betekent niet dat je geld verdient: alles hangt af van je marge.',
+        'De break-even-ROAS is het minimum om de producten, de levering en de kosten te betalen. Daaronder kost elke bestelling je geld.',
+        'De kost per bestelling mag de marge op een bestelling niet overschrijden: dat is de maximale kost per bestelling.',
+      ],
+      limits: 'Eén bestelling per klant, zonder retouren: een klant die terugkomt is meer waard. Advertentieplatformen tonen vaak optimistische cijfers.',
+      tip: 'Bereken je break-even-ROAS voor je een campagne start, en schrap na een week wat eronder blijft.',
+    },
+    livraison: {
+      name: 'Gratis levering',
+      question: 'Vanaf welk winkelmandje bied ik gratis levering aan?',
+      lead: 'Wat een verzending kost en je marge: de tool geeft het mandje vanaf waar gratis levering zichzelf betaalt.',
+      fields: {
+        basket: ['Gemiddeld mandje vandaag', '€'],
+        margin: ['Marge op de producten', '% van de prijs'],
+        shipping: ['Kost van een verzending', '€'],
+        orders: ['Bestellingen per maand', 'bestellingen'],
+      },
+      read: [
+        'Gratis levering kost één verzending per bestelling. Om die te betalen, moet het mandje minstens zoveel groter zijn: verzendkost ÷ marge.',
+        'Een drempel net boven je gemiddelde mandje zet klanten aan om nog iets toe te voegen.',
+        'Is je marge klein, dan is gratis levering heel duur: verhoog liever je prijzen een beetje.',
+      ],
+      limits: 'Telt niet de extra klanten die gratis levering aantrekt, noch wie zijn mandje laat staan door de verzendkosten.',
+      tip: 'Stel een klein artikel voor wanneer de klant net onder de drempel zit: dat neemt hij vaak.',
+    },
+    stock: {
+      name: 'Voorraad',
+      question: 'Wanneer moet ik voorraad bijbestellen?',
+      lead: 'Je verkoop per dag, de levertijd van de leverancier en je veiligheidsmarge: de tool geeft het bestelpunt en de dagen voorraad die je nog hebt.',
+      fields: {
+        daily: ['Verkoop per dag', 'stuks'],
+        lead: ['Levertijd van de leverancier', 'dagen', 'Tussen je bestelling en de aankomst van de voorraad.'],
+        safety: ['Veiligheidsvoorraad', 'dagen', 'Voor vertragingen en verkooppieken.'],
+        stock: ['Voorraad vandaag', 'stuks'],
+        cost: ['Aankoopprijs per stuk', '€'],
+      },
+      read: [
+        'Bestelpunt = verkoop per dag × (levertijd + veiligheid). Zakt je voorraad eronder, bestel dan.',
+        'Zit je voorraad er al onder, dan dreig je zonder te vallen voor de volgende levering.',
+        'Te veel voorraad legt geld vast: de waarde ervan wordt getoond zodat je het ziet.',
+      ],
+      limits: 'Regelmatige verkoop. Voor de solden, de feestdagen of een campagne plan je ruimer.',
+      tip: 'Noteer de echte levertijd van elke levering: de beloofde is bijna altijd korter.',
+    },
+    retours: {
+      name: 'Retouren',
+      question: 'Hoeveel kosten retouren me?',
+      lead: 'Je bestellingen, je retourpercentage en wat een retour kost: de tool geeft de kost per maand en het deel van je marge dat ermee weggaat.',
+      fields: {
+        orders: ['Bestellingen per maand', 'bestellingen'],
+        rate: ['Retourpercentage', '%'],
+        basket: ['Gemiddeld terugbetaald mandje', '€'],
+        cogs: ['Kost van de producten', '€ per bestelling'],
+        back: ['Retourkosten voor jou', '€ per pakje'],
+        lost: ['Onverkoopbaar na retour', '%'],
+      },
+      read: [
+        'Een retour kost je de marge op de verkoop, de retourkosten en, als het product beschadigd is, wat het je kostte.',
+        'Kleding en schoenen worden vaak teruggestuurd: een nauwkeurige maattabel doet de retouren dalen.',
+        'Vergelijk deze kost met wat betere foto\'s, een preciezere productpagina of een maattabel zouden kosten.',
+      ],
+      limits: 'Telt de tijd voor het verwerken van retouren niet mee, noch de al betaalde heenlevering.',
+      tip: 'Vraag bij elke retour naar de reden: een paar redenen verklaren vaak bijna alle retouren.',
+    },
+    marketplace: {
+      name: 'Marktplaats',
+      question: 'Verkopen op een marktplaats of in mijn eigen webwinkel?',
+      lead: 'Hetzelfde product, twee kanalen: de tool vergelijkt wat je per verkoop overhoudt op een marktplaats en in je eigen webwinkel.',
+      fields: {
+        price: ['Verkoopprijs', '€', 'Zonder btw.'],
+        cogs: ['Kost van het product', '€'],
+        commission: ['Commissie van de marktplaats', '%'],
+        fixedFee: ['Vaste kosten per verkoop', '€'],
+        siteFees: ['Betaalkosten in je webwinkel', '%'],
+        siteAds: ['Advertenties per verkoop in je webwinkel', '€', 'Wat je aan advertenties uitgeeft voor één verkoop.'],
+      },
+      read: [
+        'Een marktplaats neemt een commissie maar brengt je klanten. Je webwinkel kost minder per verkoop, maar je moet betalen om klanten te laten komen.',
+        'De advertentiedrempel is het bedrag per verkoop waarboven je webwinkel minder opbrengt dan de marktplaats.',
+        'Veel verkopers gebruiken beide: de marktplaats om gevonden te worden, de webwinkel voor klanten die terugkomen.',
+      ],
+      limits: 'Zonder abonnement, opslagkosten of retouren. Commissies verschillen per categorie: kijk de tarieven van het platform na.',
+      tip: 'Steek een kaartje in elk pakje dat via de marktplaats verkocht is: de volgende keer kan de klant bij jou bestellen.',
+    },
+    boutique: {
+      name: 'Opening',
+      question: 'Is mijn webwinkel klaar om te openen?',
+      lead: 'Tien punten om te regelen voor je een webwinkel opent. Vink aan wat gedaan is.',
+      limits: 'De regels hangen af van het land waar je verkoopt: controleer de precieze verplichtingen bij een boekhouder of je kamer van koophandel.',
+      tip: 'Plaats een echte bestelling in je webwinkel, van de productpagina tot het ontvangen pakje, voor je eerste klant.',
+    },
+    budget: {
+      name: 'Maandbudget',
+      question: 'Waar gaat mijn geld elke maand naartoe?',
+      lead: 'Je inkomen, je noodzakelijke uitgaven en je wensen: de tool toont wat je overhoudt en vergelijkt het met het richtpunt 50 / 30 / 20.',
+      fields: {
+        income: ['Netto-inkomen van de maand', '€'],
+        needs: ['Noodzakelijke uitgaven', '€', 'Huur, boodschappen, energie, vervoer, verzekeringen, kredieten.'],
+        wants: ['Wensen', '€', 'Uitgaan, abonnementen, kleren, reizen…'],
+      },
+      read: [
+        'Het richtpunt 50 / 30 / 20: de helft voor het noodzakelijke, 30% voor wensen, 20% opzij. Een vertrekpunt, geen regel.',
+        'Neemt het noodzakelijke meer dan de helft, dan is dat niet per se jouw schuld (een hoge huur bijvoorbeeld): de ruimte zit dan vaak in de wensen.',
+        'Wat overblijft, spaar je pas echt als je het aan het begin van de maand opzijzet, niet aan het einde.',
+      ],
+      limits: 'Een gewone maand. Zeldzame uitgaven (cadeaus, herstellingen, belastingen) tellen ook: deel ze door twaalf.',
+      tip: 'Plan een overschrijving naar je spaarrekening op de dag dat je loon binnenkomt: wat je niet ziet, geef je niet uit.',
+    },
+    dette: {
+      name: 'Uit de schulden',
+      question: 'Hoe snel los ik mijn schuld af?',
+      lead: 'Wat je verschuldigd bent, de rente en je afbetaling: de tool geeft het aantal maanden, de betaalde rente, en wat je bespaart door wat meer te betalen.',
+      fields: {
+        balance: ['Nog af te lossen', '€'],
+        rate: ['Rente op de schuld', '% per jaar', 'Het JKP op je afschrift of contract.'],
+        payment: ['Afbetaling per maand', '€'],
+        extra: ['Extra per maand, om te vergelijken', '€'],
+      },
+      read: [
+        'In het begin betaalt een groot deel van de afbetaling alleen de rente. Dekt de afbetaling die amper, dan daalt de schuld bijna niet.',
+        'Elke maand wat meer betalen verkort zowel de duur als de rente: het cijfer "bespaard" toont het.',
+        'Met meerdere schulden los je eerst de duurste af, en betaal je op de andere het minimum.',
+      ],
+      limits: 'Vaste rente en vaste afbetaling, zonder kosten of boetes. Een kredietopening kan van rente veranderen: kijk je contract na.',
+      tip: 'Lukt het niet meer om te betalen, praat dan met je bank of een openbare dienst voor schuldhulp voor de eerste achterstand.',
+    },
+    heures: {
+      name: 'Prijs in uren',
+      question: 'Hoeveel uur werk kost deze aankoop?',
+      lead: 'De prijs, je inkomen en je uren: de tool zet de aankoop om in uren werk, en toont wat het bedrag zou worden als het belegd werd.',
+      fields: {
+        price: ['Prijs van de aankoop', '€'],
+        income: ['Netto-inkomen', '€ per maand'],
+        hours: ['Gewerkte uren', 'per maand', 'Voltijds aan 38 uur per week is ongeveer 165 uur per maand.'],
+        years: ['Als het bedrag belegd werd gedurende', 'jaar'],
+        rate: ['aan een rendement van', '% per jaar'],
+      },
+      read: [
+        'Je inkomen per uur = netto-inkomen ÷ gewerkte uren. De prijs gedeeld door dat cijfer geeft de uren werk.',
+        'Het is niet om je schuldig te voelen, het is om te kiezen: een aankoop die zijn uren waard is, is een goede aankoop.',
+        'De belegde waarde toont de verborgen kost van een aankoop: wat het geld had kunnen worden.',
+      ],
+      limits: 'Netto-inkomen zoals je het invult, en een regelmatig rendement, wat in het echt niet bestaat.',
+      tip: 'Wacht voor een aankoop die niet dringend is 48 uur: denk je er dan nog aan, dan is ze echt belangrijk voor je.',
+    },
+    voiture: {
+      name: 'Echte autofactuur',
+      question: 'Hoeveel kost mijn auto echt?',
+      lead: 'De aankoop, de doorverkoop, de energie en de vaste kosten: de tool geeft de kost per maand en per kilometer.',
+      fields: {
+        price: ['Aankoopprijs', '€'],
+        years: ['Gehouden gedurende', 'jaar'],
+        resale: ['Waarde bij doorverkoop', '% van de prijs'],
+        km: ['Kilometer per jaar', 'km'],
+        use: ['Verbruik', 'L of kWh / 100 km'],
+        energy: ['Energieprijs', '€ per L of kWh'],
+        fixed: ['Verzekering, onderhoud, parkeren', '€ per jaar'],
+      },
+      read: [
+        'Het waardeverlies bij doorverkoop is vaak de grootste kost, en de minst zichtbare.',
+        'De kost per kilometer helpt vergelijken met de trein, de fiets, autodelen of huren.',
+        'Voor een elektrische auto vul je het verbruik in kWh in en de prijs per kWh.',
+      ],
+      limits: 'Zonder lening, onverwachte herstellingen, tol of boetes. Energieprijzen veranderen.',
+      tip: 'Vergelijk de kost per maand met het openbaar vervoer plus een paar keer per jaar een huurauto.',
+    },
+    menage: {
+      name: 'Grote schoonmaak',
+      question: 'Zijn mijn financiën op orde?',
+      lead: 'Tien punten om orde te brengen in je geld. Vink aan wat gedaan is.',
+      limits: 'Een algemene lijst, geen persoonlijk advies. Bij moeilijke schulden helpen openbare diensten en verenigingen gratis.',
+      tip: 'Doe deze schoonmaak één keer per jaar, altijd in dezelfde maand: vergeten abonnementen komen altijd terug.',
+    },
   },
 
   checklists: {
@@ -897,6 +1198,42 @@ export default {
       ['Geen wonderbelofte', 'Niemand heeft je een hoog, gegarandeerd rendement beloofd dat je nu meteen moet grijpen.'],
       ['Meerdere mandjes', 'Je geld hangt niet af van één bedrijf, één sector of één land.'],
       ['De belastingen', 'Je weet hoe de winst in je land belast wordt.'],
+    ],
+    visite: [
+      ['Het volledige budget', 'Prijs, aankoopkosten, werken, verhuis: je kent het totaal, en je houdt daarna nog spaargeld over.'],
+      ['Een akkoord van de bank', 'Een bank heeft je dossier bekeken en je een mogelijk bedrag gegeven.'],
+      ['De keuringen', 'Energie, asbest, lood, elektriciteit, gas: je hebt ze gelezen, niet alleen ontvangen.'],
+      ['De echte lasten', 'Lasten van de mede-eigendom, onroerende voorheffing, energie: de bedragen van de laatste jaren.'],
+      ['De mede-eigendom', 'Verslagen van de laatste algemene vergaderingen: gestemde of geplande werken, achterstallen.'],
+      ['De werken', 'Dak, verwarming, ramen, vocht: een vakman heeft een prijsindicatie gegeven.'],
+      ['De buurt, op verschillende uren', 'Lawaai, parkeren, vervoer, winkels: bezocht op een weekdag en in het weekend.'],
+      ['De stedenbouwkundige regels', 'Wat er rondom gebouwd mag worden, en wat jij mag veranderen.'],
+      ['De prijzen in de buurt', 'Je hebt vergeleken met recente verkopen, niet alleen met advertenties.'],
+      ['Een uitweg', 'De voorlopige overeenkomst laat je afhaken als je lening geweigerd wordt.'],
+    ],
+    boutique: [
+      ['Je statuut', 'Je activiteit is aangegeven en je weet hoe de btw op je verkopen van toepassing is.'],
+      ['De wettelijke vermeldingen', 'Bedrijfsnaam, adres, ondernemingsnummer, contact: zichtbaar op de site.'],
+      ['De verkoopvoorwaarden', 'Prijzen, levering, betaling, garanties, retouren: duidelijk opgeschreven.'],
+      ['Het herroepingsrecht', 'In de Europese Unie heeft de klant 14 dagen om van gedachten te veranderen: de stappen zijn uitgelegd.'],
+      ['Persoonsgegevens', 'Privacybeleid en cookiebanner in orde met de AVG.'],
+      ['De betaling getest', 'Een echte bestelling betaald, terugbetaald, en het geld goed op je rekening.'],
+      ['De levering becijferd', 'Tarieven, termijnen en verpakking getest, ook voor een zwaar of ver pakje.'],
+      ['Volledige productpagina\'s', "Scherpe foto's, afmetingen, materialen, maattabel: genoeg om retouren te vermijden."],
+      ['De klantendienst', 'Een e-mailadres dat gelezen wordt, en een aangekondigde antwoordtermijn.'],
+      ['De basiscijfers', 'Marge per product, break-even-ROAS en kost van een retour, berekend voor je advertenties betaalt.'],
+    ],
+    menage: [
+      ['De abonnementen', 'Je hebt alle domiciliëringen van de maand opgelijst en gestopt wat niet meer dient.'],
+      ['Een eenvoudig budget', 'Je weet hoeveel er binnenkomt, hoeveel er buitengaat en wat er op het einde van de maand overblijft.'],
+      ['Een spaarbuffer', 'Genoeg voor enkele maanden uitgaven, op een aparte rekening.'],
+      ['De schulden opgelijst', 'Bedrag, rente en einde van elk krediet: de duurste wordt eerst afgelost.'],
+      ['Geen vaste debetstand', 'Je rekening staat niet elke maand in het rood.'],
+      ['De verzekeringen nagekeken', 'Geen dubbele (bankkaart, woning, telefoon) en de juiste dekking.'],
+      ['Energie en telefoon vergeleken', 'Je contracten zijn dit jaar minstens één keer vergeleken.'],
+      ['De tegemoetkomingen', 'Je hebt de steun en kortingen nagekeken waar je recht op hebt.'],
+      ['De papieren geordend', 'Contracten, loonfiches, belastingen: in twee minuten terug te vinden.'],
+      ['Een automatische overschrijving', 'Er gaat een bedrag naar je spaarrekening op de dag dat je loon binnenkomt.'],
     ],
   },
 
@@ -996,6 +1333,20 @@ export default {
     ['Btw', 'd', 'Belasting bovenop de verkoopprijs, die het bedrijf int voor de staat en daarna afdraagt.'],
     ['Waardering', 'ei', 'De prijs waarop het hele bedrijf geschat wordt bij een kapitaalronde.'],
     ['Vesting', 'ei', 'Je aandelen geleidelijk verwerven: een oprichter of werknemer die vroeg vertrekt, houdt er maar een deel van.'],
+    ['Eigen inbreng', 'm', 'Het eigen geld dat je in een vastgoedaankoop steekt, bovenop de lening.'],
+    ['Cashflow', 'mi', 'Wat een investering je elke maand oplevert (of kost), als alles betaald is.'],
+    ['Schuldratio', 'mb', 'Het deel van je inkomen dat elke maand naar je kredieten gaat.'],
+    ['JKP', 'mb', 'Jaarlijks kostenpercentage: de echte kost van een krediet, met kosten en verzekering.'],
+    ['Huurrendement', 'm', 'De huur van een jaar in % van de prijs van de woning. Bruto: voor de uitgaven. Netto: erna.'],
+    ['Leegstand', 'm', 'De periodes waarin een te huur gestelde woning geen huurder heeft.'],
+    ['ROAS', 'c', 'De omzet die één euro advertentie oplevert.'],
+    ['CPA', 'c', 'Kost per acquisitie: wat een bestelling of een klant via advertenties kost.'],
+    ['Retourpercentage', 'c', 'Het deel van de bestellingen dat klanten terugsturen.'],
+    ['Marktplaats', 'c', 'Een site die de producten van andere verkopers verkoopt, tegen een commissie.'],
+    ['Bestelpunt', 'c', 'Het voorraadniveau waarop je moet bijbestellen om niet zonder te vallen.'],
+    ['50 / 30 / 20', 'b', 'Een budgetrichtpunt: 50% voor het noodzakelijke, 30% voor wensen, 20% om te sparen.'],
+    ['Leefgeld', 'bm', 'Wat er elke maand overblijft als de noodzakelijke uitgaven en kredieten betaald zijn.'],
+    ['Kredietopening', 'b', 'Een geldreserve om terug te betalen, vaak aan een hoge rente. Voorzichtig mee omgaan.'],
   ],
 
   arsenal: {
@@ -1421,6 +1772,133 @@ export default {
         ['Al gedekt', `${F.money(v.saved)} ÷ ${F.money(v.expenses)} = ${F.nf(r.covered, 1)} maanden`],
         r.missing > 0 ? ['Er ontbreekt nog', `${F.money(r.target)} − ${F.money(v.saved)} = ${F.money(r.missing)}`] : null,
         r.missing > 0 && v.monthly > 0 ? ['Tijd om er te geraken', `${F.money(r.missing)} ÷ ${F.money(v.monthly)} = ${F.nf(r.missing / v.monthly, 1)} → ${r.wait} ${mnd(r.wait)}`] : null,
+      ];
+    },
+    credit(v, r, F) {
+      const n = v.years * 12;
+      const m = v.rate / 12;
+      return [
+        ['Rente per maand', `${F.pct(v.rate)} ÷ 12 = ${F.pct(m, 3)}`],
+        ['Maandlast, zonder verzekering', v.rate > 0 ? `${F.money(v.amount)} × ${F.pct(m, 3)} ÷ (1 − (1 + ${F.pct(m, 3)})^−${n}) = ${F.money(r.payment)}` : `${F.money(v.amount)} ÷ ${n} = ${F.money(r.payment)}`],
+        v.insurance > 0 ? ['Verzekering per maand', `${F.money(v.amount)} × ${F.pct(v.insurance, 2)} ÷ 12 = ${F.money(r.insurance)}`] : null,
+        ['In totaal betaald', `${F.money(r.monthly)} × ${n} maanden = ${F.money(r.totalPaid)}`],
+        v.rate > 0 ? ['Concreet is de rente in de eerste maand', `${F.money(v.amount)} × ${F.pct(m, 3)} = ${F.money(r.firstInterest)}`] : null,
+      ];
+    },
+    capacite(v, r, F) {
+      const n = v.years * 12;
+      const m = v.rate / 12;
+      return [
+        ['Deel voor kredieten', `${F.money(v.income)} × ${F.pct(v.ratio)} = ${F.money(r.room)}`],
+        v.debts > 0 ? ['Min je lopende kredieten', `${F.money(r.room)} − ${F.money(v.debts)} = ${F.money(r.maxMonthly)}`] : null,
+        ['Bedrag dat je kunt lenen', v.rate > 0 ? `${F.money(r.maxMonthly)} × (1 − (1 + ${F.pct(m, 3)})^−${n}) ÷ ${F.pct(m, 3)} = ${F.money(r.loan)}` : `${F.money(r.maxMonthly)} × ${n} = ${F.money(r.loan)}`],
+        r.loan > 0 ? ['Concreet, de rente in totaal', `${F.money(r.totalPaid)} − ${F.money(r.loan)} = ${F.money(r.interest)}`] : null,
+      ];
+    },
+    rendement(v, r, F) {
+      return [
+        ['Huur van een jaar', `${F.money(v.rent)} × (12 − ${F.nf(v.vacancy, 1)}) = ${F.money(r.yearRent)}`],
+        ['Brutorendement', `${F.money(v.rent)} × 12 ÷ ${F.money(v.price)} = ${F.pct(r.gross, 2)}`],
+        ['Wat overblijft', `${F.money(r.yearRent)} − ${F.money(v.charges)} = ${F.money(r.netIncome)}`],
+        ['Nettorendement', `${F.money(r.netIncome)} ÷ (${F.money(v.price)} + ${F.money(v.costs)}) = ${F.pct(r.net, 2)}`],
+        ['Concreet, per maand', `${F.money(r.netIncome)} ÷ 12 = ${F.money(r.netIncome / 12)}`],
+      ];
+    },
+    cashflow(v, r, F) {
+      return [
+        ['Ontvangen huur', `${F.money(v.rent)} × (1 − ${F.pct(v.vacancy)}) = ${F.money(r.income)}`],
+        v.works > 0 ? ['Reserve voor werken', `${F.money(v.rent)} × ${F.pct(v.works)} = ${F.money(r.reserve)}`] : null,
+        ['Wat overblijft', `${F.money(r.income)} − ${F.money(v.charges)} − ${F.money(v.loan)} − ${F.money(r.reserve)} = ${F.money(r.cash)}`],
+        ['Concreet, over een jaar', `${F.money(r.cash)} × 12 = ${F.money(r.yearly)}`],
+      ];
+    },
+    louer(v, r, F) {
+      const diff = r.firstOwnerOut - v.rent;
+      return [
+        ['Kost van de aankoop', `${F.money(v.price)} × (1 + ${F.pct(v.buyCosts)}) = ${F.money(r.cost)}`],
+        ['Geleend bedrag', `${F.money(r.cost)} − ${F.money(Math.min(v.deposit, r.cost))} = ${F.money(r.loan)}`],
+        ['Uitgave van de eigenaar, eerste maand', `${F.money(r.payment)} + ${F.money(v.price)} × 1% ÷ 12 = ${F.money(r.firstOwnerOut)}`],
+        diff >= 0 ? ['De huurder belegt, eerste maand', `${F.money(r.firstOwnerOut)} − ${F.money(v.rent)} = ${F.money(diff)}`]
+          : ['De eigenaar belegt, eerste maand', `${F.money(v.rent)} − ${F.money(r.firstOwnerOut)} = ${F.money(-diff)}`],
+        [`Vermogen na ${v.horizon} jaar`, `${F.money(r.buy)} met kopen, ${F.money(r.rent)} met huren`],
+      ];
+    },
+    pub(v, r, F) {
+      return [
+        ['Marge per bestelling', `${F.money(v.basket)} − ${F.money(v.cogs)} − ${F.money(v.shipping)} − ${F.money(v.basket * v.fees / 100)} = ${F.money(r.margin)}`],
+        r.breakEvenRoas != null ? ['Break-even-ROAS', `${F.money(v.basket)} ÷ ${F.money(r.margin)} = ${F.nf(r.breakEvenRoas, 2)}`] : null,
+        r.roas != null ? ['Jouw ROAS', `${F.money(r.revenue)} ÷ ${F.money(v.spend)} = ${F.nf(r.roas, 2)}`] : null,
+        ['Winst', `${F.nf(v.orders)} × ${F.money(r.margin)} − ${F.money(v.spend)} = ${F.money(r.profit)}`],
+        r.cpa != null ? ['Concreet kost elke bestelling je aan advertenties', `${F.money(v.spend)} ÷ ${F.nf(v.orders)} = ${F.money(r.cpa)}`] : null,
+      ];
+    },
+    livraison(v, r, F) {
+      return [
+        ['Marge op een gemiddeld mandje', `${F.money(v.basket)} × ${F.pct(v.margin)} = ${F.money(v.basket * v.margin / 100)}`],
+        ['Extra mandje om de verzending te betalen', `${F.money(v.shipping)} ÷ ${F.pct(v.margin)} = ${F.money(r.extra)}`],
+        ['Drempel', `${F.money(v.basket)} + ${F.money(r.extra)} = ${F.money(r.threshold)}`],
+        v.orders > 0 ? ['Concreet kost alles gratis leveren per maand', `${F.nf(v.orders)} × ${F.money(v.shipping)} = ${F.money(r.monthly)}`] : null,
+      ];
+    },
+    stock(v, r, F) {
+      return [
+        ['Bestelpunt', `${F.nf(v.daily, 1)} × (${F.nf(v.lead)} + ${F.nf(v.safety)}) = ${F.nf(r.point)}`],
+        ['Dagen voorraad', `${F.nf(v.stock)} ÷ ${F.nf(v.daily, 1)} = ${F.nf(r.daysLeft, 1)}`],
+        r.late ? null : ['Bestellen over', `(${F.nf(v.stock)} − ${F.nf(r.point)}) ÷ ${F.nf(v.daily, 1)} ≈ ${F.nf(r.orderIn)} dagen`],
+        v.cost > 0 ? ['Concreet is je voorraad waard', `${F.nf(v.stock)} × ${F.money(v.cost)} = ${F.money(r.value)}`] : null,
+      ];
+    },
+    retours(v, r, F) {
+      return [
+        ['Retouren per maand', `${F.nf(v.orders)} × ${F.pct(v.rate)} = ${F.nf(r.returned, 1)}`],
+        ['Kost van een retour', `(${F.money(v.basket)} − ${F.money(v.cogs)}) + ${F.money(v.back)} + ${F.money(v.cogs)} × ${F.pct(v.lost)} = ${F.money(r.perReturn)}`],
+        ['Per maand', `${F.nf(r.returned, 1)} × ${F.money(r.perReturn)} = ${F.money(r.total)}`],
+        v.rate > 0 ? ['Concreet, op 100 bestellingen', `${F.nf(v.rate, 1)} komen terug en kosten ${F.money(v.rate * r.perReturn)}`] : null,
+      ];
+    },
+    marketplace(v, r, F) {
+      return [
+        ['Kosten op de marktplaats', `${F.money(v.price)} × ${F.pct(v.commission)} + ${F.money(v.fixedFee)} = ${F.money(r.mpCost)}`],
+        ['Over, op de marktplaats', `${F.money(v.price)} − ${F.money(v.cogs)} − ${F.money(r.mpCost)} = ${F.money(r.mp)}`],
+        ['Kosten in je webwinkel', `${F.money(v.price)} × ${F.pct(v.siteFees)} + ${F.money(v.siteAds)} = ${F.money(r.siteCost)}`],
+        ['Over, in je webwinkel', `${F.money(v.price)} − ${F.money(v.cogs)} − ${F.money(r.siteCost)} = ${F.money(r.site)}`],
+        ['Concreet, op 100 verkopen', `100 × ${F.money(Math.abs(r.gap))} = ${F.money(100 * Math.abs(r.gap))} verschil`],
+      ];
+    },
+    budget(v, r, F) {
+      return [
+        ['Wat overblijft', `${F.money(v.income)} − ${F.money(v.needs)} − ${F.money(v.wants)} = ${F.money(r.savings)}`],
+        ['Richtpunt voor het noodzakelijke', `${F.money(v.income)} × ${F.pct(50, 0)} = ${F.money(r.target.needs)}`],
+        ['Richtpunt voor wensen', `${F.money(v.income)} × ${F.pct(30, 0)} = ${F.money(r.target.wants)}`],
+        ['Richtpunt om te sparen', `${F.money(v.income)} × ${F.pct(20, 0)} = ${F.money(r.target.savings)}`],
+        r.savings > 0 ? ['Concreet, over tien jaar', `${F.money(r.savings)} × 120 maanden = ${F.money(r.savings * 120)}`] : null,
+      ];
+    },
+    dette(v, r, F) {
+      const m = v.rate / 12;
+      return [
+        ['Rente per maand', `${F.pct(v.rate)} ÷ 12 = ${F.pct(m, 2)}`],
+        ['Rente in de eerste maand', `${F.money(v.balance)} × ${F.pct(m, 2)} = ${F.money(r.firstInterest)}`],
+        r.months != null ? ['Schuld afgelost in de eerste maand', `${F.money(v.payment)} − ${F.money(r.firstInterest)} = ${F.money(v.payment - r.firstInterest)}`]
+          : ['Minimale afbetaling', `meer dan ${F.money(r.firstInterest)} per maand`],
+        r.months != null ? ['Concreet betaal je in totaal', `${F.money(v.balance)} + ${F.money(r.interest)} = ${F.money(v.balance + r.interest)}`] : null,
+      ];
+    },
+    heures(v, r, F) {
+      return [
+        ['Je inkomen per uur', `${F.money(v.income)} ÷ ${F.nf(v.hours)} u = ${F.money(r.hourly)}`],
+        ['Uren werk', `${F.money(v.price)} ÷ ${F.money(r.hourly)} = ${F.nf(r.hours, 1)} u`],
+        v.years > 0 ? ['Hetzelfde bedrag belegd', `${F.money(v.price)} × (1 + ${F.pct(v.rate)})^${v.years} = ${F.money(r.later)}`] : null,
+        ['Concreet, in werkdagen van 7 uur', `${F.nf(r.hours, 1)} ÷ 7 ≈ ${F.nf(r.days, 1)}`],
+      ];
+    },
+    voiture(v, r, F) {
+      return [
+        ['Waardeverlies per jaar', `${F.money(v.price)} × (1 − ${F.pct(v.resale)}) ÷ ${F.nf(v.years)} = ${F.money(r.loss)}`],
+        ['Energie per jaar', `${F.nf(v.km)} km × ${F.nf(v.use, 1)} ÷ 100 × ${F.money(v.energy)} = ${F.money(r.fuel)}`],
+        ['Per jaar', `${F.money(r.loss)} + ${F.money(r.fuel)} + ${F.money(r.fixed)} = ${F.money(r.year)}`],
+        ['Per maand', `${F.money(r.year)} ÷ 12 = ${F.money(r.month)}`],
+        r.perKm != null ? ['Concreet, een rit van 20 km', `20 × ${F.money(r.perKm)} = ${F.money(20 * r.perKm)}`] : null,
       ];
     },
   },
@@ -1850,6 +2328,215 @@ export default {
         ['Al gedekt', `${F.nf(r.covered, 1)} ${mnd(r.covered)}`],
         ['Ontbreekt nog', F.money(r.missing)],
         ['Maanden tot je er bent', r.wait === 0 ? 'bereikt' : r.wait != null ? String(r.wait) : '—'],
+      ],
+    },
+    credit: {
+      invalid: 'Controleer je cijfers: een bedrag boven nul, een rente van 0 tot 30%, een looptijd van 1 tot 40 volle jaren en een verzekering van 0 tot 5%.',
+      label: 'per maand, verzekering inbegrepen',
+      verdict: (v, r, F) => `Voor ${F.money(v.amount)} over ${v.years} jaar betaal je ${F.money(r.monthly)} per maand. De lening kost je ${F.money(r.totalCost)} bovenop het geleende bedrag, of ${F.pct((r.totalCost / v.amount) * 100, 0)} van dat bedrag.`,
+      chart: 'Wat je elk jaar afbetaalt',
+      aria: 'Afgelost kapitaal en rente, jaar per jaar',
+      bar: (p, F) => `Jaar ${p.year}: ${F.money(p.principal)} kapitaal, ${F.money(p.interest)} rente`,
+      legend: ['Afgelost kapitaal', 'Rente'],
+      facts: (v, r, F) => [
+        ['Maandlast zonder verzekering', F.money(r.payment)],
+        ['Rente in totaal', F.money(r.totalInterest)],
+        ['Verzekering in totaal', F.money(r.totalInsurance)],
+      ],
+      table: ['Jaar', 'Kapitaal', 'Rente', 'Nog verschuldigd'],
+      row: (p, F) => ['Jaar ' + p.year, F.money(p.principal), F.money(p.interest), F.money(p.balance)],
+    },
+    capacite: {
+      invalid: 'Controleer je cijfers: een inkomen boven nul, een deel van 1 tot 100%, een rente van 0 tot 30% en een looptijd van 1 tot 40 volle jaren.',
+      label: 'die je kunt lenen',
+      verdict(v, r, F) {
+        if (r.maxMonthly === 0) return `Je lopende kredieten (${F.money(v.debts)} per maand) nemen al het hele voorziene deel: ${F.pct(v.ratio, 0)} van je inkomen.`;
+        return `Met ${F.money(v.income)} inkomen geeft ${F.pct(v.ratio, 0)} ${F.money(r.room)} per maand voor kredieten. Daarvan blijft ${F.money(r.maxMonthly)} over: genoeg om ${F.money(r.loan)} te lenen over ${v.years} jaar.`;
+      },
+      rows: ['Deel voor kredieten', 'Lopende kredieten', 'Mogelijke maandlast'],
+      facts: (v, r, F) => [
+        ['Mogelijke maandlast', F.money(r.maxMonthly)],
+        ['Rente in totaal', F.money(r.interest)],
+        ['Je kredieten vandaag', `${F.pct(r.used)} van het inkomen`],
+      ],
+    },
+    rendement: {
+      invalid: 'Controleer je cijfers: een prijs boven nul, bedragen die niet negatief zijn en 0 tot 12 maanden zonder huurder.',
+      label: 'nettorendement per jaar',
+      verdict: (v, r, F) => (r.netIncome <= 0
+        ? `De uitgaven slokken alle huur op: de woning kost je ${F.money(-r.netIncome)} per jaar, nog voor de lening.`
+        : `Aangekondigd aan ${F.pct(r.gross, 2)} bruto, brengt de woning ${F.pct(r.net, 2)} netto op: ${F.money(r.netIncome)} per jaar voor ${F.money(r.total)} geïnvesteerd. Er zijn ${F.nf(r.payback, 1)} jaar huur nodig om de aankoop terug te verdienen.`),
+      chart: 'Een jaar huur',
+      rows: ['Ontvangen huur', 'Uitgaven', 'Wat overblijft'],
+      facts: (v, r, F) => [
+        ['Brutorendement', F.pct(r.gross, 2)],
+        ['Totale kost', F.money(r.total)],
+        ['Jaren om de aankoop terug te verdienen', r.payback != null ? F.nf(r.payback, 1) : 'nooit'],
+      ],
+    },
+    cashflow: {
+      invalid: 'Controleer je cijfers: bedragen die niet negatief zijn en percentages van 0 tot 100.',
+      label: 'per maand, na de lening',
+      verdict: (v, r, F) => (r.cash >= 0
+        ? `De woning betaalt haar lening en uitgaven, en laat je ${F.money(r.cash)} per maand over: ${F.money(r.yearly)} per jaar, voor belastingen.`
+        : `De huur dekt niet alles: je legt ${F.money(-r.cash)} per maand bij uit eigen zak, of ${F.money(-r.yearly)} per jaar. In ruil los je elke maand kapitaal af.`),
+      chart: 'Een gewone maand',
+      rows: ['Ontvangen huur', 'Lening', 'Uitgaven', 'Reserve voor werken'],
+      facts: (v, r, F) => [
+        ['Over een jaar', F.money(r.yearly)],
+        ['De huur dekt de lening voor', r.cover != null ? F.pct(r.cover, 0) : 'geen lening'],
+        ['Uitgaand per maand', F.money(r.out)],
+      ],
+    },
+    louer: {
+      invalid: 'Controleer je cijfers: een prijs boven nul, looptijden van 1 tot 40 volle jaren, een prijsstijging van −20 tot 20% en redelijke rentes.',
+      label: (r) => (r.gap >= 0 ? 'meer vermogen door te kopen' : 'meer vermogen door te huren'),
+      verdict(v, r, F) {
+        let t = r.gap >= 0
+          ? `Na ${v.horizon} jaar heeft de koper ${F.money(r.buy)} en de huurder ${F.money(r.rent)}: kopen wint met ${F.money(r.gap)}.`
+          : `Na ${v.horizon} jaar heeft de huurder ${F.money(r.rent)} en de koper ${F.money(r.buy)}: huren wint met ${F.money(-r.gap)}.`;
+        t += r.breakEven != null ? ` Kopen neemt de leiding na ${r.breakEven} jaar.` : ' Over deze periode neemt kopen nooit de leiding.';
+        return t;
+      },
+      chart: 'Verschil in vermogen, jaar na jaar',
+      bar: (p, F) => `Jaar ${p.year}: koper ${F.money(p.buy)}, huurder ${F.money(p.rent)}`,
+      legend: ['Kopen staat voor', 'Huren staat voor'],
+      facts: (v, r, F) => [
+        ['Geleend bedrag', F.money(r.loan)],
+        ['Maandlast', F.money(r.payment)],
+        ['Waarde van de woning op het einde', F.money(r.home)],
+      ],
+      table: ['Jaar', 'Koper', 'Huurder'],
+      row: (p, F) => [p.year === 0 ? 'Start' : 'Jaar ' + p.year, F.money(p.buy), F.money(p.rent)],
+    },
+    pub: {
+      invalid: 'Controleer je cijfers: een mandje boven nul, bedragen die niet negatief zijn en kosten van 0 tot 100%.',
+      label: 'winst na advertenties',
+      verdict(v, r, F) {
+        if (r.breakEvenRoas == null) return `Elke bestelling kost je al ${F.money(-r.margin)} voor de advertenties: geen campagne kan dat goedmaken. Herbekijk je prijs of je kosten.`;
+        const roas = r.roas != null ? `Je ROAS is ${F.nf(r.roas, 2)}, tegenover een break-even-ROAS van ${F.nf(r.breakEvenRoas, 2)}. ` : '';
+        return roas + (r.profit >= 0 ? `Deze advertenties laten je ${F.money(r.profit)} over.`
+          : `Deze advertenties kosten je ${F.money(-r.profit)}: je zou ${F.nf(r.ordersNeeded)} bestellingen nodig hebben om quitte te spelen.`);
+      },
+      rows: ['Omzet', 'Marge voor advertenties', 'Advertentiebudget'],
+      facts: (v, r, F) => [
+        ['Break-even-ROAS', r.breakEvenRoas != null ? F.nf(r.breakEvenRoas, 2) : '—'],
+        ['Kost per bestelling', r.cpa != null ? F.money(r.cpa) : '—'],
+        ['Maximale kost per bestelling', F.money(r.maxCpa)],
+      ],
+    },
+    livraison: {
+      invalid: 'Controleer je cijfers: een mandje boven nul, een marge van 1 tot 100% en bedragen die niet negatief zijn.',
+      label: 'minimummandje voor gratis levering',
+      verdict: (v, r, F) => `Een verzending van ${F.money(v.shipping)} slokt ${F.pct(r.eaten, 0)} op van de marge op een gemiddeld mandje. Om ze te betalen is ${F.money(r.extra)} extra in het mandje nodig: bied gratis levering aan vanaf ${F.money(r.threshold)}.`,
+      rows: ['Gemiddeld mandje vandaag', 'Drempel voor gratis levering'],
+      facts: (v, r, F) => [
+        ['Nodig extra mandje', F.money(r.extra)],
+        ['Opgeslokt deel van de marge', F.pct(r.eaten, 0)],
+        ['Alles gratis leveren, per maand', F.money(r.monthly)],
+      ],
+    },
+    stock: {
+      invalid: 'Controleer je cijfers: een verkoop boven nul en getallen die niet negatief zijn.',
+      label: 'stuks: het punt om bij te bestellen',
+      verdict(v, r, F) {
+        if (r.late) return `Je voorraad (${F.nf(v.stock)}) zit al onder het bestelpunt: bestel vandaag. Hij houdt ${F.nf(r.daysLeft, 1)} dagen, tegenover ${F.nf(v.lead)} dagen levertijd` + (r.gap > 0 ? `: ${F.nf(r.gap, 1)} dagen zonder voorraad als er niets verandert.` : '.');
+        return `Je voorraad houdt ${F.nf(r.daysLeft, 1)} dagen. Bestel bij wanneer hij onder ${F.nf(r.point)} stuks zakt: over ongeveer ${F.nf(r.orderIn)} ${r.orderIn === 1 ? 'dag' : 'dagen'}.`;
+      },
+      rows: ['Voorraad vandaag', 'Bestelpunt'],
+      facts: (v, r, F) => [
+        ['Dagen voorraad', F.nf(r.daysLeft, 1)],
+        ['Bestellen over', r.late ? 'meteen' : `${F.nf(r.orderIn)} ${r.orderIn === 1 ? 'dag' : 'dagen'}`],
+        ['Waarde van de voorraad', F.money(r.value)],
+      ],
+    },
+    retours: {
+      invalid: 'Controleer je cijfers: een mandje boven nul, bedragen die niet negatief zijn en percentages van 0 tot 100.',
+      label: 'kost van retouren per maand',
+      verdict: (v, r, F) => `${F.nf(r.returned, 1)} retouren per maand, aan ${F.money(r.perReturn)} per stuk: ${F.money(r.total)} per maand en ${F.money(r.yearly)} per jaar`
+        + (r.share != null ? `, of ${F.pct(r.share)} van je marge.` : '.'),
+      rows: ['Marge van de maand, voor retouren', 'Kost van de retouren'],
+      facts: (v, r, F) => [
+        ['Kost van een retour', F.money(r.perReturn)],
+        ['Over een jaar', F.money(r.yearly)],
+        ['Marge na retouren', F.money(r.after)],
+      ],
+    },
+    marketplace: {
+      invalid: 'Controleer je cijfers: een prijs boven nul, bedragen die niet negatief zijn en percentages van 0 tot 100.',
+      label: (r) => (r.gap >= 0 ? 'meer per verkoop in je webwinkel' : 'meer per verkoop op de marktplaats'),
+      verdict(v, r, F) {
+        if (r.gap === 0) return 'Beide kanalen laten je per verkoop hetzelfde over.';
+        return r.gap > 0
+          ? `Je webwinkel laat je ${F.money(r.site)} per verkoop over, de marktplaats ${F.money(r.mp)}. Je webwinkel blijft voor zolang advertenties er minder dan ${F.money(r.adsLimit)} per verkoop kosten.`
+          : `De marktplaats laat je ${F.money(r.mp)} per verkoop over, je webwinkel ${F.money(r.site)}: advertenties kosten er te veel. Boven ${F.money(r.adsLimit)} advertentie per verkoop wint de marktplaats.`;
+      },
+      rows: ['In je webwinkel', 'Op de marktplaats'],
+      facts: (v, r, F) => [
+        ['Kosten van de marktplaats, per verkoop', F.money(r.mpCost)],
+        ['Kosten van je webwinkel, per verkoop', F.money(r.siteCost)],
+        ['Maximale advertentie per verkoop in je webwinkel', F.money(r.adsLimit)],
+      ],
+    },
+    budget: {
+      invalid: 'Controleer je cijfers: een inkomen boven nul en uitgaven die niet negatief zijn.',
+      label: 'over op het einde van de maand',
+      verdict(v, r, F) {
+        if (r.savings < 0) return `Je geeft elke maand ${F.money(-r.savings)} meer uit dan je verdient: begin bij de wensen, en heronderhandel dan de grote noodzakelijke uitgaven.`;
+        return `Je houdt ${F.money(r.savings)} per maand over: ${F.pct(r.savingsPct)} van je inkomen en ${F.money(r.yearly)} per jaar.`
+          + (r.savingsPct >= 20 ? ' Boven het richtpunt van 20%: goed zo.' : ` Het richtpunt van 20% zou ${F.money(r.target.savings)} zijn.`);
+      },
+      parts: ['Noodzakelijk', 'Wensen', 'Over'],
+      chart: 'Jij en het richtpunt 50 / 30 / 20',
+      table: ['', 'Jij', 'Richtpunt'],
+      facts: (v, r, F) => [
+        ['Opzij over een jaar', F.money(r.yearly)],
+        ['Noodzakelijk', F.pct(r.needsPct)],
+        ['Wensen', F.pct(r.wantsPct)],
+      ],
+    },
+    dette: {
+      invalid: 'Controleer je cijfers: een verschuldigd bedrag en een afbetaling boven nul, en een rente van 0 tot 100%.',
+      never: 'Nooit',
+      neverLabel: 'de afbetaling dekt de rente niet',
+      neverVerdict: (v, r, F) => `De rente van de eerste maand is al ${F.money(r.firstInterest)}: met ${F.money(v.payment)} per maand daalt de schuld niet. Je moet minstens ${F.money(r.minPayment)} betalen, en veel meer om eruit te raken.`,
+      label: (r) => `${mnd(r.months)} om alles af te lossen`,
+      verdict(v, r, F) {
+        let t = `Met ${F.money(v.payment)} per maand ben je klaar na ${r.months} ${mnd(r.months)} en betaal je ${F.money(r.interest)} rente.`;
+        if (r.saved != null) t += ` Betaal je ${F.money(v.extra)} meer, dan wordt het ${r.moreMonths} ${mnd(r.moreMonths)}, en ${F.money(r.saved)} minder rente.`;
+        return t;
+      },
+      chart: 'Nog verschuldigd, jaar na jaar',
+      bar: (p, F) => `Jaar ${p.year}: ${F.money(p.balance)}`,
+      facts: (v, r, F) => [
+        ['Rente in totaal', F.money(r.interest)],
+        ['Rente van de eerste maand', F.money(r.firstInterest)],
+        ['Bespaard door meer te betalen', r.saved != null ? F.money(r.saved) : '—'],
+      ],
+    },
+    heures: {
+      invalid: 'Controleer je cijfers: een prijs, een inkomen en uren boven nul.',
+      label: 'uur werk',
+      verdict: (v, r, F) => `Aan ${F.money(r.hourly)} per uur kost deze aankoop je ${F.nf(r.hours, 1)} uur werk: ongeveer ${F.nf(r.days, 1)} ${r.days === 1 ? 'werkdag' : 'werkdagen'} van 7 uur.`
+        + (v.years > 0 ? ` Belegd gedurende ${v.years} jaar aan ${F.pct(v.rate)} zou het bedrag ${F.money(r.later)} worden.` : ''),
+      rows: ['Prijs van de aankoop', 'Hetzelfde bedrag belegd'],
+      facts: (v, r, F) => [
+        ['Je inkomen per uur', F.money(r.hourly)],
+        ['In werkdagen van 7 uur', F.nf(r.days, 1)],
+        ['Deel van je maandinkomen', F.pct(r.share)],
+      ],
+    },
+    voiture: {
+      invalid: 'Controleer je cijfers: een periode van 1 tot 40 jaar, een doorverkoopwaarde van 0 tot 100% en bedragen die niet negatief zijn.',
+      label: 'per maand, alles inbegrepen',
+      verdict: (v, r, F) => `Je auto kost je ${F.money(r.year)} per jaar, of ${F.money(r.month)} per maand` + (r.perKm != null ? ` en ${F.money(r.perKm)} per kilometer.` : '.')
+        + ` Het grootste deel: ${r.loss >= r.fuel && r.loss >= r.fixed ? 'het waardeverlies' : r.fuel >= r.fixed ? 'de energie' : 'de vaste kosten'}.`,
+      chart: 'Wat een jaar kost',
+      rows: ['Waardeverlies', 'Energie', 'Verzekering, onderhoud, parkeren'],
+      facts: (v, r, F) => [
+        ['Per jaar', F.money(r.year)],
+        ['Per kilometer', r.perKm != null ? F.money(r.perKm) : '—'],
+        [`Over ${v.years} jaar`, F.money(r.total)],
       ],
     },
   },

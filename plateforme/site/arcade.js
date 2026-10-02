@@ -628,6 +628,198 @@ const RESULTS = {
     ];
   },
 
+  credit(v, R) {
+    const r = calc.mortgage(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(r.monthly), R.label)),
+      verdict(R.verdict(v, r, F)),
+      h('h3', { text: R.chart }),
+      stacked(r.series.map((p) => ({ label: String(p.year), parts: [p.principal, p.interest], title: R.bar(p, F) })),
+        { every: years(v.years), colors: ['var(--p5)', 'var(--hot)'], label: R.aria }),
+      legend(['p5', R.legend[0]], ['hot', R.legend[1]]),
+      facts(R.facts(v, r, F)),
+      valuesTable(R.table, r.series.map((p) => R.row(p, F))),
+    ];
+  },
+
+  capacite(v, R) {
+    const r = calc.borrowingCapacity(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(r.loan), R.label, r.loan === 0 ? 'bad' : '')),
+      verdict(R.verdict(v, r, F)),
+      versus([{ label: R.rows[0], value: r.room, text: F.money(r.room), cls: 'violet' },
+        v.debts > 0 ? { label: R.rows[1], value: v.debts, text: F.money(v.debts), cls: 'hot' } : null,
+        { label: R.rows[2], value: r.maxMonthly, text: F.money(r.maxMonthly), cls: 'p5' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  rendement(v, R) {
+    const r = calc.rentalYield(v);
+    if (!r) return null;
+    return [
+      top(score(F.pct(r.net, 2), R.label, r.net < 0 ? 'bad' : '')),
+      verdict(R.verdict(v, r, F)),
+      h('h3', { text: R.chart }),
+      versus([{ label: R.rows[0], value: r.yearRent, text: F.money(r.yearRent), cls: 'ok' },
+        v.charges > 0 ? { label: R.rows[1], value: v.charges, text: F.money(v.charges), cls: 'hot' } : null,
+        { label: R.rows[2], value: r.netIncome, text: F.money(r.netIncome), cls: 'p5' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  cashflow(v, R) {
+    const r = calc.rentalCashflow(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(r.cash), R.label, r.cash < 0 ? 'bad' : '')),
+      verdict(R.verdict(v, r, F)),
+      h('h3', { text: R.chart }),
+      versus([{ label: R.rows[0], value: r.income, text: F.money(r.income), cls: 'ok' },
+        v.loan > 0 ? { label: R.rows[1], value: v.loan, text: F.money(v.loan), cls: 'hot' } : null,
+        v.charges > 0 ? { label: R.rows[2], value: v.charges, text: F.money(v.charges), cls: 'violet' } : null,
+        r.reserve > 0 ? { label: R.rows[3], value: r.reserve, text: F.money(r.reserve), cls: 'p1' } : null]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  louer(v, R) {
+    const r = calc.rentOrBuy(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(Math.abs(r.gap)), say(R.label, r))),
+      verdict(R.verdict(v, r, F)),
+      h('h3', { text: R.chart }),
+      columns(r.series.map((p) => ({ label: String(p.year), value: p.buy - p.rent, title: R.bar(p, F) })), { every: years(v.horizon), pos: 'var(--p5)', neg: 'var(--p2)' }),
+      legend(['p5', R.legend[0]], ['p2', R.legend[1]]),
+      facts(R.facts(v, r, F)),
+      valuesTable(R.table, r.series.map((p) => R.row(p, F))),
+    ];
+  },
+
+  pub(v, R) {
+    const r = calc.adsProfit(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(r.profit), R.label, r.profit < 0 ? 'bad' : '')),
+      verdict(R.verdict(v, r, F)),
+      versus([{ label: R.rows[0], value: r.revenue, text: F.money(r.revenue), cls: 'violet' },
+        { label: R.rows[1], value: v.orders * r.margin, text: F.money(v.orders * r.margin), cls: 'ok' },
+        { label: R.rows[2], value: v.spend, text: F.money(v.spend), cls: 'hot' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  livraison(v, R) {
+    const r = calc.freeShipping(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(r.threshold), R.label)),
+      verdict(R.verdict(v, r, F)),
+      versus([{ label: R.rows[0], value: v.basket, text: F.money(v.basket), cls: 'p2' },
+        { label: R.rows[1], value: r.threshold, text: F.money(r.threshold), cls: 'p6' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  stock(v, R) {
+    const r = calc.reorder(v);
+    if (!r) return null;
+    return [
+      top(score(F.nf(r.point), R.label, r.late ? 'bad' : '')),
+      verdict(R.verdict(v, r, F)),
+      versus([{ label: R.rows[0], value: v.stock, text: F.nf(v.stock), cls: r.late ? 'hot' : 'ok' },
+        { label: R.rows[1], value: r.point, text: F.nf(r.point), cls: 'p6' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  retours(v, R) {
+    const r = calc.returnsCost(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(r.total), R.label, r.share != null && r.share >= 20 ? 'bad' : '')),
+      verdict(R.verdict(v, r, F)),
+      versus([{ label: R.rows[0], value: r.margin, text: F.money(r.margin), cls: 'ok' },
+        { label: R.rows[1], value: r.total, text: F.money(r.total), cls: 'hot' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  marketplace(v, R) {
+    const r = calc.marketplace(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(Math.abs(r.gap)), say(R.label, r))),
+      verdict(R.verdict(v, r, F)),
+      versus([{ label: R.rows[0], value: r.site, text: F.money(r.site), cls: 'p6' },
+        { label: R.rows[1], value: r.mp, text: F.money(r.mp), cls: 'p2' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  budget(v, R) {
+    const r = calc.budgetSplit(v);
+    if (!r) return null;
+    const parts = [['hot', R.parts[0], r.needsPct], ['violet', R.parts[1], r.wantsPct], ['ok', R.parts[2], r.savingsPct]].filter((p) => p[2] > 0);
+    const rule = calc.BUDGET_RULE;
+    return [
+      top(score(F.money(r.savings), R.label, r.savings < 0 ? 'bad' : ''), r.savings >= 0 ? waffle(parts) : null),
+      verdict(R.verdict(v, r, F)),
+      legend(...parts.map((p) => [p[0], `${p[1]} : ${F.pct(p[2])}`])),
+      h('h3', { text: R.chart }),
+      h('div', { class: 'table-wrap' }, h('table', {},
+        h('thead', {}, h('tr', {}, R.table.map((t, i) => h('th', { scope: 'col', class: i ? 'num' : '', text: t })))),
+        h('tbody', {}, [['needs', v.needs, r.needsPct], ['wants', v.wants, r.wantsPct], ['savings', r.savings, r.savingsPct]].map(([k, amount, pct], i) => {
+          const over = k === 'savings' ? pct < rule[k] : pct > rule[k];
+          return h('tr', {}, [R.parts[i], `${F.money(amount)} (${F.pct(pct)})`, `${F.money(r.target[k])} (${F.pct(rule[k], 0)})`]
+            .map((c, j) => h('td', { class: (j ? 'num' : '') + (j === 1 ? (over ? ' neg' : ' posv') : ''), text: c })));
+        })))),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  dette(v, R) {
+    const r = calc.debtPayoff(v);
+    if (!r) return null;
+    if (r.months == null) return [top(score(R.never, R.neverLabel, 'bad')), verdict(R.neverVerdict(v, r, F))];
+    return [
+      top(score(F.nf(r.months), say(R.label, r), r.months > 36 ? 'bad' : '')),
+      verdict(R.verdict(v, r, F)),
+      h('h3', { text: R.chart }),
+      columns(r.series.map((p) => ({ label: String(p.year), value: p.balance, title: R.bar(p, F) })), { every: 1, pos: 'var(--p7)' }),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  heures(v, R) {
+    const r = calc.workHours(v);
+    if (!r) return null;
+    return [
+      top(score(F.nf(r.hours, 1), R.label)),
+      verdict(R.verdict(v, r, F)),
+      versus([{ label: R.rows[0], value: v.price, text: F.money(v.price), cls: 'p7' },
+        v.years > 0 ? { label: R.rows[1], value: r.later, text: F.money(r.later), cls: 'ok' } : null]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
+  voiture(v, R) {
+    const r = calc.carCost(v);
+    if (!r) return null;
+    return [
+      top(score(F.money(r.month), R.label)),
+      verdict(R.verdict(v, r, F)),
+      h('h3', { text: R.chart }),
+      versus([{ label: R.rows[0], value: r.loss, text: F.money(r.loss), cls: 'violet' },
+        { label: R.rows[1], value: r.fuel, text: F.money(r.fuel), cls: 'hot' },
+        { label: R.rows[2], value: r.fixed, text: F.money(r.fixed), cls: 'p2' }]),
+      facts(R.facts(v, r, F)),
+    ];
+  },
+
   coussin(v, R) {
     const r = calc.cushion(v);
     if (!r) return null;
@@ -679,6 +871,20 @@ const HEAD = {
   inflation: [calc.inflation, (r) => r.real, 'money', true],
   reserve: [calc.drawdown, (r) => r.years, 'nf1', true, (r, R) => R.forever],
   coussin: [calc.cushion, (r) => r.target, 'money', null],
+  credit: [calc.mortgage, (r) => r.monthly, 'money', false],
+  capacite: [calc.borrowingCapacity, (r) => r.loan, 'money', true],
+  rendement: [calc.rentalYield, (r) => r.net, 'pct2', true],
+  cashflow: [calc.rentalCashflow, (r) => r.cash, 'money', true],
+  louer: [calc.rentOrBuy, (r) => Math.abs(r.gap), 'money', null],
+  pub: [calc.adsProfit, (r) => r.profit, 'money', true],
+  livraison: [calc.freeShipping, (r) => r.threshold, 'money', null],
+  stock: [calc.reorder, (r) => r.point, 'nf', null],
+  retours: [calc.returnsCost, (r) => r.total, 'money', false],
+  marketplace: [calc.marketplace, (r) => Math.abs(r.gap), 'money', null],
+  budget: [calc.budgetSplit, (r) => r.savings, 'money', true],
+  dette: [calc.debtPayoff, (r) => r.months, 'nf', false, (r, R) => R.never],
+  heures: [calc.workHours, (r) => r.hours, 'nf1', false],
+  voiture: [calc.carCost, (r) => r.month, 'money', false],
 };
 
 /* → { r, n, text, fmt, up } ou null si les chiffres sont impossibles. */
@@ -764,6 +970,13 @@ function viewHome() {
 
   const body = h('div', { class: 'wrap' });
   frag.append(body);
+  // Les chiffres du site, qui défilent comme un compteur de borne.
+  const stats = [[TOOLS.length, ui.stats.tools], [Object.keys(ROLES).length, ui.stats.players], [ARSENAL_COUNT, ui.stats.arsenal], [T.glossary.length, ui.stats.words]];
+  const strip = h('div', { class: 'stats' }, stats.map(([n, label]) => h('div', { class: 'stat' }, h('b', { text: F.nf(n) }), h('span', { text: label }))));
+  body.append(strip);
+  if (!calm) strip.querySelectorAll('b').forEach((b, i) => tween(b, 0, stats[i][0], (x) => F.nf(Math.round(x)), () => { b.textContent = F.nf(stats[i][0]); }));
+  const recent = store.get('mb-recent', []).filter((id) => toolById.has(id)).slice(0, 4);
+  if (recent.length) body.append(section(ui.recent, ui.recentSub, h('div', { class: 'minis' }, recent.map((id) => miniTool(toolById.get(id))))));
   body.append(section(ui.tools, ui.toolsSub(TOOLS.length),
     h('div', { class: 'squads' }, Object.values(ROLES).map((r) => h('div', { class: 'squad ' + r.color },
       h('a', { class: 'squad-head', href: '#/outils/' + r.id },
@@ -811,15 +1024,30 @@ function viewTools(roleId) {
     role ? h('div', { class: 'head-sprite ' + role.color }, sprite(role.sprite, 6)) : null,
     h('div', {}, h('h1', { text: role ? `${playerName(role.id)} : ${T.roles[role.id].name}` : T.ui.tools.all }),
       h('p', { class: 'sub', text: role ? T.roles[role.id].about : T.ui.tools.allSub(TOOLS.length) }))));
-  frag.append(roleSeg('#/outils', role ? role.id : ''));
-  if (role) frag.append(h('div', { class: 'cabinets' }, toolsOf(role.id).map(toolCard)));
-  else {
-    for (const r of Object.values(ROLES)) {
-      frag.append(h('section', { class: 'section tight' },
+  const list = h('div', {});
+  const draw = (q) => {
+    const words = fold(q).split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      if (role) list.replaceChildren(h('div', { class: 'cabinets' }, toolsOf(role.id).map(toolCard)));
+      else list.replaceChildren(...Object.values(ROLES).map((r) => h('section', { class: 'section tight' },
         h('div', { class: 'section-head' }, h('h2', { text: T.roles[r.id].name }), h('p', { class: 'sub', text: T.roles[r.id].about })),
-        h('div', { class: 'cabinets' }, toolsOf(r.id).map(toolCard))));
+        h('div', { class: 'cabinets' }, toolsOf(r.id).map(toolCard)))));
+      return;
     }
-  }
+    // Chaque mot doit se trouver dans le nom, la question, la présentation ou le joueur de la borne.
+    const hits = TOOLS.filter((t) => {
+      if (role && t.role !== role.id) return false;
+      const w = T.tools[t.id];
+      const text = fold([w.name, w.question, w.lead, T.roles[t.role].name, ...Object.values(w.fields || {}).map((f) => f[0])].join(' '));
+      return words.every((x) => text.includes(x));
+    });
+    list.replaceChildren(hits.length ? h('div', { class: 'cabinets' }, hits.map(toolCard)) : h('p', { class: 'empty', text: T.ui.tools.noMatch }));
+  };
+  frag.append(h('div', { class: 'filters' },
+    h('input', { class: 'search', type: 'search', placeholder: T.ui.tools.search, 'aria-label': T.ui.tools.search, oninput: (e) => draw(e.target.value) }),
+    roleSeg('#/outils', role ? role.id : '')));
+  frag.append(list);
+  draw('');
   frag.append(h('p', { class: 'fineprint', text: T.ui.fineprint }));
   return frag;
 }
@@ -827,6 +1055,7 @@ function viewTools(roleId) {
 function viewTool(id, query) {
   const t = toolById.get(id);
   if (!t) return viewMissing();
+  store.set('mb-recent', [id, ...store.get('mb-recent', []).filter((x) => x !== id)].slice(0, 8));
   const w = T.tools[id];
   const ui = T.ui.tools;
   const frag = h('div', { class: 'wrap' });
@@ -988,7 +1217,7 @@ function calculator(t, query) {
     }, 300);
   };
 
-  const form = h('form', { class: 'panel form', onsubmit: (e) => e.preventDefault() },
+  const form = h('form', { class: 'panel form ' + ROLES[t.role].color, onsubmit: (e) => e.preventDefault() },
     h('h2', { class: 'result-title', text: T.ui.yourNumbers }),
     t.fields.map((f) => {
       const [label, unit, hint] = w.fields[f.key];
@@ -1356,6 +1585,14 @@ function render(event) {
 
 document.getElementById('logo').replaceChildren(sprite('coin', 3));
 if (calm) document.documentElement.classList.add('calm');
+// « / » : aller droit à la recherche de la page, s'il y en a une.
+addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+  const search = document.querySelector('#view .search');
+  if (search) { e.preventDefault(); search.focus(); }
+});
 setLang(pickLang()).then(() => {
   addEventListener('hashchange', render);
   render();

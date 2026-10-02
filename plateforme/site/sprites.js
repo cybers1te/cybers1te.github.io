@@ -25,6 +25,8 @@ const COLORS = {
   m: '#dba06c', // peau mate
   u: '#9a6238', // peau foncée
   h: '#7a4a2e', // cheveux bruns
+  q: '#f472ff', // magenta (joueur e-commerce)
+  z: '#7aa8ff', // bleu ciel (joueur budget)
 };
 
 const SPRITES = {
@@ -570,6 +572,118 @@ const SPRITES = {
     '...gg..gg...',
     '..nnn..nnn..',
   ],
+  house: [
+    '.....rr.....',
+    '....rrrr....',
+    '...rrrrrr...',
+    '..rrrrrrrr..',
+    '.rrrrrrrrrr.',
+    'rrrrrrrrrrrr',
+    '.wwwwwwwwww.',
+    '.wCCwwwwCCw.',
+    '.wCCwhhwCCw.',
+    '.wwwwhhwwww.',
+    '.wwwwhywwww.',
+    '.wwwwhhwwww.',
+    'vvvvvvvvvvvv',
+  ],
+  key: [
+    '.yyy........',
+    'yYYyy.......',
+    'yy.yyyyyyyyy',
+    'yYYyy...y.y.',
+    '.yyy....y...',
+  ],
+  scale: [
+    '.....yy.....',
+    '.yyyyyyyyyy.',
+    '.y...yy...y.',
+    'y.y..yy..y.y',
+    'yyy..yy..yyy',
+    '.....yy.....',
+    '.....yy.....',
+    '...yyyyyy...',
+    '..yyyyyyyy..',
+  ],
+  cart: [
+    'gg.........',
+    '.g.........',
+    '.gccccccccc',
+    '.gcCccCccCc',
+    '..ccccccccc',
+    '..cCccCccc.',
+    '...ccccccc.',
+    '...gggggggg',
+    '....gg..gg.',
+  ],
+  box: [
+    'oooooooooo',
+    'ohhhYYhhho',
+    'ohhhYYhhho',
+    'oooooooooo',
+    'ohhhhhhhho',
+    'ohhhhhhhho',
+    'ohhhhhhhho',
+    'oooooooooo',
+  ],
+  truck: [
+    'wwwwwwww......',
+    'wwwwwwwwccc...',
+    'wwqqwwwwcCcc..',
+    'wwqqwwwwcccccc',
+    'wwwwwwwwcccccc',
+    'nnnnnnnnnnnnnn',
+    '.gg......gg...',
+  ],
+  return: [
+    '..pppppp..',
+    '.pp....pp.',
+    'pp......pp',
+    'p.........',
+    'p.........',
+    'p......p..',
+    'pp....ppp.',
+    '.pp..ppppp',
+    '..pppp....',
+  ],
+  megaphone: [
+    '.........rr.',
+    '.......rrrr.',
+    'ww...rrrrrr.',
+    'wwwwrrrrrrr.',
+    'wwwwrrrrrrr.',
+    'ww...rrrrrr.',
+    '.g.....rrrr.',
+    '.g.......rr.',
+  ],
+  wallet: [
+    'nnnnnnnnnnn.',
+    'nzzzzzzzzzzn',
+    'nzzzzzzzyyyn',
+    'nzzzzzzzyYyn',
+    'nzzzzzzzyyyn',
+    'nzzzzzzzzzzn',
+    '.nnnnnnnnnn.',
+  ],
+  creditcard: [
+    'bbbbbbbbbbbb',
+    'bbbbbbbbbbbb',
+    'dddddddddddd',
+    'bbbbbbbbbbbb',
+    'byybbbbbbbbb',
+    'bbbbbbwwwwbb',
+    'bbbbbbbbbbbb',
+  ],
+  car: [
+    '....rrrrrr....',
+    '...rCCrrCCr...',
+    '..rrCCrrCCrr..',
+    'rrrrrrrrrrrrrr',
+    'rYrrrrrrrrrrYr',
+    'rrrrrrrrrrrrrr',
+    '.ggg......ggg.',
+    '..g........g..',
+  ],
   // Joueur 1 : l'entrepreneur (sweat jaune).
   founder: [
     '....hhhh....',
@@ -640,6 +754,9 @@ Object.assign(SPRITES, {
   // Les joueurs.
   freelance: person({ hair: 'o', skin: 's', top: 'v', light: 'V', legs: 'n', style: 'long', collar: 'hood' }),
   saver: person({ hair: 'h', skin: 'u', top: 'p', light: 'w', legs: 'n', style: 'short', collar: 'shirt' }),
+  owner: person({ hair: 'h', skin: 'm', top: 'o', light: 'Y', legs: 'n', style: 'cap', collar: 'shirt', hat: 'y' }),
+  merchant: person({ hair: 'p', skin: 'u', top: 'q', light: 'w', legs: 'n', style: 'headset', collar: 'hood', hat: 'q' }),
+  household: person({ hair: 'h', skin: 's', top: 'z', light: 'w', legs: 'n', style: 'long', collar: 'plain', skirt: true }),
   // Les guides.
   mentor: person({ hair: 'g', skin: 'm', top: 'r', light: 'R', legs: 'n', style: 'bun', collar: 'hood', skirt: true }),
   accountant: person({ hair: 'h', skin: 's', top: 'w', legs: 'n', style: 'glasses', collar: 'tie' }),
@@ -648,6 +765,8 @@ Object.assign(SPRITES, {
   client: person({ hair: 'r', skin: 'm', top: 'o', light: 'Y', legs: 'b', style: 'cap', collar: 'hood', hat: 'r' }),
   angel: person({ hair: 'w', skin: 's', top: 'c', light: 'C', legs: 'n', style: 'long', collar: 'shirt' }),
   designer: person({ hair: 'p', skin: 's', top: 'R', light: 'r', legs: 'n', style: 'short', collar: 'hood' }),
+  agent: person({ hair: 'h', skin: 'u', top: 'n', light: 'o', legs: 'b', style: 'glasses', collar: 'tie' }),
+  shopkeeper: person({ hair: 'o', skin: 's', top: 'q', light: 'Y', legs: 'n', style: 'bun', collar: 'hood' }),
 });
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

@@ -32,6 +32,9 @@ const CALC = {
   seuil: calc.breakEven, tunnel: calc.funnel, tirelire: calc.setAside, ticket: calc.exitReturn, valo: calc.maxValuation, portefeuille: calc.portfolio,
   suivre: calc.proRata, fonte: calc.rounds, convertible: calc.convertible, cascade: calc.waterfall, note: calc.scorecard, composes: calc.compound,
   cible: calc.savingsGoal, frais: calc.fees, inflation: calc.inflation, reserve: calc.drawdown, coussin: calc.cushion,
+  credit: calc.mortgage, capacite: calc.borrowingCapacity, rendement: calc.rentalYield, cashflow: calc.rentalCashflow, louer: calc.rentOrBuy,
+  pub: calc.adsProfit, livraison: calc.freeShipping, stock: calc.reorder, retours: calc.returnsCost, marketplace: calc.marketplace,
+  budget: calc.budgetSplit, dette: calc.debtPayoff, heures: calc.workHours, voiture: calc.carCost,
 };
 
 const clean = (text, where) => {
@@ -105,7 +108,7 @@ describe('langues : tout le site est couvert', () => {
         clean(R.verdict(v, r, F, x), `${code} ${t.id}.verdict`);
         for (const pair of (R.facts ? R.facts(v, r, F) : []).filter(Boolean)) { clean(pair[0], `${code} ${t.id} fait`); clean(String(pair[1]), `${code} ${t.id} valeur`); }
         // Le libellé du grand chiffre dépend parfois du résultat (runway, objectif, seuil, tunnel, reserve), parfois de la saisie.
-        const label = typeof R.label !== 'function' ? R.label : ['runway', 'objectif', 'seuil', 'tunnel', 'reserve'].includes(t.id) ? R.label(r) : R.label(v);
+        const label = typeof R.label !== 'function' ? R.label : ['runway', 'objectif', 'seuil', 'tunnel', 'reserve', 'louer', 'marketplace', 'dette'].includes(t.id) ? R.label(r) : R.label(v);
         clean(label, `${code} ${t.id}.label`);
       }
     });
@@ -132,7 +135,7 @@ describe('langues : tout le site est couvert', () => {
 
     it(`${code} : les mots de l'interface`, () => {
       const ui = pack.ui;
-      for (const text of [ui.title, ui.description, ui.highest('1'), ui.nTools(1), ui.nTools(3), ui.nItems(2), ui.nWords(5), ui.home.toolsSub(35),
+      for (const text of [ui.title, ui.description, ui.highest('1'), ui.nTools(1), ui.nTools(3), ui.nItems(2), ui.nWords(5), ui.home.toolsSub(52),
         ui.home.arsenalSub(79, 'x'), ui.home.glossaryText(64), ui.tools.allSub(35), ui.check.left(1), ui.check.left(4), ui.check.progress(2, 10),
         ui.writer.chars(10), ui.writer.charsFull(10), ui.steps, ui.stepsSub, ui.levers, ui.leversSub, ui.leverTry('a', '+1', 'b'), ui.slider('a'), ui.arsenal.sub(79, 21), ui.arsenal.notice('x'), ui.glossary.sub(64), ui.glossary.useful('x')]) clean(text, `${code} interface`);
       const sections = ui.about.sections({ tools: 35, arsenal: 79, words: 64, date: 'x' });
