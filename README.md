@@ -57,7 +57,7 @@ npm run test:repondeur      # tests du moteur de la démonstration
 **Coordonnées.** Les boutons « Demander une démo » mènent à la section
 contact, remplie à partir de `CONTACT` dans `repondeur/site/repondeur.js`
 (Instagram, WhatsApp, e-mail). Tant que tout est vide, la page affiche
-« Coordonnées à ajouter avant la mise en ligne ».
+« Les demandes de démo ouvrent très bientôt ».
 
 ## marketbuss (en réserve)
 

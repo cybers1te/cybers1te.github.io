@@ -146,6 +146,6 @@ if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(CONTACT.email)) {
     'Écrire un e-mail', h('small', { text: CONTACT.email })));
 }
 $('contact-ways').replaceChildren(...(ways.length ? ways
-  : [h('p', { class: 'contact-missing', text: 'Coordonnées à ajouter avant la mise en ligne.' })]));
+  : [h('p', { class: 'contact-missing', text: 'Les demandes de démo ouvrent très bientôt : les coordonnées arrivent ici.' })]));
 // Sans coordonnées, les boutons « Demander une démo » ne mènent nulle part d'utile : on le signale.
 document.documentElement.dataset.contact = ways.length ? 'ok' : 'missing';
