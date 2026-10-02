@@ -12,7 +12,7 @@
     "marketbuss:dev": "node marketbuss/tools/serve.mjs",
     "test:repondeur": "node --test repondeur/tests/moteur.test.js",
     "repondeur:dev": "node repondeur/tools/serve.mjs",
-    "test:plateforme": "node --test plateforme/tests/calculs.test.js",
+    "test:plateforme": "node --test plateforme/tests/calculs.test.js plateforme/tests/langues.test.js",
     "plateforme:dev": "node plateforme/tools/serve.mjs"
   },
   "devDependencies": {

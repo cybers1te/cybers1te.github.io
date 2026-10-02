@@ -109,7 +109,7 @@ jobs:
         run: node --test repondeur/tests/moteur.test.js
 
   plateforme:
-    name: marketbuss — calculs des outils
+    name: marketbuss — calculs et langues
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
@@ -121,8 +121,8 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Tests des calculs
-        run: node --test plateforme/tests/calculs.test.js
+      - name: Tests des calculs et des langues
+        run: node --test plateforme/tests/calculs.test.js plateforme/tests/langues.test.js
 
   deploy:
     name: GitHub Pages

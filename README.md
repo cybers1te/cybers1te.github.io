@@ -1,8 +1,8 @@
 # marketbuss.github.io
 
 Le site publié par GitHub Pages est **marketbuss** : une plateforme d'outils
-gratuits pour entrepreneurs et investisseurs, en pixel art façon salle
-d'arcade. La page du **Répondeur IA** est publiée à côté, à l'adresse
+gratuits pour entrepreneurs, indépendants, investisseurs et épargnants, en
+pixel art façon salle d'arcade, en français, anglais et néerlandais. La page du **Répondeur IA** est publiée à côté, à l'adresse
 `/repondeur/`. L'ancien comparateur d'IA et la messagerie **message-me**,
 publiés avant, sont gardés intacts dans le dépôt et se remettent en ligne en
 changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
@@ -16,7 +16,7 @@ changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **marketbuss** — le site publié | `plateforme/` | Site statique : outils de calcul, parcours, carte de pitch, lexique |
+| **marketbuss** — le site publié | `plateforme/` | Site statique en trois langues : 35 outils de calcul, arsenal, parcours, carte de pitch, lexique |
 | **Répondeur IA** — publié à `/repondeur/` | `repondeur/` | Page de présentation statique, avec une démonstration |
 | **Comparateur d'IA** — en réserve | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
 | **message-me** — en réserve | `public/`, `firestore.rules`, `firebase.json`, `android/` | Site statique + Firebase (Auth, Firestore) |
@@ -26,43 +26,67 @@ changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 ## marketbuss, la plateforme
 
-Des outils pour chiffrer un projet, préparer une levée ou juger un
-investissement. Deux « joueurs » : l'entrepreneur (jaune) et l'investisseur
-(cyan). Tout se calcule dans le navigateur : pas de compte, aucun chiffre
-envoyé.
+Des outils pour chiffrer un projet, fixer un prix, préparer une levée ou
+comprendre un placement, dans une salle d'arcade en pixel art. Tout se calcule
+dans le navigateur : pas de compte, aucun chiffre envoyé. Le site existe en
+**français, anglais et néerlandais** (bouton en haut à droite ; la langue du
+navigateur est choisie au premier passage, et `?lang=en` force une langue).
 
-- **Bornes de l'entrepreneur** : mois de survie (trésorerie mois par mois),
-  partage du capital après une levée, seuil de rentabilité, coût et valeur
-  d'un client (CAC, LTV), liste des 10 diapos du pitch deck.
-- **Bornes de l'investisseur** : retour sur un ticket à la revente, intérêts
-  composés, valorisation maximale à l'entrée pour un multiple visé, liste de
-  vérifications avant d'investir.
+- **Quatre joueurs**, 35 bornes :
+  - *Entrepreneur* (11) : mois de survie, combien lever, dilution, vesting,
+    taille du marché, coût et valeur d'un client, objectif de revenu,
+    croissance nécessaire, lean canvas, pitch en une phrase, les 10 diapos.
+  - *Indépendant* (8) : tarif journalier, devis, prix et marge, coût d'une
+    remise, seuil de rentabilité, entonnoir de vente, réserve sur une facture,
+    liste « prêt à facturer ».
+  - *Investisseur* (9) : retour sur un ticket, valorisation maximale,
+    portefeuille, suivre à la levée suivante, dilutions successives, BSA-AIR
+    ou SAFE, cascade de sortie, grille de notation, vérifications.
+  - *Épargnant* (7) : intérêts composés, versement pour un objectif, frais,
+    inflation, durée d'un capital, épargne de précaution, liste « avant de
+    placer ».
+- **Huit guides** (personnages inventés) donnent un conseil sur chaque borne.
+- **L'arsenal** : 79 vrais outils et services publics, en 21 rayons, avec lien
+  officiel et type d'accès (offre gratuite, essai, payant…). Vérifiés le
+  2 octobre 2026 ; aucun lien sponsorisé, aucun courtier, pas de prix.
 - Chaque borne s'ouvre sur un **exemple inventé**, explique comment lire le
   résultat et dit ce que le calcul ne prend pas en compte. Les chiffres saisis
   sont dans l'adresse : la page se partage ou se recharge telle quelle.
-- **Parcours** en six niveaux (de l'idée à la série A), **carte de pitch** à
-  partager par lien (tout le contenu est dans le lien, rien n'est enregistré),
-  **lexique** de 34 mots avec recherche.
+- **Parcours** en six niveaux, **carte de pitch** à partager par lien (tout le
+  contenu est dans le lien, rien n'est enregistré), **lexique** de 64 mots.
 - Rien d'inventé : pas de faux chiffres d'audience, pas de faux avis, pas de
   faux investisseurs. Les outils servent à comprendre ; ce ne sont pas des
   conseils financiers, juridiques ou fiscaux, et le site le dit.
 
 ```text
-plateforme/site/index.html   La page (en-tête, pied de page)
-plateforme/site/arcade.js    Pages, bornes, graphiques, navigation
+plateforme/site/index.html   La page (en-tête, pied de page, choix de la langue)
+plateforme/site/arcade.js    Pages, bornes, graphiques, navigation (aucun texte)
 plateforme/site/calculs.js   Les calculs (fonctions pures, testées)
-plateforme/site/contenu.js   Textes : bornes, listes, parcours, lexique
+plateforme/site/contenu.js   Structure : joueurs, guides, bornes, parcours
+plateforme/site/arsenal.js   Structure de l'arsenal : outils, adresses, accès
+plateforme/site/lang/        Les mots : fr.js, en.js, nl.js (même forme)
 plateforme/site/sprites.js   Dessins en pixel art, tracés dans le code
 plateforme/site/arcade.css   Identité visuelle, mise en page responsive
 plateforme/site/fonts/       Polices Press Start 2P et Jersey 15 (licence OFL)
-plateforme/tests/            Tests des calculs (node:test)
+plateforme/tests/            Tests des calculs et des langues (node:test)
 plateforme/tools/serve.mjs   Serveur local
 ```
 
 ```bash
 npm run plateforme:dev      # http://127.0.0.1:5300/
-npm run test:plateforme     # tests des calculs
+npm run test:plateforme     # calculs, et cohérence des trois langues
 ```
+
+**Ajouter une borne.** Sa structure dans `contenu.js`, son calcul (testé)
+dans `calculs.js`, son affichage dans `RESULTS` (`arcade.js`), ses mots dans
+les trois fichiers de `lang/`. Le test des langues échoue tant qu'une langue
+est incomplète.
+
+**Ajouter une langue.** Copier `lang/fr.js`, traduire, puis ajouter son code
+dans `LANGS` (`arcade.js`) et dans `PACKS` (`tests/langues.test.js`).
+
+**Mettre l'arsenal à jour.** Revérifier chaque adresse et chaque type d'accès
+sur le site officiel, puis changer `VERIFIED` dans `arsenal.js`.
 
 ## Répondeur IA
 
