@@ -1,7 +1,7 @@
 {
   "name": "message-me",
   "private": true,
-  "description": "marketbuss (comparateur d'IA mis à jour automatiquement) et message-me (messagerie Firebase), servis par GitHub Pages.",
+  "description": "Répondeur IA (page de présentation), marketbuss (comparateur d'IA) et message-me (messagerie Firebase), servis par GitHub Pages.",
   "type": "module",
   "scripts": {
     "dev": "firebase emulators:start --project demo-message-me",
@@ -9,7 +9,9 @@
     "deploy:rules": "firebase deploy --only firestore",
     "test:marketbuss": "node --test marketbuss/tests/engine.test.js",
     "marketbuss:update": "node marketbuss/tools/update.mjs",
-    "marketbuss:dev": "node marketbuss/tools/serve.mjs"
+    "marketbuss:dev": "node marketbuss/tools/serve.mjs",
+    "test:repondeur": "node --test repondeur/tests/moteur.test.js",
+    "repondeur:dev": "node repondeur/tools/serve.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

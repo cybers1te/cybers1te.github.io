@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Répondeur IA — l'assistant qui répond à vos clients, jour et nuit</title>
+<meta name="description" content="Horaires, prix, réservations : le Répondeur IA répond tout seul aux questions de vos clients, sur votre site, Instagram ou WhatsApp. Installé en un samedi. Essayez la démonstration.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0f1b45">
+<meta property="og:title" content="Répondeur IA — l'assistant qui répond à vos clients, jour et nuit">
+<meta property="og:description" content="Horaires, prix, réservations : un assistant répond tout seul aux questions qui reviennent. Essayez la démonstration.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<!-- ?v=__V__ : remplacé par la version publiée, pour ne jamais servir un ancien fichier. -->
+<link rel="stylesheet" href="repondeur.css?v=__V__">
+<script type="module" src="repondeur.js?v=__V__"></script>
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="#" aria-label="Répondeur IA, haut de page">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect class="bg" width="32" height="32" rx="7"/><path class="bubble" d="M7 9.5h18v11h-9l-5 4v-4H7z"/><circle cx="23.5" cy="9" r="3.4"/></svg>
+      <span>Répondeur IA</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#demo">Démonstration</a>
+      <a href="#fonctions">Ce qu'il fait</a>
+      <a href="#installation">Installation</a>
+      <a href="#tarif">Tarif</a>
+      <a href="#questions">Questions</a>
+    </nav>
+    <a class="btn primary sm top-cta" href="#contact">Demander une démo</a>
+  </div>
+</header>
+
+<main id="contenu">
+
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-text">
+        <p class="stage"><span class="stage-dot" aria-hidden="true"></span>Première version, en lancement</p>
+        <h1>Vos clients écrivent à 23&nbsp;h. Le Répondeur IA leur répond.</h1>
+        <p class="lead">Horaires, prix, réservations&nbsp;: un assistant répond tout seul aux questions qui reviennent, sur votre site, votre Instagram ou votre WhatsApp. Installé en un samedi.</p>
+        <div class="actions">
+          <a class="btn primary" href="#contact">Demander une démo chez vous</a>
+          <a class="btn onboard" href="#tarif">Voir le tarif</a>
+        </div>
+        <ul class="hero-facts">
+          <li><b>390&nbsp;€</b> l'installation</li>
+          <li><b>29&nbsp;€</b> par mois</li>
+          <li><b>Moitié prix</b> pour les 2 premiers commerces</li>
+        </ul>
+      </div>
+
+      <div class="demo" id="demo">
+        <div class="demo-head">
+          <h2>Essayez-le</h2>
+          <p>Choisissez un commerce, puis posez une question comme le ferait un client.</p>
+        </div>
+        <div class="demo-tabs" id="demo-tabs" role="tablist" aria-label="Commerce de la démonstration"></div>
+        <div class="phone">
+          <div class="phone-head">
+            <span class="avatar" id="shop-avatar" aria-hidden="true"></span>
+            <div class="phone-id"><b id="shop-name">Démonstration</b><span id="shop-state">Chargement…</span></div>
+          </div>
+          <div class="log" id="log" role="log" aria-live="polite" aria-label="Conversation avec le répondeur" tabindex="0">
+            <noscript><p class="msg bot">La démonstration a besoin de JavaScript. Le reste de la page se lit sans.</p></noscript>
+          </div>
+          <div class="suggest" id="suggest" aria-label="Questions fréquentes"></div>
+          <form class="ask" id="ask" autocomplete="off">
+            <label class="sr" for="ask-input">Votre question</label>
+            <input id="ask-input" type="text" maxlength="200" placeholder="Écrivez une question…" enterkeyhint="send">
+            <button class="send" type="submit" aria-label="Envoyer la question">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12h14M13 6.5l5.5 5.5-5.5 5.5"/></svg>
+            </button>
+          </form>
+        </div>
+        <p class="demo-note">Démonstration avec des commerces fictifs et des réponses préparées. Le vôtre est réglé avec vos horaires, vos prix et vos mots.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="fonctions">
+    <div class="section-head">
+      <h2>Ce qu'il fait à votre place</h2>
+      <p class="sub">Les mêmes questions reviennent tous les jours. Le répondeur s'en charge, et vous gardez votre temps pour les clients qui sont devant vous.</p>
+    </div>
+    <dl class="points">
+      <div><dt>Il donne vos horaires</dt><dd>«&nbsp;Vous êtes ouverts dimanche&nbsp;?&nbsp;» «&nbsp;Jusqu'à quelle heure ce soir&nbsp;?&nbsp;» La réponse arrive tout de suite.</dd></div>
+      <div><dt>Il donne vos prix</dt><dd>Le menu, la coupe, l'abonnement&nbsp;: vos tarifs, tels que vous les avez fixés.</dd></div>
+      <div><dt>Il explique comment réserver</dt><dd>Une table, un rendez-vous, une inscription&nbsp;: le client sait quoi faire, sans attendre.</dd></div>
+      <div><dt>Il répond jour et nuit</dt><dd>Le soir, le dimanche, pendant le service&nbsp;: aucun message ne reste sans réponse.</dd></div>
+      <div><dt>Il est là où vos clients écrivent</dt><dd>Sur votre site, votre Instagram ou votre WhatsApp. Pas besoin d'avoir un site.</dd></div>
+      <div><dt>Il parle de votre commerce</dt><dd>Il est réglé avec les questions de vos clients et vos réponses, pas avec des phrases toutes faites.</dd></div>
+    </dl>
+  </section>
+
+  <section class="section wrap" id="pour-qui">
+    <div class="section-head">
+      <h2>Pour quels commerces</h2>
+      <p class="sub">Ceux qui reçoivent beaucoup de messages et d'appels pour des questions simples. Touchez un exemple pour le voir dans la démonstration.</p>
+    </div>
+    <ul class="who" id="who"></ul>
+  </section>
+
+  <section class="section wrap" id="installation">
+    <div class="section-head">
+      <h2>De la démo à la mise en route</h2>
+      <p class="sub">Quatre étapes. La vôtre, c'est surtout la deuxième.</p>
+    </div>
+    <ol class="steps">
+      <li><b>Une démo de 5 minutes</b><span>Je passe vous montrer le répondeur sur mon téléphone, au moment qui vous arrange.</span></li>
+      <li><b>Vos questions fréquentes</b><span>Vous me donnez vos horaires, vos prix et la façon de réserver chez vous.</span></li>
+      <li><b>L'installation, en un samedi</b><span>Je mets le répondeur en place sur votre site, votre Instagram ou votre WhatsApp.</span></li>
+      <li><b>Ensuite, rien à gérer</b><span>L'abonnement couvre les outils et l'entretien. Vous n'avez rien à faire tourner vous-même.</span></li>
+    </ol>
+  </section>
+
+  <section class="section wrap" id="tarif">
+    <div class="section-head">
+      <h2>Un prix fixe, sans devis</h2>
+      <p class="sub">Une installation payée une fois, puis un abonnement mensuel.</p>
+    </div>
+    <div class="pricing">
+      <div class="price-main">
+        <div class="price-line">
+          <span class="price-label">Installation</span>
+          <span class="price-value">390&nbsp;€</span>
+          <span class="price-note">une seule fois, livrée en un samedi</span>
+        </div>
+        <div class="price-line">
+          <span class="price-label">Abonnement</span>
+          <span class="price-value">29&nbsp;€</span>
+          <span class="price-note">par mois, pour les outils et l'entretien</span>
+        </div>
+      </div>
+      <div class="launch">
+        <h3>Offre de lancement</h3>
+        <p class="launch-price"><span class="was">390&nbsp;€</span> <b>195&nbsp;€</b> l'installation</p>
+        <p>Moitié prix pour les 2 premiers commerces, en échange d'un avis écrit que je pourrai montrer aux suivants.</p>
+        <a class="btn dark" href="#contact">Être l'un des deux</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="projet">
+    <div class="status">
+      <h2>Où en est le projet</h2>
+      <p>Le Répondeur IA est une première version&nbsp;: je lance cette activité et je cherche mes deux premiers commerces. C'est pour cela que l'installation est à moitié prix, et que votre avis compte autant.</p>
+    </div>
+  </section>
+
+  <section class="section wrap narrow" id="questions">
+    <div class="section-head">
+      <h2>Questions fréquentes</h2>
+    </div>
+    <div class="faq">
+      <details><summary>Faut-il avoir un site internet&nbsp;?</summary><p>Non. Le répondeur peut être installé sur votre Instagram ou votre WhatsApp. Si vous avez un site, il peut aussi y être.</p></details>
+      <details><summary>Combien de temps prend l'installation&nbsp;?</summary><p>Une journée&nbsp;: elle se fait un samedi.</p></details>
+      <details><summary>Qu'est-ce que je dois préparer&nbsp;?</summary><p>Vos horaires, vos prix et la façon de réserver chez vous. Ce sont les questions que vos clients posent le plus.</p></details>
+      <details><summary>Que couvre l'abonnement de 29&nbsp;€ par mois&nbsp;?</summary><p>Les outils qui font tourner le répondeur, et son entretien. Vous n'avez rien à gérer après l'installation.</p></details>
+      <details><summary>Pourquoi l'installation est-elle à moitié prix&nbsp;?</summary><p>Parce que je lance l'activité. Les 2 premiers commerces paient 195&nbsp;€ au lieu de 390&nbsp;€, en échange d'un avis écrit.</p></details>
+      <details><summary>La démonstration de cette page, c'est le vrai répondeur&nbsp;?</summary><p>C'est un aperçu&nbsp;: elle tourne dans cette page, avec des commerces fictifs et des réponses préparées. Le vôtre est installé là où vos clients écrivent, et réglé avec vos informations.</p></details>
+    </div>
+  </section>
+
+  <section class="contact" id="contact">
+    <div class="wrap contact-grid">
+      <div>
+        <h2>Voyons si ça vous serait utile</h2>
+        <p>Une démo de 5 minutes, chez vous, au moment qui vous arrange. Et si ce n'est pas pour vous, dites-le-moi simplement.</p>
+      </div>
+      <div class="contact-ways" id="contact-ways"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-row">
+    <p><b>Répondeur IA</b>, un projet marketbuss.</p>
+    <p>Les commerces de la démonstration sont fictifs.</p>
+  </div>
+</footer>
+</body>
+</html>
