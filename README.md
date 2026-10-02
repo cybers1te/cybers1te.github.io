@@ -1,10 +1,11 @@
 # marketbuss.github.io
 
-Le site publié par GitHub Pages est **marketbuss**, un micro-SaaS gratuit qui
-classe les meilleures IA du moment et se met à jour tout seul. La messagerie
-**message-me**, publiée avant lui, est gardée intacte dans le dépôt et se
-remet en ligne en changeant une ligne (voir
-[Remettre message-me](#remettre-message-me)).
+Le site publié par GitHub Pages est la page de présentation du **Répondeur
+IA** : un assistant qui répond tout seul aux questions des clients d'un
+commerce (horaires, prix, réservations). Le comparateur **marketbuss** et la
+messagerie **message-me**, publiés avant lui, sont gardés intacts dans le
+dépôt et se remettent en ligne en changeant une ligne (voir
+[Changer de site publié](#changer-de-site-publié)).
 
 > **Adresse du site.** GitHub Pages publie un dépôt nommé
 > `<compte>.github.io` à la racine de `https://<compte>.github.io/`. Le compte
@@ -15,31 +16,85 @@ remet en ligne en changeant une ligne (voir
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **marketbuss** — le site publié | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
+| **Répondeur IA** — le site publié | `repondeur/` | Page de présentation statique, avec une démonstration |
+| **marketbuss** — en réserve | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
 | **message-me** — en réserve | `public/`, `firestore.rules`, `firebase.json`, `android/` | Site statique + Firebase (Auth, Firestore) |
 | **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique, publié à côté |
 | **Trueware** — boutique | `trueware/` | Application Flask + SQLite |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
 
-## marketbuss
+## Répondeur IA
+
+Une page pour présenter le Répondeur IA (première version, en lancement) aux
+commerces : restaurants, salons de coiffure, salles de sport, instituts.
+
+- **Démonstration** en haut de page : on choisit un commerce, on pose une
+  question comme un client, le répondeur répond. Elle tourne dans le
+  navigateur, avec des commerces **fictifs** et des réponses préparées, et
+  tient compte de l'heure (ouvert, fermé, prochaine ouverture). Quand la
+  question sort de ce qui est prévu, le répondeur le dit sans rien inventer.
+- Ce qu'il fait, pour quels commerces, les quatre étapes de l'installation,
+  le tarif (390 € puis 29 € par mois, moitié prix pour les 2 premiers
+  commerces), les questions fréquentes, le contact.
+- Thème clair ou sombre selon l'appareil, pensé pour le téléphone, sans
+  compte ni dépendance.
+
+```text
+repondeur/site/index.html     La page
+repondeur/site/repondeur.js   Démonstration, contact (coordonnées dans CONTACT, en haut du fichier)
+repondeur/site/moteur.js      Commerces fictifs et réponses de la démonstration (fonctions pures)
+repondeur/site/repondeur.css  Identité visuelle, mise en page responsive
+repondeur/site/fonts/         Police Archivo (variable, licence OFL)
+repondeur/tests/              Tests du moteur de la démonstration (node:test)
+repondeur/tools/serve.mjs     Serveur local
+```
+
+```bash
+npm run repondeur:dev       # http://127.0.0.1:5200/
+npm run test:repondeur      # tests du moteur de la démonstration
+```
+
+**Coordonnées.** Les boutons « Demander une démo » mènent à la section
+contact, remplie à partir de `CONTACT` dans `repondeur/site/repondeur.js`
+(Instagram, WhatsApp, e-mail). Tant que tout est vide, la page affiche
+« Les demandes de démo ouvrent très bientôt ».
+
+## marketbuss (en réserve)
 
 Les meilleures IA du moment, classées en continu.
 
+- **Accueil** : le tableau des cinq premiers (indice, tendance sur 30 jours,
+  variation sur 7 jours), les chiffres clés du marché, ce qui bouge dans la
+  semaine, le n° 1 de chaque usage avec son avance sur le deuxième, le
+  meilleur modèle pour chaque budget, les éditeurs qui dominent.
 - **Classement général** : l'indice marketbuss (sur 100) résume la qualité
-  mesurée dans les arènes Texte, Code, Vision et Documents d'Arena AI, avec
-  la variation sur 7 jours, les prix et la taille du contexte.
+  mesurée dans les arènes Texte, Code, Vision et Documents, avec la courbe
+  de l'indice sur 30 jours, la variation sur 7 jours, les prix et la taille
+  du contexte. Vue « Essentiel » ou « Tout le détail ».
 - **Classements par usage** : texte, code, vision, documents, recherche web,
   agents, images, retouche, vidéo, image → vidéo, montage vidéo (score Elo,
-  intervalle de confiance, votes).
-- **Fiche de chaque modèle** : résultats par arène, courbe sur 30 jours,
-  prix (entrée, sortie, cache), capacités, alternatives moins chères.
-- **Comparateur** (jusqu'à 4 modèles, lien partageable), **calculateur de
-  coût** mensuel, **« Trouver mon IA »** (usage, budget, exigences), graphique
-  **qualité / prix** avec la frontière des meilleurs rapports.
+  intervalle de confiance dessiné, écart et chances face au n° 1, votes,
+  égalités statistiques signalées).
+- **Fiche de chaque modèle** : portrait en quelques phrases, résultats par
+  arène, courbe de l'indice et du score sur 30 jours, face-à-face contre les
+  meilleurs, tarif complet (lecture, écriture, cache, tarif différé, palier),
+  coût d'usages types, dix capacités, voisins au classement, actualité.
+- **Éditeurs** : qui fabrique quoi, meilleur modèle, podiums, arènes menées,
+  fourchette de prix ; une page par éditeur.
+- **Comparateur** (jusqu'à 4 modèles, lien partageable, verdict en phrases,
+  face-à-face), **calculateur de coût** mensuel (cache, tarif différé,
+  détail lecture/écriture), **« Trouver mon IA »** (usage, budget,
+  exigences), graphique **qualité / prix** avec la frontière des meilleurs
+  rapports.
 - **Nouveautés** : nouveaux n° 1, entrées dans les classements, sorties,
-  changements de prix ; « depuis ta dernière visite », favoris, flux Atom
-  (`data/feed.xml`), données ouvertes (`data/latest.json`), export CSV.
-- Thème clair/sombre, pensé pour le téléphone, sans compte ni dépendance.
+  changements de prix, plus fortes hausses et baisses ; « depuis ta dernière
+  visite », favoris, flux Atom (`data/feed.xml`), données ouvertes
+  (`data/latest.json`), export CSV.
+- **Méthode et lexique** : sources, calcul de l'indice, lexique des mots du
+  site, questions fréquentes, limites.
+- Recherche d'un modèle ou d'un éditeur depuis n'importe quelle page
+  (touche `/`), thème clair/sombre, pensé pour le téléphone, sans compte ni
+  dépendance : la police (Archivo, licence OFL) est hébergée avec le site.
 
 ### Mise à jour automatique
 
@@ -68,10 +123,10 @@ GitHub Actions (toutes les 3 h, et à chaque push sur main)
 
 ```text
 marketbuss/site/index.html     Page unique
-marketbuss/site/marketbuss.js  Application (classements, fiche, comparateur, graphiques SVG…)
-marketbuss/site/marketbuss.css Thème clair/sombre, mise en page responsive
+marketbuss/site/marketbuss.js  Application (classements, fiches, éditeurs, comparateur, graphiques SVG…)
+marketbuss/site/marketbuss.css Identité visuelle, thème clair/sombre, mise en page responsive
+marketbuss/site/fonts/         Police Archivo (variable, licence OFL)
 marketbuss/site/sw.js          Retire le service worker de l'ancienne messagerie
-marketbuss/site/fonts/         Police Inter (licence OFL), servie avec le site
 marketbuss/site/data/          Instantané de secours (remplacé à chaque publication)
 marketbuss/lib/engine.js       Calcul : regroupement des réglages, prix, indice, frontière, événements
 marketbuss/lib/sources.js      Téléchargement des sources
@@ -86,10 +141,14 @@ npm run marketbuss:dev      # http://127.0.0.1:5100/
 npm run test:marketbuss     # tests du moteur
 ```
 
-### Remettre message-me
+### Changer de site publié
 
-Dans `.github/workflows/pages.yml`, remplacer `SITE: marketbuss` par
-`SITE: message-me`, puis pousser sur `main` : le workflow republie `public/`
+Dans `.github/workflows/pages.yml`, la ligne `SITE:` choisit le site publié :
+`repondeur` (la page du Répondeur IA), `marketbuss` (le comparateur, avec sa
+collecte toutes les 3 heures) ou `message-me`. Changer la valeur, puis pousser
+sur `main`.
+
+Avec `SITE: message-me`, le workflow republie `public/`
 tel quel, sans collecte programmée. Les comptes, messages et réglages sont
 dans Firebase et n'ont pas bougé. Si l'adresse du site a changé depuis (nom
 du compte ou du dépôt), l'ajouter dans Firebase : Authentication →

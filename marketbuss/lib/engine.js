@@ -317,6 +317,9 @@ export function buildSnapshot(input) {
       id: cat.id, label: cat.label, group: cat.group, desc: cat.desc, weight: cat.weight || 0,
       metric: cat.id === 'agent' ? 'Amélioration nette' : 'Elo',
       count: rows.length, top, floor, leader: rows[0].base,
+      second: rows[1] ? rows[1].base : null,
+      gap: rows[1] ? Math.round((top - rows[1].score) * 100) / 100 : null,
+      votes: rows.reduce((sum, r) => sum + (r.votes || 0), 0),
       updated: (board.meta && board.meta.last_updated) || null,
       past7: arena.past && arena.past[cat.id] && arena.past[cat.id].d7 ? arena.past[cat.id].d7.date : null,
     });
@@ -327,6 +330,7 @@ export function buildSnapshot(input) {
   const firstSeen = new Map();
   const events = [];
   let oldest = null;
+  const daily = {}; // arène → [{ date, rows }] (pour la tendance de l'indice)
   for (const cat of CATEGORIES.filter((c) => c.history)) {
     const days = ((arena.history && arena.history[cat.id]) || []).slice().sort((a, b) => a.date.localeCompare(b.date));
     if (!days.length || !catInfo[cat.id]) continue;
@@ -335,6 +339,7 @@ export function buildSnapshot(input) {
     const seen = new Set();
     days.forEach((day, i) => {
       const rows = groupBoard(cat.id, day.models, known);
+      (daily[cat.id] ||= []).push({ date: day.date, rows });
       for (const r of rows) {
         const m = models.get(r.base);
         if (m) {
@@ -370,6 +375,10 @@ export function buildSnapshot(input) {
         input, output, cacheRead: perMillion(v.cache_read_input_token_cost),
         blended: blended(input, output), source: 'litellm', provider: lit.provider,
       };
+      // Détail facultatif : absent de l'instantané quand la source ne le donne pas.
+      const more = { cacheWrite: perMillion(v.cache_creation_input_token_cost), batch: priceBatch(v),
+        tier: priceTier(v), url: safeUrl(v.source) };
+      for (const [k, val] of Object.entries(more)) if (val != null) m.price[k] = val;
     } else if (or && or.entry && orPrice(or.entry)) {
       const p = orPrice(or.entry);
       m.price = { ...p, blended: blended(p.input, p.output), source: 'openrouter', provider: 'openrouter' };
@@ -392,7 +401,14 @@ export function buildSnapshot(input) {
       pdf: !!((v && v.supports_pdf_input) || mods.includes('file')),
       audio: !!((v && v.supports_audio_input) || mods.includes('audio')),
       web: !!(v && v.supports_web_search),
+      video: !!((v && v.supports_video_input) || mods.includes('video')),
+      schema: !!(v && v.supports_response_schema),
+      cache: !!(v && v.supports_prompt_caching),
+      computer: !!(v && v.supports_computer_use),
     };
+    // Date de retrait annoncée par le fournisseur (les dates fantaisistes, à plus de 3 ans, sont ignorées).
+    const retire = v && /^\d{4}-\d\d-\d\d$/.test(String(v.deprecation_date || '')) ? v.deprecation_date : null;
+    m.retire = retire && new Date(retire + 'T00:00:00Z') - now < 3 * 365 * DAY ? retire : null;
     m.or = orEntry ? { id: String(orEntry.id).replace(/:free$/, ''), created: orEntry.created || null, free: !!or.free } : null;
     m.name = (orEntry && orName(orEntry)) || prettify(m.id);
     m.group = Object.keys(m.cats).some((c) => CAT[c].group === 'llm') ? 'llm' : 'media';
@@ -427,38 +443,38 @@ export function buildSnapshot(input) {
   ranked.forEach((m, i) => { m.rank = i + 1; });
 
   // Rang au classement général il y a 7 jours (même calcul, arènes d'alors).
-  const old = new Map();
+  const isNew = (base) => !!(models.get(base) && models.get(base).isNew);
+  const boards7 = {};
   for (const c of INDEX_CATS) {
     const snap7 = arena.past && arena.past[c.id] && arena.past[c.id].d7;
-    if (!snap7) continue;
-    const rows = groupBoard(c.id, snap7.models, known);
-    if (!rows.length) continue;
-    const top = rows[0].score;
-    const floor = rows[rows.length - 1].score;
-    for (const r of rows) {
-      const o = old.get(r.base) || { cells: {} };
-      o.cells[c.id] = points(r.score, top);
-      old.set(r.base, o);
-    }
-    old.set('__' + c.id, { floor: points(floor - 10, top) });
+    if (snap7) boards7[c.id] = groupBoard(c.id, snap7.models, known);
   }
-  if (old.size) {
-    const idx7 = [];
-    for (const [base, o] of old) {
-      if (base.startsWith('__') || !(o.cells.text != null || o.cells.code != null)) continue;
-      let sum = 0;
-      let w = 0;
-      for (const c of INDEX_CATS) {
-        const floorInfo = old.get('__' + c.id);
-        if (!floorInfo) continue;
-        sum += c.weight * (o.cells[c.id] ?? floorInfo.floor);
-        w += c.weight;
-      }
-      idx7.push([base, sum / w]);
-    }
-    idx7.sort((a, b) => b[1] - a[1]);
+  const idx7 = indexAt(boards7, isNew);
+  if (idx7.length) {
     const rank7 = new Map(idx7.map(([base], i) => [base, i + 1]));
     for (const m of ranked) m.rank7 = rank7.get(m.id) || 0;
+  }
+
+  // Tendance : l'indice et le rang général, jour par jour, sur 30 jours.
+  // Une arène sans relevé ce jour-là garde son dernier relevé connu.
+  const trendDays = [...new Set(Object.values(daily).flat().map((d) => d.date))].sort();
+  for (const date of trendDays) {
+    const boards = {};
+    for (const c of INDEX_CATS) {
+      const last = (daily[c.id] || []).filter((d) => d.date <= date).pop();
+      if (last) boards[c.id] = last.rows;
+    }
+    indexAt(boards, isNew).forEach(([base, value], i) => {
+      const m = models.get(base);
+      if (m && m.index != null) (m.trend ||= []).push([date, Math.round(value * 10) / 10, i + 1]);
+    });
+  }
+  // Le dernier point est toujours l'indice publié aujourd'hui.
+  if (arena.date) {
+    for (const m of ranked) {
+      if (!m.trend) continue;
+      if (m.trend[m.trend.length - 1][0] === arena.date) m.trend[m.trend.length - 1] = [arena.date, m.index, m.rank];
+    }
   }
   for (const m of models.values()) {
     if (m.rank == null) m.rank = null;
@@ -546,6 +562,65 @@ export function buildSnapshot(input) {
     events: recent,
   };
 }
+
+/* Indice de chaque modèle pour un jeu d'arènes donné ({ arène: lignes
+   regroupées }), du meilleur au moins bon : [[modèle, indice], …]. Même
+   règle que l'indice du jour : absent d'une arène = juste sous sa dernière
+   place, sauf pour un modèle nouveau (arène laissée de côté). */
+export function indexAt(boards, isNew = () => false) {
+  const cells = new Map();
+  const floors = {};
+  for (const c of INDEX_CATS) {
+    const rows = boards[c.id];
+    if (!rows || !rows.length) continue;
+    const top = rows[0].score;
+    floors[c.id] = points(rows[rows.length - 1].score - 10, top);
+    for (const r of rows) {
+      const o = cells.get(r.base) || {};
+      o[c.id] = points(r.score, top);
+      cells.set(r.base, o);
+    }
+  }
+  const out = [];
+  for (const [base, o] of cells) {
+    if (o.text == null && o.code == null) continue;
+    const fresh = isNew(base);
+    let sum = 0;
+    let w = 0;
+    for (const c of INDEX_CATS) {
+      if (floors[c.id] == null) continue;
+      if (o[c.id] == null && fresh) continue;
+      sum += c.weight * (o[c.id] ?? floors[c.id]);
+      w += c.weight;
+    }
+    if (w) out.push([base, sum / w, o.text ?? 0]);
+  }
+  return out.sort((a, b) => b[1] - a[1] || b[2] - a[2]).map(([base, value]) => [base, value]);
+}
+
+/* Palier de prix : au-delà d'un certain nombre de jetons lus, certains
+   fournisseurs facturent plus cher (« above_200k_tokens »). */
+function priceTier(v) {
+  let best = null;
+  for (const key of Object.keys(v)) {
+    const hit = key.match(/^input_cost_per_token_above_(\d+)k_tokens$/);
+    if (!hit) continue;
+    const above = Number(hit[1]) * 1000;
+    const input = perMillion(v[key]);
+    if (input == null || (best && above >= best.above)) continue;
+    best = { above, input, output: perMillion(v[`output_cost_per_token_above_${hit[1]}k_tokens`]) };
+  }
+  return best;
+}
+
+/* Tarif différé (« batch ») : moins cher, réponse sous 24 h. */
+function priceBatch(v) {
+  const input = perMillion(v.input_cost_per_token_batches);
+  const output = perMillion(v.output_cost_per_token_batches);
+  return input != null && output != null ? { input, output } : null;
+}
+
+const safeUrl = (u) => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : null);
 
 const order = (e) => ({ leader: 0, entry: 1, price: 2, release: 3 }[e.type] ?? 9);
 const bestPoints = (m) => Math.max(0, ...Object.values(m.cats).map((c) => c.points || 0));

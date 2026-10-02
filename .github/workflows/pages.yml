@@ -14,11 +14,12 @@ permissions:
 
 env:
   # Le site publié à l'adresse GitHub Pages du dépôt :
+  #   repondeur   — la page de présentation du Répondeur IA (dossier repondeur/site/) ;
   #   marketbuss  — le comparateur des meilleures IA, mis à jour toutes les 3 h ;
   #   message-me  — remet la messagerie telle qu'elle était (dossier public/,
-  #                 données Firebase intactes). Voir « Remettre message-me »
-  #                 dans le README.
-  SITE: marketbuss
+  #                 données Firebase intactes).
+  # Voir « Changer de site publié » dans le README.
+  SITE: repondeur
 
 jobs:
   config:
@@ -29,7 +30,7 @@ jobs:
     steps:
       - id: site
         run: |
-          case "$SITE" in marketbuss|message-me) ;; *) echo "SITE inconnu : $SITE" >&2; exit 1 ;; esac
+          case "$SITE" in repondeur|marketbuss|message-me) ;; *) echo "SITE inconnu : $SITE" >&2; exit 1 ;; esac
           echo "site=$SITE" >> "$GITHUB_OUTPUT"
 
   test:
@@ -88,9 +89,25 @@ jobs:
       - name: Collecte d'essai
         run: node marketbuss/tools/update.mjs --out "$RUNNER_TEMP/data"
 
+  repondeur:
+    name: Répondeur IA — démonstration
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Tests du moteur de la démonstration
+        run: node --test repondeur/tests/moteur.test.js
+
   deploy:
     name: GitHub Pages
-    needs: [config, test, marketbuss]
+    needs: [config, test, marketbuss, repondeur]
     # Les tests sont sautés lors des collectes programmées : seul un échec bloque.
     # Une collecte programmée ne republie rien quand message-me est le site choisi.
     if: >-
@@ -137,6 +154,17 @@ jobs:
           # Fichiers versionnés : un navigateur ne garde jamais l'ancien CSS ou JS.
           sed -i "s/__V__/${GITHUB_SHA::8}/g" _site/index.html
           node marketbuss/tools/update.mjs --out _site/data --site "$base/" --previous "$base/data/latest.json"
+
+      # Répondeur IA : une page statique, sans collecte de données.
+      - name: Prepare repondeur
+        if: needs.config.outputs.site == 'repondeur'
+        run: |
+          mkdir _site
+          cp -r repondeur/site/. _site/
+          # Fichiers versionnés : un navigateur ne garde jamais l'ancien CSS ou JS.
+          # (Pas de fichier nommé app.js ou styles.css ici : la fiche de révision,
+          # copiée juste après, porte ces noms.)
+          sed -i "s/__V__/${GITHUB_SHA::8}/g" _site/index.html _site/repondeur.js
 
       - name: Prepare message-me
         if: needs.config.outputs.site == 'message-me'
