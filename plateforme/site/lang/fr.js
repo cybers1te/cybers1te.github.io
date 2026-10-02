@@ -64,6 +64,12 @@ export default {
     copyFail: 'Copie impossible : sélectionne le texte et copie-le à la main.',
     clear: 'Tout effacer',
     seeValues: 'Voir les valeurs',
+    steps: 'Le calcul, pas à pas',
+    stepsSub: 'Avec tes chiffres, arrondis.',
+    levers: 'Ce qui fait bouger le résultat',
+    leversSub: "Chaque bouton change un chiffre d'un cran et montre le résultat qu'il donnerait. La barre jaune montre ceux qui pèsent le plus.",
+    leverTry: (label, step, result) => `${label} ${step} : le résultat deviendrait ${result}`,
+    slider: (label) => `${label} (curseur)`,
     highest: (v) => `Le plus haut : ${v}`,
     newTab: '(nouvel onglet)',
     nTools: (n) => `${n} borne${n > 1 ? 's' : ''}`,
@@ -1160,6 +1166,262 @@ export default {
           "Le site officiel pour déclarer la création, la modification ou l'arrêt d'une entreprise.",
         ],
         note: 'Ces organismes existent pour répondre à tes questions. Commence par eux avant de payer un service privé.' },
+    },
+  },
+
+  /* Le calcul, pas à pas : [ce qu'on calcule, l'opération avec les chiffres saisis].
+     Même ordre et mêmes cas dans les trois langues. */
+  steps: {
+    runway(v, r, F) {
+      const g = r.series[12];
+      return [
+        ['Ce que tu perds chaque mois', `${F.money(v.burn)} − ${F.money(v.revenue)} = ${F.money(r.netBurn)}`],
+        r.netBurn > 0 ? ['Sans croissance, la trésorerie tiendrait', `${F.money(v.cash)} ÷ ${F.money(r.netBurn)} ≈ ${F.nf(v.cash / r.netBurn, 1)} mois`] : null,
+        v.growth !== 0 && g ? [`Tes revenus au mois 12, avec ${F.pct(v.growth)} par mois`, `${F.money(v.revenue)} × (1 + ${F.pct(v.growth)})^11 = ${F.money(g.revenue)}`] : null,
+        r.netBurn > 0 ? ['En clair, chaque jour te coûte', `${F.money(r.netBurn)} ÷ 30 ≈ ${F.money(r.netBurn / 30)}`] : null,
+      ];
+    },
+    lever(v, r, F) {
+      return [
+        ['Perte par mois', `${F.money(v.burn)} − ${F.money(v.revenue)} = ${F.money(r.netBurn)}`],
+        ['Besoin sur la durée', `${F.money(Math.max(0, r.netBurn))} × ${v.months} mois = ${F.money(r.base)}`],
+        v.buffer > 0 ? ['Avec la marge de sécurité', `${F.money(r.base)} × (1 + ${F.pct(v.buffer)}) = ${F.money(r.raise)}`] : null,
+        r.investors != null ? ['Part cédée aux investisseurs', `${F.money(r.raise)} ÷ (${F.money(v.pre)} + ${F.money(r.raise)}) = ${F.pct(r.investors)}`] : null,
+        r.raise > 0 ? ['En clair, chaque mois financé coûte', `${F.money(r.raise)} ÷ ${v.months} = ${F.money(r.raise / v.months)}`] : null,
+      ];
+    },
+    dilution(v, r, F) {
+      return [
+        ['Valorisation après la levée', `${F.money(v.pre)} + ${F.money(v.raise)} = ${F.money(r.post)}`],
+        ['Part des nouveaux investisseurs', `${F.money(v.raise)} ÷ ${F.money(r.post)} = ${F.pct(r.investors)}`],
+        ['Ce que gardent ceux qui étaient là', `100 % − ${F.pct(r.investors)} − ${F.pct(r.pool)} = ${F.pct(100 - r.investors - r.pool)}`],
+        ['Part des fondateurs', `${F.pct(v.founders)} × ${F.pct(100 - r.investors - r.pool)} = ${F.pct(r.founders)}`],
+        ['En clair, leur part vaut aujourd\'hui', `${F.pct(r.founders)} × ${F.money(r.post)} = ${F.money((r.founders / 100) * r.post)}`],
+      ];
+    },
+    vesting(v, r, F) {
+      const total = v.years * 12;
+      return [
+        ['Durée totale', `${v.years} ans × 12 = ${total} mois`],
+        r.toCliff > 0 ? ['Le cliff', `${F.nf(v.elapsed)} mois < ${F.nf(v.cliff)} mois : rien n'est acquis`]
+          : ['Part du temps écoulé', `${F.nf(Math.min(v.elapsed, total))} ÷ ${total} = ${F.pct(r.ratio)}`],
+        ['Capital acquis', `${F.pct(v.stake, 2)} × ${F.pct(r.ratio)} = ${F.pct(r.vested, 2)}`],
+        ['En clair, chaque mois t\'apporte', `${F.pct(v.stake, 2)} ÷ ${total} = ${F.pct(v.stake / total, 3)}`],
+      ];
+    },
+    marche(v, r, F) {
+      return [
+        ['Marché total (TAM)', `${F.nf(v.customers)} × ${F.money(v.price)} = ${F.money(r.tam)}`],
+        ['Clients que tu peux servir', `${F.nf(v.customers)} × ${F.pct(v.reachable)} = ${F.nf(r.samCustomers)}`],
+        ['Clients que tu vises', `${F.nf(r.samCustomers)} × ${F.pct(v.share)} = ${F.nf(r.somCustomers)}`],
+        ['Revenus visés (SOM)', `${F.nf(r.somCustomers)} × ${F.money(v.price)} = ${F.money(r.som)}`],
+        ['En clair, par mois', `${F.money(r.som)} ÷ 12 = ${F.money(r.som / 12)}`],
+      ];
+    },
+    client(v, r, F) {
+      const monthly = v.arpu * (v.margin / 100);
+      return [
+        ["Coût d'un client (CAC)", `${F.money(v.spend)} ÷ ${F.nf(v.customers)} = ${F.money(r.cac)}`],
+        ['Marge par client et par mois', `${F.money(v.arpu)} × ${F.pct(v.margin)} = ${F.money(monthly)}`],
+        ['Un client reste en moyenne', `100 % ÷ ${F.pct(v.churn)} = ${F.nf(r.lifetime, 1)} mois`],
+        ["Valeur d'un client (LTV)", `${F.money(monthly)} × ${F.nf(r.lifetime, 1)} = ${F.money(r.ltv)}`],
+        r.ratio != null ? ['Rapport LTV ÷ CAC', `${F.money(r.ltv)} ÷ ${F.money(r.cac)} = ${F.nf(r.ratio, 1)}`] : null,
+      ];
+    },
+    objectif(v, r, F) {
+      const still = v.current * (1 - v.churn / 100) ** v.months;
+      return [
+        ['Clients nécessaires', `${F.money(v.target)} ÷ ${F.money(v.price)} = ${F.nf(r.needed)}`],
+        v.current > 0 && v.churn > 0 ? [`Tes clients encore là dans ${v.months} mois`, `${F.nf(v.current)} × (1 − ${F.pct(v.churn)})^${v.months} ≈ ${F.nf(still)}`] : null,
+        ['Clients à gagner en tout', `${F.nf(r.perMonth, 1)} × ${v.months} mois ≈ ${F.nf(r.total)}`],
+        r.perMonth > 0 ? ['En clair, par semaine', `${F.nf(r.perMonth, 1)} × 12 ÷ 52 ≈ ${F.nf((r.perMonth * 12) / 52, 1)}`] : null,
+      ];
+    },
+    croissance(v, r, F) {
+      return [
+        ['Multiplication visée', `${F.nf(v.to)} ÷ ${F.nf(v.from)} = ${F.nf(r.multiple, 2)}`],
+        ['Croissance par mois', `${F.nf(r.multiple, 2)}^(1/${v.months}) − 1 = ${F.pct(r.monthly, 2)}`],
+        ['Sur un an', `(1 + ${F.pct(r.monthly, 2)})^12 − 1 = ${F.pct(r.yearly, 0)}`],
+        r.monthly > 0 ? ['En clair, le mois prochain', `${F.nf(v.from)} × (1 + ${F.pct(r.monthly, 2)}) = ${F.nf(v.from * (1 + r.monthly / 100), 1)}`] : null,
+      ];
+    },
+    tarif(v, r, F) {
+      const gross = (v.net * 12) / (1 - v.charges / 100);
+      return [
+        ["Jours facturés sur l'année", `${F.nf(v.days)} × 12 × (52 − ${F.nf(v.weeks)}) ÷ 52 = ${F.nf(r.billable, 0)}`],
+        [`Pour garder ${F.money(v.net)} par mois`, `${F.money(v.net)} × 12 ÷ (1 − ${F.pct(v.charges)}) = ${F.money(gross)}`],
+        v.costs > 0 ? ['Plus les frais de l\'année', `${F.money(gross)} + ${F.money(v.costs)} × 12 = ${F.money(r.revenue)}`] : null,
+        ['Tarif par jour', `${F.money(r.revenue)} ÷ ${F.nf(r.billable, 0)} = ${F.money(r.rate)}`],
+        [`En clair, un mois à ${F.nf(v.days)} jours facturés`, `${F.nf(v.days)} × ${F.money(r.rate)} = ${F.money(v.days * r.rate)}`],
+      ];
+    },
+    devis(v, r, F) {
+      return [
+        ['Travail', `${F.nf(v.days, 1)} jours × ${F.money(v.rate)} = ${F.money(r.work)}`],
+        v.buffer > 0 ? ['Marge pour les imprévus', `${F.money(r.work)} × ${F.pct(v.buffer)} = ${F.money(r.safety)}`] : null,
+        ['Total hors taxe', `${F.money(r.work)} + ${F.money(r.safety)} + ${F.money(v.expenses)} = ${F.money(r.ht)}`],
+        v.vat > 0 ? ['TVA', `${F.money(r.ht)} × ${F.pct(v.vat)} = ${F.money(r.vatAmount)}`] : null,
+        v.deposit > 0 ? ['Acompte', `${F.money(r.ttc)} × ${F.pct(v.deposit)} = ${F.money(r.depositAmount)}`] : null,
+        ['En clair, un jour prévu te rapporte', `(${F.money(r.ht)} − ${F.money(v.expenses)}) ÷ ${F.nf(v.days, 1)} = ${F.money((r.ht - v.expenses) / v.days)}`],
+      ];
+    },
+    prix(v, r, F) {
+      return [
+        ['Prix hors taxe', `${F.money(v.cost)} ÷ (1 − ${F.pct(v.margin)}) = ${F.money(r.ht)}`],
+        ['Ta marge', `${F.money(r.ht)} − ${F.money(v.cost)} = ${F.money(r.marginAmount)}`],
+        v.vat > 0 ? ['Prix affiché', `${F.money(r.ht)} × (1 + ${F.pct(v.vat)}) = ${F.money(r.ttc)}`] : null,
+        r.marginAmount > 0 ? [`En clair, pour gagner ${F.money(1000)} de marge`, `${F.money(1000)} ÷ ${F.money(r.marginAmount)} → ${F.nf(Math.ceil(1000 / r.marginAmount))} ventes`] : null,
+      ];
+    },
+    remise(v, r, F) {
+      return [
+        ['Marge par vente, avant', `${F.money(v.price)} × ${F.pct(v.margin)} = ${F.money(r.before)}`],
+        ['Marge par vente, après', `${F.money(v.price)} × (${F.pct(v.margin)} − ${F.pct(v.discount)}) = ${F.money(r.after)}`],
+        r.extra != null ? ['Ventes en plus', `${F.money(r.before)} ÷ ${F.money(r.after)} − 1 = ${F.pct(r.extra)}`] : null,
+        r.extra != null ? ['En clair, 100 ventes avant valent', `100 × ${F.money(r.before)} ÷ ${F.money(r.after)} → ${F.nf(Math.ceil(100 + r.extra))} ventes après`] : null,
+      ];
+    },
+    seuil(v, r, F) {
+      return [
+        ['Marge par vente', `${F.money(v.price)} − ${F.money(v.variable)} = ${F.money(r.margin)}`],
+        r.units != null ? ['Ventes pour couvrir les charges', `${F.money(v.fixed)} ÷ ${F.money(r.margin)} = ${F.nf(v.fixed / r.margin, 1)} → ${F.nf(r.units)}`] : null,
+        r.units != null ? ["Chiffre d'affaires au seuil", `${F.nf(r.units)} × ${F.money(v.price)} = ${F.money(r.revenue)}`] : null,
+        r.units != null ? ['En clair, par jour ouvré (22 par mois)', `${F.nf(r.units)} ÷ 22 ≈ ${F.nf(r.units / 22, 1)} vente${r.units / 22 >= 2 ? 's' : ''}`] : null,
+      ];
+    },
+    tunnel(v, r, F) {
+      return [
+        ['Contacts', `${F.nf(v.visitors)} × ${F.pct(v.signup)} = ${F.nf(r.leads, 1)}`],
+        ['Clients', `${F.nf(r.leads, 1)} × ${F.pct(v.purchase)} = ${F.nf(r.customers, 1)}`],
+        ["Chiffre d'affaires", `${F.nf(r.customers, 1)} × ${F.money(v.basket)} = ${F.money(r.revenue)}`],
+        r.costPerCustomer != null ? ["Coût d'un client", `${F.money(v.spend)} ÷ ${F.nf(r.customers, 1)} = ${F.money(r.costPerCustomer)}`] : null,
+        r.customers > 0 ? ['En clair, visiteurs pour un client', `${F.nf(v.visitors)} ÷ ${F.nf(r.customers, 1)} ≈ ${F.nf(v.visitors / r.customers)}`] : null,
+      ];
+    },
+    tirelire(v, r, F) {
+      return [
+        ['TVA, à reverser', `${F.money(v.amount)} × ${F.pct(v.vat)} = ${F.money(r.vatAmount)}`],
+        ['Cotisations et impôts', `${F.money(v.amount)} × ${F.pct(v.charges)} = ${F.money(r.chargesAmount)}`],
+        ['À mettre de côté', `${F.money(r.vatAmount)} + ${F.money(r.chargesAmount)} = ${F.money(r.aside)}`],
+        ['Vraiment à toi', `${F.money(v.amount)} − ${F.money(r.chargesAmount)} = ${F.money(r.yours)}`],
+        [`En clair, sur ${F.money(100)} encaissés`, `${F.money(r.yoursShare)} sont à toi`],
+      ];
+    },
+    ticket(v, r, F) {
+      return [
+        ["Ta part à l'entrée", `${F.money(v.ticket)} ÷ ${F.money(v.post)} = ${F.pct(r.stake, 2)}`],
+        v.dilution > 0 ? ['Après les levées suivantes', `${F.pct(r.stake, 2)} × (1 − ${F.pct(v.dilution)}) = ${F.pct(r.stakeExit, 2)}`] : null,
+        ['Ce que tu récupères', `${F.pct(r.stakeExit, 2)} × ${F.money(v.exit)} = ${F.money(r.proceeds)}`],
+        ['Multiple', `${F.money(r.proceeds)} ÷ ${F.money(v.ticket)} = ${F.times(r.multiple)}`],
+        r.multiple > 0 ? ['Rendement par an (TRI)', `${F.nf(r.multiple, 2)}^(1/${v.years}) − 1 = ${F.pct(r.irr)}`] : null,
+      ];
+    },
+    valo(v, r, F) {
+      const kept = v.exit * (1 - v.dilution / 100);
+      return [
+        ['Sortie, une fois ta part diluée', `${F.money(v.exit)} × (1 − ${F.pct(v.dilution)}) = ${F.money(kept)}`],
+        ['Valorisation maximale', `${F.money(kept)} ÷ ${F.nf(v.multiple, 1)} = ${F.money(r.post)}`],
+        r.stake != null ? ["Ta part à l'entrée", `${F.money(v.ticket)} ÷ ${F.money(r.post)} = ${F.pct(r.stake, 2)}`] : null,
+        r.stake != null ? ['En clair, à la sortie tu toucherais', `${F.money(v.ticket)} × ${F.nf(v.multiple, 1)} = ${F.money(v.ticket * v.multiple)}`] : null,
+      ];
+    },
+    portefeuille(v, r, F) {
+      return [
+        ['Investi en tout', `${F.nf(v.count)} × ${F.money(v.ticket)} = ${F.money(r.invested)}`],
+        ['Multiple moyen', `${F.pct(v.mid)} × ${F.nf(v.midMultiple, 1)} + ${F.pct(r.win)} × ${F.nf(v.winMultiple, 1)} = ${F.times(r.multiple)}`],
+        ['Retour attendu', `${F.money(r.invested)} × ${F.nf(r.multiple, 2)} = ${F.money(r.proceeds)}`],
+        ['En clair, un seul gros succès rend', `${F.money(v.ticket)} × ${F.nf(v.winMultiple, 1)} = ${F.money(v.ticket * v.winMultiple)}`],
+      ];
+    },
+    suivre(v, r, F) {
+      return [
+        ['Valorisation après la levée', `${F.money(v.pre)} + ${F.money(v.raise)} = ${F.money(r.post)}`],
+        ['Pour garder ta part', `${F.money(v.raise)} × ${F.pct(v.stake, 2)} = ${F.money(r.invest)}`],
+        ['Si tu ne suis pas', `${F.pct(v.stake, 2)} × ${F.money(v.pre)} ÷ ${F.money(r.post)} = ${F.pct(r.without, 2)}`],
+      ];
+    },
+    fonte(v, r, F) {
+      return [
+        ['Chaque levée te laisse', `100 % − ${F.pct(v.dilution)} = ${F.pct(100 - v.dilution)}`],
+        [`Après ${v.rounds} levée${v.rounds > 1 ? 's' : ''}`, `${F.pct(v.stake, 2)} × ${F.nf(1 - v.dilution / 100, 2)}^${v.rounds} = ${F.pct(r.final, 2)}`],
+        [`En clair, pour une vente à ${F.money(1e7)}`, `${F.pct(r.final, 2)} × ${F.money(1e7)} = ${F.money((r.final / 100) * 1e7)}`],
+      ];
+    },
+    convertible(v, r, F) {
+      const discounted = v.pre * (1 - v.discount / 100);
+      return [
+        ['Valorisation avec la décote', `${F.money(v.pre)} × (1 − ${F.pct(v.discount)}) = ${F.money(discounted)}`],
+        v.cap > 0 ? ['Valorisation retenue : la plus basse', `min(${F.money(v.cap)} ; ${F.money(discounted)}) = ${F.money(r.effective)}`] : null,
+        ['Le porteur achète comme si', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} du capital d'avant`],
+        ['Sa part après la levée', F.pct(r.stake, 2)],
+      ];
+    },
+    cascade(v, r, F) {
+      return [
+        ['Préférence des investisseurs', `${F.money(v.invested)} × ${F.nf(v.multiple, 1)} = ${F.money(v.invested * v.multiple)}`],
+        ['Leur part du prix', `${F.money(v.exit)} × ${F.pct(v.stake)} = ${F.money(r.asShares)}`],
+        ['Ils prennent le plus grand', `max(${F.money(r.preference)} ; ${F.money(r.asShares)}) = ${F.money(r.investors)}`],
+        ['Reste aux autres associés', `${F.money(v.exit)} − ${F.money(r.investors)} = ${F.money(r.others)}`],
+      ];
+    },
+    note(v, r, F) {
+      const names = { team: 'Équipe', market: 'Marché', traction: 'Traction', product: 'Produit', terms: 'Conditions' };
+      return [
+        ...r.parts.map((p) => [`${names[p.key]} (poids ${p.weight})`, `${F.nf(p.note, 1)} ÷ 10 × ${p.weight} = ${F.nf(p.points, 1)}`]),
+        ['Total', `${r.parts.map((p) => F.nf(p.points, 1)).join(' + ')} = ${F.nf(r.score, 1)}`],
+      ];
+    },
+    composes(v, r, F) {
+      return [
+        ['Versé en tout', `${F.money(v.initial)} + ${F.money(v.monthly)} × ${v.years * 12} mois = ${F.money(r.paid)}`],
+        ['Ce que les intérêts ajoutent', `${F.money(r.value)} − ${F.money(r.paid)} = ${F.money(r.gain)}`],
+        v.rate > 0 ? ['Temps pour doubler (règle de 72)', `72 ÷ ${F.nf(v.rate, 1)} ≈ ${F.nf(72 / v.rate, 1)} ans`] : null,
+        r.value > 0 ? ['En clair, en retirant ensuite 4 % par an', `${F.money(r.value)} × 4 % ÷ 12 = ${F.money((r.value * 0.04) / 12)} par mois`] : null,
+      ];
+    },
+    cible(v, r, F) {
+      return [
+        [`Ton capital de départ, dans ${v.years} an${v.years > 1 ? 's' : ''}`, `${F.money(v.initial)} → ${F.money(r.grown)}`],
+        ['Reste à constituer', `${F.money(v.target)} − ${F.money(r.grown)} = ${F.money(Math.max(0, v.target - r.grown))}`],
+        ['Versé en tout', `${F.money(v.initial)} + ${F.money(r.monthly)} × ${v.years * 12} = ${F.money(r.paid)}`],
+        r.monthly > 0 ? ['En clair, par jour', `${F.money(r.monthly)} × 12 ÷ 365 ≈ ${F.money((r.monthly * 12) / 365)}`] : null,
+      ];
+    },
+    frais(v, r, F) {
+      const [low, high] = v.feeA <= v.feeB ? [r.a, r.b] : [r.b, r.a];
+      return [
+        ['Rendement net du placement A', `${F.pct(v.rate)} − ${F.pct(v.feeA, 2)} = ${F.pct(v.rate - v.feeA, 2)}`],
+        ['Rendement net du placement B', `${F.pct(v.rate)} − ${F.pct(v.feeB, 2)} = ${F.pct(v.rate - v.feeB, 2)}`],
+        ['Écart à la fin', `${F.money(low)} − ${F.money(high)} = ${F.money(r.gap)}`],
+        v.monthly > 0 && r.gap > 0 ? ['En clair, cet écart vaut', `${F.money(r.gap)} ÷ ${F.money(v.monthly)} ≈ ${F.nf(r.gap / v.monthly)} mois de versements`] : null,
+      ];
+    },
+    inflation(v, r, F) {
+      const prices = (1 + v.inflation / 100) ** v.years;
+      return [
+        [`Les prix, en ${v.years} an${v.years > 1 ? 's' : ''}`, `(1 + ${F.pct(v.inflation)})^${v.years} = × ${F.nf(prices, 2)}`],
+        v.rate !== 0 ? ['Somme affichée', `${F.money(v.amount)} × (1 + ${F.pct(v.rate)})^${v.years} = ${F.money(r.nominal)}`] : null,
+        ["Valeur d'aujourd'hui", `${F.money(r.nominal)} ÷ ${F.nf(prices, 2)} = ${F.money(r.real)}`],
+        [`En clair, un plein de courses à ${F.money(100)} coûterait`, `${F.money(100)} × ${F.nf(prices, 2)} = ${F.money(100 * prices)}`],
+      ];
+    },
+    reserve(v, r, F) {
+      const monthly = ((1 + v.rate / 100) ** (1 / 12) - 1) * 100;
+      return [
+        ['Rendement par mois', `(1 + ${F.pct(v.rate)})^(1/12) − 1 = ${F.pct(monthly, 3)}`],
+        ['Ce que le capital rapporte par mois', `${F.money(v.capital)} × ${F.pct(monthly, 3)} = ${F.money(r.sustainable)}`],
+        r.forever ? ['Tu retires moins que ça', `${F.money(v.monthly)} ≤ ${F.money(r.sustainable)}`]
+          : ['Tu puises dans le capital, au départ', `${F.money(v.monthly)} − ${F.money(r.sustainable)} = ${F.money(v.monthly - r.sustainable)} par mois`],
+        r.total != null ? ['Retiré en tout', `${F.money(v.monthly)} × ${F.nf(r.months)} mois = ${F.money(r.total)}`] : null,
+      ];
+    },
+    coussin(v, r, F) {
+      return [
+        ['Objectif', `${F.money(v.expenses)} × ${F.nf(v.months)} mois = ${F.money(r.target)}`],
+        ['Déjà couvert', `${F.money(v.saved)} ÷ ${F.money(v.expenses)} = ${F.nf(r.covered, 1)} mois`],
+        r.missing > 0 ? ['Il manque', `${F.money(r.target)} − ${F.money(v.saved)} = ${F.money(r.missing)}`] : null,
+        r.missing > 0 && v.monthly > 0 ? ['Temps pour y arriver', `${F.money(r.missing)} ÷ ${F.money(v.monthly)} = ${F.nf(r.missing / v.monthly, 1)} → ${r.wait} mois`] : null,
+      ];
     },
   },
 

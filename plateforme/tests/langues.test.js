@@ -110,11 +110,31 @@ describe('langues : tout le site est couvert', () => {
       }
     });
 
+    it(`${code} : le calcul pas à pas, pour chaque borne et dans les cas limites`, () => {
+      const F = formats(pack);
+      assert.deepEqual(Object.keys(pack.steps).sort(), TOOLS.filter((t) => t.kind === 'calc').map((t) => t.id).sort());
+      for (const t of TOOLS.filter((x) => x.kind === 'calc')) {
+        const base = Object.fromEntries(t.fields.map((f) => [f.key, f.value]));
+        // L'exemple, puis chaque chiffre à son minimum : les lignes doivent toujours se dire sans trou.
+        const cases = [base, ...t.fields.map((f) => ({ ...base, [f.key]: f.min ?? 0 }))];
+        let shown = 0;
+        for (const v of cases) {
+          const r = CALC[t.id](v);
+          if (!r) continue;
+          const rows = pack.steps[t.id](v, r, F).filter(Boolean);
+          if (v === base) assert.ok(rows.length >= 2, `${code} ${t.id} : au moins deux étapes`);
+          for (const [label, expr] of rows) { clean(label, `${code} ${t.id} étape`); clean(expr, `${code} ${t.id} étape « ${label} »`); }
+          shown++;
+        }
+        assert.ok(shown > 0, `${code} ${t.id}`);
+      }
+    });
+
     it(`${code} : les mots de l'interface`, () => {
       const ui = pack.ui;
       for (const text of [ui.title, ui.description, ui.highest('1'), ui.nTools(1), ui.nTools(3), ui.nItems(2), ui.nWords(5), ui.home.toolsSub(35),
         ui.home.arsenalSub(79, 'x'), ui.home.glossaryText(64), ui.tools.allSub(35), ui.check.left(1), ui.check.left(4), ui.check.progress(2, 10),
-        ui.writer.chars(10), ui.writer.charsFull(10), ui.arsenal.sub(79, 21), ui.arsenal.notice('x'), ui.glossary.sub(64), ui.glossary.useful('x')]) clean(text, `${code} interface`);
+        ui.writer.chars(10), ui.writer.charsFull(10), ui.steps, ui.stepsSub, ui.levers, ui.leversSub, ui.leverTry('a', '+1', 'b'), ui.slider('a'), ui.arsenal.sub(79, 21), ui.arsenal.notice('x'), ui.glossary.sub(64), ui.glossary.useful('x')]) clean(text, `${code} interface`);
       const sections = ui.about.sections({ tools: 35, arsenal: 79, words: 64, date: 'x' });
       assert.ok(sections.length >= 4);
       for (const [title, items] of sections) { clean(title, code); items.forEach((i) => clean(i, code)); }

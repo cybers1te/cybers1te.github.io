@@ -196,7 +196,8 @@ function columns(data, { height = 150, pos = 'var(--p1)', neg = 'var(--hot)', ev
   data.forEach((d, i) => {
     const hpx = Math.max(d.value === 0 ? 0 : 2, Math.round((Math.abs(d.value) / span) * height));
     const y = d.value >= 0 ? zero - hpx : zero;
-    const r = svg('rect', { x: i * (bw + gap) + gap / 2, y, width: bw, height: hpx, style: `fill:${d.value >= 0 ? pos : neg}` });
+    // --i : le rang de la colonne, pour qu'elles montent l'une après l'autre (arcade.css).
+    const r = svg('rect', { x: i * (bw + gap) + gap / 2, y, width: bw, height: hpx, class: d.value >= 0 ? 'bar' : 'bar neg', style: `fill:${d.value >= 0 ? pos : neg};--i:${i}` });
     r.append(svg('title', { text: d.title }));
     root.append(r);
     if (i % every === 0) ticks.push([(i * (bw + gap) + gap / 2 + bw / 2) / W, d.label]);
@@ -220,7 +221,7 @@ function stacked(data, { height = 160, colors = ['var(--p1)', 'var(--ok)'], ever
       if (!hpx) return;
       y -= hpx;
       // Un pixel de fond sépare les deux couleurs d'une même colonne.
-      const r = svg('rect', { x: i * (bw + gap), y, width: bw, height: k ? Math.max(1, hpx - 1) : hpx, style: `fill:${colors[k]}` });
+      const r = svg('rect', { x: i * (bw + gap), y, width: bw, height: k ? Math.max(1, hpx - 1) : hpx, class: 'bar', style: `fill:${colors[k]};--i:${i}` });
       r.append(svg('title', { text: d.title }));
       root.append(r);
     });
@@ -250,7 +251,7 @@ function waffle(parts) {
   const squares = [];
   parts.forEach((p, i) => { for (let n = 0; n < cells[i]; n++) squares.push(p[0]); });
   return h('div', { class: 'waffle', role: 'img', 'aria-label': parts.map((p) => `${p[1]} ${F.pct(p[2])}`).join(', ') },
-    squares.map((c) => h('i', { class: c })));
+    squares.map((c, i) => h('i', { class: c, style: `--i:${i}` })));
 }
 
 function valuesTable(head, rows) {
@@ -489,7 +490,7 @@ const RESULTS = {
     const r = calc.portfolio(v);
     if (!r) return null;
     const grid = v.count <= 200 ? h('div', { class: 'waffle', role: 'img', 'aria-label': R.aria(r) },
-      [...Array(r.fails).fill('off'), ...Array(r.mids).fill('p1'), ...Array(r.winners).fill('ok')].map((c) => h('i', { class: c }))) : null;
+      [...Array(r.fails).fill('off'), ...Array(r.mids).fill('p1'), ...Array(r.winners).fill('ok')].map((c, i) => h('i', { class: c, style: `--i:${i}` }))) : null;
     return [
       top(score(F.times(r.multiple), R.label, r.multiple < 1 ? 'bad' : ''), grid),
       verdict(R.verdict(v, r, F)),
@@ -639,6 +640,104 @@ const RESULTS = {
   },
 };
 
+/* ---------- Le grand chiffre, en nombre ----------
+   Pour chaque calculateur : le calcul, le chiffre qu'il met en avant, son format,
+   et le sens qui arrange (true : plus haut vaut mieux, false : plus bas, null : ça dépend).
+   `alt` : le texte quand il n'y a pas de chiffre (jamais, sans fin…), compté comme l'infini. */
+
+const FMT = {
+  money: (n) => F.money(n), nf: (n) => F.nf(n), nf1: (n) => F.nf(n, 1),
+  pct: (n) => F.pct(n), pct2: (n) => F.pct(n, 2), times: (n) => F.times(n),
+};
+const HEAD = {
+  runway: [calc.runway, (r) => r.months, 'nf', true, (r) => `${r.horizon}+`],
+  lever: [calc.raiseNeed, (r) => r.raise, 'money', false],
+  dilution: [calc.dilution, (r) => r.founders, 'pct', true],
+  vesting: [calc.vesting, (r) => r.vested, 'pct2', true],
+  marche: [calc.marketSize, (r) => r.som, 'money', true],
+  client: [calc.unitEconomics, (r) => r.ratio, 'times', true, (r, R) => R.free],
+  objectif: [calc.revenueTarget, (r) => r.perMonth, 'nf1', false],
+  croissance: [calc.growthRate, (r) => r.monthly, 'pct2', false],
+  tarif: [calc.dayRate, (r) => r.rate, 'money', false],
+  devis: [calc.quote, (r) => r.ttc, 'money', null],
+  prix: [calc.pricing, (r, v) => (v.vat > 0 ? r.ttc : r.ht), 'money', null],
+  remise: [calc.discount, (r) => r.extra, 'pct', false, (r, R) => R.never],
+  seuil: [calc.breakEven, (r) => r.units, 'nf', false, (r, R) => R.never],
+  tunnel: [calc.funnel, (r) => r.customers, 'nf1', true],
+  tirelire: [calc.setAside, (r) => r.aside, 'money', null],
+  ticket: [calc.exitReturn, (r) => r.multiple, 'times', true],
+  valo: [calc.maxValuation, (r) => r.post, 'money', true],
+  portefeuille: [calc.portfolio, (r) => r.multiple, 'times', true],
+  suivre: [calc.proRata, (r) => r.invest, 'money', null],
+  fonte: [calc.rounds, (r) => r.final, 'pct2', true],
+  convertible: [calc.convertible, (r) => r.stake, 'pct2', null],
+  cascade: [calc.waterfall, (r) => r.others, 'money', true],
+  note: [calc.scorecard, (r) => r.score, 'nf', true],
+  composes: [calc.compound, (r) => r.value, 'money', true],
+  cible: [calc.savingsGoal, (r) => r.monthly, 'money', false],
+  frais: [calc.fees, (r) => r.gap, 'money', null],
+  inflation: [calc.inflation, (r) => r.real, 'money', true],
+  reserve: [calc.drawdown, (r) => r.years, 'nf1', true, (r, R) => R.forever],
+  coussin: [calc.cushion, (r) => r.target, 'money', null],
+};
+
+/* → { r, n, text, fmt, up } ou null si les chiffres sont impossibles. */
+function headOf(id, v, R) {
+  const [fn, pick, fmt, up, alt] = HEAD[id];
+  const r = fn(v);
+  if (!r) return null;
+  const n = pick(r, v);
+  if (n == null || !Number.isFinite(n)) return { r, n: Infinity, text: alt ? alt(r, R) : '—', up };
+  return { r, n, text: FMT[fmt](n), fmt, up };
+}
+
+/* L'écart entre deux grands chiffres : texte et couleur (good, bad ou flat). */
+function deltaOf(a, b) {
+  if (!a || !b || a.text === b.text) return null;
+  const d = b.n - a.n;
+  const text = Number.isFinite(d) ? (d > 0 ? '+' : '') + FMT[b.fmt || a.fmt](d) : b.text;
+  return { text, cls: a.up == null ? 'flat' : (d > 0) === a.up ? 'good' : 'bad' };
+}
+
+/* Le calcul, pas à pas : les lignes viennent de la langue (T.steps). */
+function stepsBlock(rows) {
+  const list = (rows || []).filter(Boolean);
+  if (!list.length) return null;
+  return h('div', { class: 'steps' },
+    h('h3', { text: T.ui.steps }), h('p', { class: 'steps-sub', text: T.ui.stepsSub }),
+    h('ol', {}, list.map(([label, expr], i) => h('li', { style: `--i:${i}` }, h('span', { text: label }), h('b', { text: expr })))));
+}
+
+/* Un chiffre qui défile jusqu'à sa valeur, par crans, comme un compteur de borne. */
+function tween(el, from, to, fmt, done) {
+  const steps = 14;
+  let k = 0;
+  const tick = () => {
+    if (!el.isConnected) return;
+    k++;
+    if (k >= steps) { done(); return; }
+    const p = 1 - (1 - k / steps) ** 3;
+    el.textContent = fmt(from + (to - from) * p);
+    el._raf = requestAnimationFrame(() => requestAnimationFrame(tick));
+  };
+  el.textContent = fmt(from);
+  el._raf = requestAnimationFrame(tick);
+}
+
+/* Une pluie de pièces, quand une liste est finie. */
+function burst(from) {
+  if (calm) return;
+  const box = from.getBoundingClientRect();
+  const layer = h('div', { class: 'burst', 'aria-hidden': 'true', style: `left:${Math.round(box.left + box.width / 2)}px;top:${Math.round(box.top + box.height / 2)}px` });
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    const d = 70 + (i % 3) * 34;
+    layer.append(h('span', { style: `--dx:${Math.round(Math.cos(a) * d)}px;--dy:${Math.round(Math.sin(a) * d - 50)}px;--d:${(i % 4) * 40}ms` }, sprite(i % 4 ? 'coin' : 'star', 2)));
+  }
+  document.body.append(layer);
+  setTimeout(() => layer.remove(), 1600);
+}
+
 /* ---------- Vues ---------- */
 
 function viewHome() {
@@ -763,11 +862,124 @@ function calculator(t, query) {
     values[f.key] = Number.isFinite(n) ? n : f.value;
   }
   const out = h('div', { class: 'panel result ' + ROLES[t.role].color, 'aria-live': 'polite' });
+  const levers = h('div', { class: 'panel levers' });
   const linkFor = () => `#/outil/${t.id}?${t.fields.map((f) => `${f.key}=${encodeURIComponent(values[f.key])}`).join('&')}`;
   let urlTimer = null;
+  let prev = null; // le grand chiffre affiché juste avant
+  let shown = null; // la valeur affichée en ce moment, même au milieu d'un défilement
+  const controls = {}; // clé → [champ, curseur]
+
+  const decimals = (x) => (String(x).split('.')[1] || '').length;
+  const nudge = (f, dir) => {
+    const x = Number((values[f.key] + dir * f.step).toFixed(decimals(f.step)));
+    return Math.min(f.max ?? Infinity, Math.max(f.min ?? -Infinity, x));
+  };
+  const setValue = (key, n) => {
+    values[key] = n;
+    const [input, range] = controls[key];
+    input.value = n;
+    range.value = n;
+    draw();
+  };
+
+  /* Un cran de plus ou de moins sur chaque chiffre : le résultat qu'il donnerait. */
+  const drawLevers = (head) => {
+    const focused = document.activeElement && levers.contains(document.activeElement) ? document.activeElement.dataset.lever : null;
+    if (!head) { levers.replaceChildren(); return; }
+    const rows = t.fields.map((f) => {
+      if (!Number.isFinite(values[f.key])) return null;
+      const [label, unit] = w.fields[f.key];
+      const stepText = F.nf(f.step, 2) + (unit ? ' ' + unit : '');
+      const buttons = [-1, 1].map((dir) => {
+        const n = nudge(f, dir);
+        if (n === values[f.key]) return { dir, off: true };
+        const next = headOf(t.id, { ...values, [f.key]: n }, R);
+        const d = deltaOf(head, next);
+        return { dir, n, next, d, weight: !next ? 0 : !Number.isFinite(next.n - head.n) ? Infinity : Math.abs(next.n - head.n) };
+      });
+      // Toutes les lignes restent, même sans effet : les boutons ne bougent pas sous le doigt.
+      return { f, label, stepText, buttons, weight: Math.max(...buttons.map((b) => b.weight || 0)) };
+    }).filter(Boolean);
+    // La barre dit quel chiffre pèse le plus ; l'ordre des lignes ne bouge pas, pour garder les boutons sous le doigt.
+    const finite = rows.map((r) => r.weight).filter(Number.isFinite);
+    const top = Math.max(1e-9, ...finite);
+    levers.replaceChildren(
+      h('h3', { text: T.ui.levers }), h('p', { class: 'levers-sub', text: T.ui.leversSub }),
+      ...rows.map((row) => h('div', { class: 'lever' },
+        h('div', { class: 'lever-head' }, h('span', { text: row.label }),
+          h('i', { class: 'lever-weight', 'aria-hidden': 'true' }, h('i', { style: `width:${Number.isFinite(row.weight) ? Math.max(6, (row.weight / top) * 100) : 100}%` }))),
+        h('div', { class: 'lever-btns' }, row.buttons.map((b) => {
+          const sign = b.dir > 0 ? '+' : '−';
+          if (b.off) return h('span', { class: 'lever-btn off', 'aria-hidden': 'true' }, h('b', { text: sign + row.stepText }));
+          const result = b.next ? b.next.text : R.invalid;
+          return h('button', { type: 'button', class: 'lever-btn ' + (b.d ? b.d.cls : 'flat'), 'data-lever': `${row.f.key}:${b.dir}`,
+            'aria-label': T.ui.leverTry(row.label, sign + row.stepText, b.next ? b.next.text : '—'),
+            onclick: () => setValue(row.f.key, b.n) },
+          h('b', { text: sign + row.stepText }),
+          h('span', { text: '→ ' + (b.next ? result : '—') + (b.d && Number.isFinite(b.next.n - head.n) ? ` (${b.d.text})` : b.next && !b.d ? ' (=)' : '') }));
+        })))));
+    if (focused) { const again = levers.querySelector(`[data-lever="${focused}"]`); if (again) again.focus(); }
+  };
+
   const draw = () => {
+    const first = !prev && !out.childElementCount;
+    // Avant de tout remplacer : la largeur des barres et le nombre de cœurs, pour animer le passage.
+    const oldWidths = [...out.querySelectorAll('.versus-track > span, .meter > span')].map((el) => el.style.width);
+    const oldLives = out.querySelector('.lives') ? out.querySelectorAll('.lives > span:not(.off)').length : null;
+    const oldScore = out.querySelector('.score b');
+    if (oldScore) cancelAnimationFrame(oldScore._raf);
+
     const parts = RESULTS[t.id](values, R);
-    out.replaceChildren(h('h2', { class: 'result-title', text: T.ui.result }), ...(parts ? parts.flat().filter(Boolean) : [h('p', { class: 'notice', text: R.invalid })]));
+    const head = parts ? headOf(t.id, values, R) : null;
+    const nodes = parts ? parts.flat().filter(Boolean) : [h('p', { class: 'notice', text: R.invalid })];
+    if (head && T.steps[t.id]) {
+      // Le pas à pas se glisse avant le tableau des valeurs, s'il y en a un.
+      const block = stepsBlock(T.steps[t.id](values, head.r, F));
+      const at = nodes.findIndex((n) => n.classList && n.classList.contains('values'));
+      if (block) nodes.splice(at < 0 ? nodes.length : at, 0, block);
+    }
+    out.classList.toggle('enter', first && !calm);
+    out.replaceChildren(h('h2', { class: 'result-title', text: T.ui.result }), ...nodes);
+
+    if (!calm) {
+      // Les barres glissent de leur ancienne largeur à la nouvelle (de zéro, la première fois).
+      [...out.querySelectorAll('.versus-track > span, .meter > span')].forEach((el, i) => {
+        const to = el.style.width;
+        const from = first ? '0%' : oldWidths[i];
+        if (from == null || from === to) return;
+        el.style.transition = 'none';
+        el.style.width = from;
+        void el.offsetWidth;
+        el.style.transition = '';
+        el.style.width = to;
+      });
+      // Les cœurs perdus se brisent, les cœurs gagnés sautent.
+      if (oldLives != null) {
+        const hearts = [...out.querySelectorAll('.lives > span')];
+        const now = hearts.filter((el) => !el.classList.contains('off')).length;
+        hearts.forEach((el, i) => {
+          if (i >= now && i < oldLives) el.classList.add('lost');
+          if (i >= oldLives && i < now) el.classList.add('gain');
+        });
+      }
+      // Le grand chiffre défile depuis l'ancien (depuis zéro, la première fois), et l'écart s'affiche à côté.
+      const b = out.querySelector('.score b');
+      if (b && head && head.fmt && Number.isFinite(head.n)) {
+        const from = first ? 0 : shown != null && Number.isFinite(shown) ? shown : prev && Number.isFinite(prev.n) ? prev.n : null;
+        if (from != null && from !== head.n) {
+          const final = b.textContent;
+          const fmt = FMT[head.fmt];
+          tween(b, from, head.n, (n) => { shown = n; return fmt(n); }, () => { b.textContent = final; shown = head.n; });
+        } else shown = head.n;
+      } else shown = null;
+      const d = deltaOf(prev, head);
+      if (b && d) {
+        b.classList.add('bump');
+        b.parentElement.append(h('em', { class: 'delta ' + d.cls, 'aria-hidden': 'true', text: d.text }));
+      }
+    }
+    prev = head;
+    drawLevers(head);
     // L'adresse suit les chiffres : la page peut être partagée ou rechargée telle quelle.
     clearTimeout(urlTimer);
     urlTimer = setTimeout(() => {
@@ -775,28 +987,41 @@ function calculator(t, query) {
       if (out.isConnected && location.hash.startsWith('#/outil/' + t.id)) history.replaceState(null, '', location.pathname + location.search + linkFor());
     }, 300);
   };
-  const inputs = [];
+
   const form = h('form', { class: 'panel form', onsubmit: (e) => e.preventDefault() },
     h('h2', { class: 'result-title', text: T.ui.yourNumbers }),
     t.fields.map((f) => {
       const [label, unit, hint] = w.fields[f.key];
       const input = h('input', { type: 'number', inputmode: 'decimal', id: 'f-' + f.key, step: f.step, min: f.min, max: f.max, value: values[f.key],
         'aria-describedby': hint ? 'h-' + f.key : null,
-        oninput: (e) => { values[f.key] = e.target.value === '' ? NaN : Number(e.target.value); draw(); } });
-      inputs.push([f, input]);
+        oninput: (e) => {
+          values[f.key] = e.target.value === '' ? NaN : Number(e.target.value);
+          if (Number.isFinite(values[f.key])) range.value = values[f.key];
+          draw();
+        } });
+      // Le curseur : de quoi essayer vite. Sans maximum prévu, il va jusqu'à quatre fois l'exemple.
+      const lo = f.min ?? 0;
+      let hi = f.max ?? Math.max(f.value * 4, lo + f.step * 10);
+      if (Number.isFinite(values[f.key]) && values[f.key] > hi) hi = values[f.key] * 2;
+      hi = lo + Math.ceil((hi - lo) / f.step) * f.step;
+      const range = h('input', { type: 'range', class: 'slider', min: lo, max: hi, step: f.step, value: values[f.key], 'aria-label': T.ui.slider(label), tabindex: '-1',
+        oninput: (e) => { values[f.key] = Number(e.target.value); input.value = e.target.value; draw(); } });
+      controls[f.key] = [input, range];
       return h('div', { class: 'field' },
         h('label', { for: 'f-' + f.key, text: label }),
         h('div', { class: 'field-in' }, input, unit ? h('span', { class: 'unit', text: unit }) : null),
+        range,
         hint ? h('small', { id: 'h-' + f.key, text: hint }) : null);
     }),
     h('div', { class: 'form-actions' },
       h('button', { class: 'btn', type: 'button', onclick: () => {
-        for (const [f, input] of inputs) { values[f.key] = f.value; input.value = f.value; }
+        for (const f of t.fields) { values[f.key] = f.value; controls[f.key][0].value = f.value; controls[f.key][1].value = f.value; }
         draw();
       } }, T.ui.reset),
       h('button', { class: 'btn', type: 'button', onclick: () => copyText(location.origin + location.pathname + linkFor(), T.ui.linkCopied) }, T.ui.copyLink)));
   draw();
-  return h('div', { class: 'tool-grid' }, form, out);
+  // Sur grand écran, les crans vont sous les chiffres ; sur téléphone, après le résultat.
+  return h('div', { class: 'tool-grid calc-grid' }, form, out, levers);
 }
 
 function checklist(t) {
@@ -804,19 +1029,27 @@ function checklist(t) {
   const items = T.checklists[t.list];
   const key = 'mb-check-' + t.list;
   let done = new Set(store.get(key, []).filter((i) => Number.isInteger(i) && i >= 0 && i < items.length));
-  const bar = h('div', { class: 'progress', role: 'img' });
+  // Les cases de la jauge restent les mêmes : seule celle qui s'allume s'anime.
+  const cells = items.map(() => h('i', {}));
+  const bar = h('div', { class: 'progress', role: 'img' }, cells);
   const count = h('b', {});
   const status = h('p', { class: 'verdict' });
   const refresh = () => {
     count.textContent = `${done.size} / ${items.length}`;
     bar.setAttribute('aria-label', ui.progress(done.size, items.length));
-    bar.replaceChildren(...items.map((_, i) => h('i', { class: i < done.size ? 'on' : '' })));
+    cells.forEach((c, i) => c.classList.toggle('on', i < done.size));
     status.textContent = done.size === items.length ? ui.done : done.size === 0 ? ui.none : ui.left(items.length - done.size);
   };
   const boxes = [];
   const list = h('ol', { class: 'checks' }, items.map(([title, hint], i) => {
     const box = h('input', { type: 'checkbox', id: `${t.list}-${i}`, checked: done.has(i) ? 'checked' : null,
-      onchange: (e) => { if (e.target.checked) done.add(i); else done.delete(i); store.set(key, [...done]); refresh(); } });
+      onchange: (e) => {
+        const before = done.size;
+        if (e.target.checked) done.add(i); else done.delete(i);
+        store.set(key, [...done]);
+        refresh();
+        if (done.size === items.length && before < items.length) burst(e.target);
+      } });
     boxes.push(box);
     return h('li', {}, box, h('label', { for: `${t.list}-${i}` }, h('b', { text: title }), h('span', { text: hint })));
   }));

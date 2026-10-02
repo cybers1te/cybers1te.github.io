@@ -387,6 +387,86 @@ td.posv { color: var(--ok); font-weight: 700; }
 .meter { height: 26px; background: var(--dark); box-shadow: inset 0 0 0 2px var(--line); }
 .meter span { display: block; height: 100%; min-width: 2px; background: var(--c, var(--ok)); }
 
+/* ---------- Bornes : curseurs, pas à pas, ce qui fait bouger ---------- */
+
+.slider { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 2px 0 0; background: transparent; cursor: pointer; }
+.slider::-webkit-slider-runnable-track { height: 8px; background: var(--dark); box-shadow: inset 0 0 0 2px var(--line); }
+.slider::-moz-range-track { height: 8px; background: var(--dark); box-shadow: inset 0 0 0 2px var(--line); }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 22px; margin-top: -7px; border: 0; border-radius: 0; background: var(--c, var(--p1)); box-shadow: 0 3px 0 0 var(--dark); }
+.slider::-moz-range-thumb { width: 18px; height: 22px; border: 0; border-radius: 0; background: var(--c, var(--p1)); box-shadow: 0 3px 0 0 var(--dark); }
+.slider:hover::-webkit-slider-thumb { background: var(--ink); }
+.slider:hover::-moz-range-thumb { background: var(--ink); }
+.form { --c: var(--p1); }
+.field input.slider { min-height: 0; padding: 0; margin: 2px 0 0; box-shadow: none; background: transparent; }
+.calc-grid > .result { grid-row: span 2; }
+.calc-grid > .levers { margin-top: 0; }
+
+.steps { display: grid; gap: 8px; padding: 16px; background: var(--dark); box-shadow: inset 0 0 0 2px var(--line);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 50%, transparent 50%); background-size: 100% 8px; }
+.steps h3 { font-size: 20px; color: var(--c, var(--p1)); }
+.steps h3::before { content: "= "; }
+.steps-sub { color: var(--muted); font-size: 18px; }
+.steps ol { list-style: none; margin: 4px 0 0; padding: 0; counter-reset: s; display: grid; }
+.steps li { counter-increment: s; display: grid; gap: 2px; padding: 9px 0 9px 34px; position: relative; border-top: 2px dashed var(--line); }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 11px; width: 22px; text-align: center; font-family: var(--display); font-size: 11px; color: var(--dark); background: var(--c, var(--p1)); line-height: 22px; }
+.steps li span { color: var(--ink-2); line-height: 1.25; }
+.steps li b { font-size: 23px; line-height: 1.3; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.steps li:last-child b { color: var(--c, var(--p1)); }
+
+.levers { display: grid; gap: 10px; --c: var(--p1); }
+.levers:empty { display: none; }
+.levers h3 { font-size: 20px; }
+.levers-sub { color: var(--muted); font-size: 18px; line-height: 1.3; }
+.lever { display: grid; gap: 6px; padding: 8px 0; border-top: 2px solid var(--line); }
+.lever-head { display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 12px; align-items: center; }
+.lever-head span { color: var(--ink); font-weight: 700; line-height: 1.2; }
+.lever-weight { display: block; height: 8px; background: var(--dark); }
+.lever-weight i { display: block; height: 100%; background: var(--c, var(--p1)); }
+.lever-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.lever-btn { display: grid; gap: 0; justify-items: start; text-align: left; padding: 6px 10px; border: 0; background: var(--panel-2); color: var(--ink); cursor: pointer; box-shadow: inset 0 -3px 0 0 var(--line); min-height: 44px; min-width: 0; }
+.lever-btn b { font-size: 19px; }
+.lever-btn span { font-size: 18px; color: var(--ink-2); overflow-wrap: anywhere; line-height: 1.2; }
+.lever-btn:hover { background: var(--line); }
+.lever-btn:active { transform: translateY(2px); box-shadow: none; }
+.lever-btn.good { box-shadow: inset 0 -3px 0 0 var(--ok); }
+.lever-btn.good span { color: var(--ok); }
+.lever-btn.bad { box-shadow: inset 0 -3px 0 0 var(--hot); }
+.lever-btn.bad span { color: var(--hot); }
+.lever-btn.off { opacity: 0.35; cursor: default; }
+
+/* ---------- Animations des résultats ----------
+   Tout avance par crans (steps), comme sur une vieille borne. `.enter` : la première fois que la borne s'affiche. */
+
+.score { position: relative; justify-items: start; }
+.score b.bump { animation: bump 0.32s steps(3); }
+.delta { position: absolute; bottom: 100%; right: 0; margin-bottom: 2px; white-space: nowrap; font-style: normal; font-family: var(--display); font-size: 12px; line-height: 1.6; padding: 2px 8px; color: var(--dark); background: var(--line); animation: delta 1.8s steps(12) forwards; }
+.delta.good { background: var(--ok); }
+.delta.bad { background: var(--hot); }
+.delta.flat { background: var(--p2); }
+.versus-track > span, .meter > span { transition: width 0.42s steps(7); }
+.result.enter .score b { animation: pop 0.45s steps(4) both; }
+.result.enter .pxchart .bar { animation: rise 0.5s steps(5) both; animation-delay: calc(var(--i) * 16ms); transform-box: fill-box; transform-origin: 50% 100%; }
+.result.enter .pxchart .bar.neg { transform-origin: 50% 0; }
+.result.enter .waffle i { animation: pop 0.3s steps(3) both; animation-delay: calc(var(--i) * 6ms); }
+.result.enter .steps li { animation: type 0.3s steps(3) both; animation-delay: calc(300ms + var(--i) * 90ms); }
+.result.enter .lives > span { animation: pop 0.3s steps(3) both; }
+.lives .lost { animation: lost 0.6s steps(5); }
+.lives .gain { animation: pop 0.35s steps(3); }
+.progress i.on { animation: pop 0.3s steps(3); }
+.checks input:checked { animation: pop 0.25s steps(2); }
+#view > * { animation: view 0.3s steps(4) both; }
+@keyframes bump { 50% { transform: translateY(-4px); } }
+@keyframes pop { from { transform: scale(0); } 70% { transform: scale(1.2); } }
+@keyframes rise { from { transform: scaleY(0); } }
+@keyframes type { from { opacity: 0; transform: translateX(-10px); } }
+@keyframes view { from { opacity: 0; transform: translateY(10px); } }
+@keyframes delta { 0% { opacity: 0; transform: translateY(6px); } 12% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+@keyframes lost { 0% { opacity: 1; filter: none; transform: none; } 30% { transform: translate(-3px, -6px) rotate(-12deg); } 60% { transform: translate(3px, -2px) rotate(12deg); } }
+
+.burst { position: fixed; z-index: 70; width: 0; height: 0; pointer-events: none; }
+.burst span { position: absolute; left: -10px; top: -10px; animation: burst 1.1s steps(11) var(--d) both; }
+@keyframes burst { 0% { transform: translate(0, 0) scale(0.4); opacity: 1; } 55% { transform: translate(var(--dx), var(--dy)); opacity: 1; } 100% { transform: translate(var(--dx), calc(var(--dy) + 90px)); opacity: 0; } }
+
 /* ---------- Écrans plus petits ---------- */
 
 @media (max-width: 980px) {
@@ -397,6 +477,7 @@ td.posv { color: var(--ok); font-weight: 700; }
   .nav a { padding: 0 8px; }
   .top-row { gap: 14px; }
   .tool-grid, .tool-grid.wide-form { grid-template-columns: minmax(0, 1fr); }
+  .calc-grid > .result { grid-row: auto; }
   .pcard-holder { position: static; }
   .track { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .track li:nth-child(3) a { border-right: var(--px) solid var(--line); }
@@ -442,10 +523,14 @@ td.posv { color: var(--ok); font-weight: 700; }
   .glossary > div { grid-template-columns: minmax(0, 1fr); }
   .foot-grid { grid-template-columns: minmax(0, 1fr); }
   .lives { grid-template-columns: repeat(6, auto); }
+  .steps { padding: 12px; }
+  .steps li b { font-size: 21px; }
   .unit { min-width: 0; }
   .panel { padding: 18px 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .insert, .hero-rocket, .hero-coin, .twinkle, .player:hover .player-sprite, .cabinet:hover .sprite, .mini:hover .sprite { animation: none; }
+  .insert, .hero-rocket, .hero-coin, .twinkle, .player:hover .player-sprite, .cabinet:hover .sprite, .mini:hover .sprite,
+  #view > *, .progress i.on, .checks input:checked, .lives .lost, .lives .gain, .score b.bump, .delta, .burst span { animation: none; }
+  .versus-track > span, .meter > span { transition: none; }
 }

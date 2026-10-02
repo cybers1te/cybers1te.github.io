@@ -63,6 +63,12 @@ export default {
     copyFail: 'Kopiëren lukt niet: selecteer de tekst en kopieer hem met de hand.',
     clear: 'Alles wissen',
     seeValues: 'Bekijk de waarden',
+    steps: 'De berekening, stap voor stap',
+    stepsSub: 'Met jouw cijfers, afgerond.',
+    levers: 'Wat het resultaat doet bewegen',
+    leversSub: 'Elke knop verandert één cijfer met één stap en toont het resultaat dat het zou geven. De gele balk toont welke het zwaarst wegen.',
+    leverTry: (label, step, result) => `${label} ${step}: het resultaat zou ${result} worden`,
+    slider: (label) => `${label} (schuifregelaar)`,
     highest: (v) => `Hoogste: ${v}`,
     newTab: '(nieuw tabblad)',
     nTools: (n) => `${n} machine${n === 1 ? '' : 's'}`,
@@ -1160,6 +1166,262 @@ export default {
           'De officiële site om de oprichting, wijziging of stopzetting van een bedrijf in Frankrijk aan te geven (in het Frans).',
         ],
         note: 'Deze instanties bestaan om je vragen te beantwoorden. Begin bij hen voor je een privédienst betaalt.' },
+    },
+  },
+
+  /* De berekening, stap voor stap: [wat berekend wordt, de som met de ingevulde cijfers].
+     Zelfde volgorde en zelfde gevallen in de drie talen. */
+  steps: {
+    runway(v, r, F) {
+      const g = r.series[12];
+      return [
+        ['Wat je elke maand verliest', `${F.money(v.burn)} − ${F.money(v.revenue)} = ${F.money(r.netBurn)}`],
+        r.netBurn > 0 ? ['Zonder groei houdt het kasgeld het vol', `${F.money(v.cash)} ÷ ${F.money(r.netBurn)} ≈ ${F.nf(v.cash / r.netBurn, 1)} maanden`] : null,
+        v.growth !== 0 && g ? [`Je inkomsten in maand 12, met ${F.pct(v.growth)} per maand`, `${F.money(v.revenue)} × (1 + ${F.pct(v.growth)})^11 = ${F.money(g.revenue)}`] : null,
+        r.netBurn > 0 ? ['Concreet kost elke dag je', `${F.money(r.netBurn)} ÷ 30 ≈ ${F.money(r.netBurn / 30)}`] : null,
+      ];
+    },
+    lever(v, r, F) {
+      return [
+        ['Verlies per maand', `${F.money(v.burn)} − ${F.money(v.revenue)} = ${F.money(r.netBurn)}`],
+        ['Behoefte over de periode', `${F.money(Math.max(0, r.netBurn))} × ${v.months} ${mnd(v.months)} = ${F.money(r.base)}`],
+        v.buffer > 0 ? ['Met de veiligheidsmarge', `${F.money(r.base)} × (1 + ${F.pct(v.buffer)}) = ${F.money(r.raise)}`] : null,
+        r.investors != null ? ['Deel voor de investeerders', `${F.money(r.raise)} ÷ (${F.money(v.pre)} + ${F.money(r.raise)}) = ${F.pct(r.investors)}`] : null,
+        r.raise > 0 ? ['Concreet kost elke gefinancierde maand', `${F.money(r.raise)} ÷ ${v.months} = ${F.money(r.raise / v.months)}`] : null,
+      ];
+    },
+    dilution(v, r, F) {
+      return [
+        ['Waardering na de ronde', `${F.money(v.pre)} + ${F.money(v.raise)} = ${F.money(r.post)}`],
+        ['Deel van de nieuwe investeerders', `${F.money(v.raise)} ÷ ${F.money(r.post)} = ${F.pct(r.investors)}`],
+        ['Wat de bestaande aandeelhouders houden', `100% − ${F.pct(r.investors)} − ${F.pct(r.pool)} = ${F.pct(100 - r.investors - r.pool)}`],
+        ['Deel van de oprichters', `${F.pct(v.founders)} × ${F.pct(100 - r.investors - r.pool)} = ${F.pct(r.founders)}`],
+        ['Concreet is hun deel vandaag waard', `${F.pct(r.founders)} × ${F.money(r.post)} = ${F.money((r.founders / 100) * r.post)}`],
+      ];
+    },
+    vesting(v, r, F) {
+      const total = v.years * 12;
+      return [
+        ['Totale duur', `${v.years} jaar × 12 = ${total} maanden`],
+        r.toCliff > 0 ? ['De cliff', `${F.nf(v.elapsed)} ${mnd(v.elapsed)} < ${F.nf(v.cliff)} ${mnd(v.cliff)}: er is nog niets verworven`]
+          : ['Deel van de verstreken tijd', `${F.nf(Math.min(v.elapsed, total))} ÷ ${total} = ${F.pct(r.ratio)}`],
+        ['Verworven aandelen', `${F.pct(v.stake, 2)} × ${F.pct(r.ratio)} = ${F.pct(r.vested, 2)}`],
+        ['Concreet krijg je er elke maand bij', `${F.pct(v.stake, 2)} ÷ ${total} = ${F.pct(v.stake / total, 3)}`],
+      ];
+    },
+    marche(v, r, F) {
+      return [
+        ['Totale markt (TAM)', `${F.nf(v.customers)} × ${F.money(v.price)} = ${F.money(r.tam)}`],
+        ['Klanten die je kunt bedienen', `${F.nf(v.customers)} × ${F.pct(v.reachable)} = ${F.nf(r.samCustomers)}`],
+        ['Klanten die je mikt', `${F.nf(r.samCustomers)} × ${F.pct(v.share)} = ${F.nf(r.somCustomers)}`],
+        ['Beoogde inkomsten (SOM)', `${F.nf(r.somCustomers)} × ${F.money(v.price)} = ${F.money(r.som)}`],
+        ['Concreet, per maand', `${F.money(r.som)} ÷ 12 = ${F.money(r.som / 12)}`],
+      ];
+    },
+    client(v, r, F) {
+      const monthly = v.arpu * (v.margin / 100);
+      return [
+        ['Kost van een klant (CAC)', `${F.money(v.spend)} ÷ ${F.nf(v.customers)} = ${F.money(r.cac)}`],
+        ['Marge per klant per maand', `${F.money(v.arpu)} × ${F.pct(v.margin)} = ${F.money(monthly)}`],
+        ['Een klant blijft gemiddeld', `100% ÷ ${F.pct(v.churn)} = ${F.nf(r.lifetime, 1)} maanden`],
+        ['Waarde van een klant (LTV)', `${F.money(monthly)} × ${F.nf(r.lifetime, 1)} = ${F.money(r.ltv)}`],
+        r.ratio != null ? ['Verhouding LTV ÷ CAC', `${F.money(r.ltv)} ÷ ${F.money(r.cac)} = ${F.nf(r.ratio, 1)}`] : null,
+      ];
+    },
+    objectif(v, r, F) {
+      const still = v.current * (1 - v.churn / 100) ** v.months;
+      return [
+        ['Nodige klanten', `${F.money(v.target)} ÷ ${F.money(v.price)} = ${F.nf(r.needed)}`],
+        v.current > 0 && v.churn > 0 ? [`Je klanten die er over ${v.months} ${mnd(v.months)} nog zijn`, `${F.nf(v.current)} × (1 − ${F.pct(v.churn)})^${v.months} ≈ ${F.nf(still)}`] : null,
+        ['Klanten te winnen in totaal', `${F.nf(r.perMonth, 1)} × ${v.months} ${mnd(v.months)} ≈ ${F.nf(r.total)}`],
+        r.perMonth > 0 ? ['Concreet, per week', `${F.nf(r.perMonth, 1)} × 12 ÷ 52 ≈ ${F.nf((r.perMonth * 12) / 52, 1)}`] : null,
+      ];
+    },
+    croissance(v, r, F) {
+      return [
+        ['Beoogde vermenigvuldiging', `${F.nf(v.to)} ÷ ${F.nf(v.from)} = ${F.nf(r.multiple, 2)}`],
+        ['Groei per maand', `${F.nf(r.multiple, 2)}^(1/${v.months}) − 1 = ${F.pct(r.monthly, 2)}`],
+        ['Over een jaar', `(1 + ${F.pct(r.monthly, 2)})^12 − 1 = ${F.pct(r.yearly, 0)}`],
+        r.monthly > 0 ? ['Concreet, volgende maand', `${F.nf(v.from)} × (1 + ${F.pct(r.monthly, 2)}) = ${F.nf(v.from * (1 + r.monthly / 100), 1)}`] : null,
+      ];
+    },
+    tarif(v, r, F) {
+      const gross = (v.net * 12) / (1 - v.charges / 100);
+      return [
+        ['Gefactureerde dagen per jaar', `${F.nf(v.days)} × 12 × (52 − ${F.nf(v.weeks)}) ÷ 52 = ${F.nf(r.billable, 0)}`],
+        [`Om ${F.money(v.net)} per maand over te houden`, `${F.money(v.net)} × 12 ÷ (1 − ${F.pct(v.charges)}) = ${F.money(gross)}`],
+        v.costs > 0 ? ['Plus de kosten van het jaar', `${F.money(gross)} + ${F.money(v.costs)} × 12 = ${F.money(r.revenue)}`] : null,
+        ['Dagtarief', `${F.money(r.revenue)} ÷ ${F.nf(r.billable, 0)} = ${F.money(r.rate)}`],
+        [`Concreet, een maand met ${F.nf(v.days)} gefactureerde dagen`, `${F.nf(v.days)} × ${F.money(r.rate)} = ${F.money(v.days * r.rate)}`],
+      ];
+    },
+    devis(v, r, F) {
+      return [
+        ['Werk', `${F.nf(v.days, 1)} dagen × ${F.money(v.rate)} = ${F.money(r.work)}`],
+        v.buffer > 0 ? ['Marge voor verrassingen', `${F.money(r.work)} × ${F.pct(v.buffer)} = ${F.money(r.safety)}`] : null,
+        ['Totaal exclusief btw', `${F.money(r.work)} + ${F.money(r.safety)} + ${F.money(v.expenses)} = ${F.money(r.ht)}`],
+        v.vat > 0 ? ['Btw', `${F.money(r.ht)} × ${F.pct(v.vat)} = ${F.money(r.vatAmount)}`] : null,
+        v.deposit > 0 ? ['Voorschot', `${F.money(r.ttc)} × ${F.pct(v.deposit)} = ${F.money(r.depositAmount)}`] : null,
+        ['Concreet brengt een geplande dag je op', `(${F.money(r.ht)} − ${F.money(v.expenses)}) ÷ ${F.nf(v.days, 1)} = ${F.money((r.ht - v.expenses) / v.days)}`],
+      ];
+    },
+    prix(v, r, F) {
+      return [
+        ['Prijs exclusief btw', `${F.money(v.cost)} ÷ (1 − ${F.pct(v.margin)}) = ${F.money(r.ht)}`],
+        ['Je marge', `${F.money(r.ht)} − ${F.money(v.cost)} = ${F.money(r.marginAmount)}`],
+        v.vat > 0 ? ['Getoonde prijs', `${F.money(r.ht)} × (1 + ${F.pct(v.vat)}) = ${F.money(r.ttc)}`] : null,
+        r.marginAmount > 0 ? [`Concreet, om ${F.money(1000)} marge te verdienen`, `${F.money(1000)} ÷ ${F.money(r.marginAmount)} → ${F.nf(Math.ceil(1000 / r.marginAmount))} verkopen`] : null,
+      ];
+    },
+    remise(v, r, F) {
+      return [
+        ['Marge per verkoop, vooraf', `${F.money(v.price)} × ${F.pct(v.margin)} = ${F.money(r.before)}`],
+        ['Marge per verkoop, nadien', `${F.money(v.price)} × (${F.pct(v.margin)} − ${F.pct(v.discount)}) = ${F.money(r.after)}`],
+        r.extra != null ? ['Extra verkopen', `${F.money(r.before)} ÷ ${F.money(r.after)} − 1 = ${F.pct(r.extra)}`] : null,
+        r.extra != null ? ['Concreet zijn 100 verkopen vooraf evenveel als', `100 × ${F.money(r.before)} ÷ ${F.money(r.after)} → ${F.nf(Math.ceil(100 + r.extra))} verkopen nadien`] : null,
+      ];
+    },
+    seuil(v, r, F) {
+      return [
+        ['Marge per verkoop', `${F.money(v.price)} − ${F.money(v.variable)} = ${F.money(r.margin)}`],
+        r.units != null ? ['Verkopen om de vaste kosten te dekken', `${F.money(v.fixed)} ÷ ${F.money(r.margin)} = ${F.nf(v.fixed / r.margin, 1)} → ${F.nf(r.units)}`] : null,
+        r.units != null ? ['Omzet op het break-evenpunt', `${F.nf(r.units)} × ${F.money(v.price)} = ${F.money(r.revenue)}`] : null,
+        r.units != null ? ['Concreet, per werkdag (22 per maand)', `${F.nf(r.units)} ÷ 22 ≈ ${F.nf(r.units / 22, 1)} ${r.units / 22 === 1 ? 'verkoop' : 'verkopen'}`] : null,
+      ];
+    },
+    tunnel(v, r, F) {
+      return [
+        ['Contacten', `${F.nf(v.visitors)} × ${F.pct(v.signup)} = ${F.nf(r.leads, 1)}`],
+        ['Klanten', `${F.nf(r.leads, 1)} × ${F.pct(v.purchase)} = ${F.nf(r.customers, 1)}`],
+        ['Omzet', `${F.nf(r.customers, 1)} × ${F.money(v.basket)} = ${F.money(r.revenue)}`],
+        r.costPerCustomer != null ? ['Kost van een klant', `${F.money(v.spend)} ÷ ${F.nf(r.customers, 1)} = ${F.money(r.costPerCustomer)}`] : null,
+        r.customers > 0 ? ['Concreet, bezoekers per klant', `${F.nf(v.visitors)} ÷ ${F.nf(r.customers, 1)} ≈ ${F.nf(v.visitors / r.customers)}`] : null,
+      ];
+    },
+    tirelire(v, r, F) {
+      return [
+        ['Btw, door te storten', `${F.money(v.amount)} × ${F.pct(v.vat)} = ${F.money(r.vatAmount)}`],
+        ['Bijdragen en belastingen', `${F.money(v.amount)} × ${F.pct(v.charges)} = ${F.money(r.chargesAmount)}`],
+        ['Opzij te zetten', `${F.money(r.vatAmount)} + ${F.money(r.chargesAmount)} = ${F.money(r.aside)}`],
+        ['Echt van jou', `${F.money(v.amount)} − ${F.money(r.chargesAmount)} = ${F.money(r.yours)}`],
+        [`Concreet, op ${F.money(100)} ontvangen`, `${F.money(r.yoursShare)} is van jou`],
+      ];
+    },
+    ticket(v, r, F) {
+      return [
+        ['Je deel bij de instap', `${F.money(v.ticket)} ÷ ${F.money(v.post)} = ${F.pct(r.stake, 2)}`],
+        v.dilution > 0 ? ['Na de volgende rondes', `${F.pct(r.stake, 2)} × (1 − ${F.pct(v.dilution)}) = ${F.pct(r.stakeExit, 2)}`] : null,
+        ['Wat je terugkrijgt', `${F.pct(r.stakeExit, 2)} × ${F.money(v.exit)} = ${F.money(r.proceeds)}`],
+        ['Veelvoud', `${F.money(r.proceeds)} ÷ ${F.money(v.ticket)} = ${F.times(r.multiple)}`],
+        r.multiple > 0 ? ['Rendement per jaar (IRR)', `${F.nf(r.multiple, 2)}^(1/${v.years}) − 1 = ${F.pct(r.irr)}`] : null,
+      ];
+    },
+    valo(v, r, F) {
+      const kept = v.exit * (1 - v.dilution / 100);
+      return [
+        ['Exit, zodra je deel verwaterd is', `${F.money(v.exit)} × (1 − ${F.pct(v.dilution)}) = ${F.money(kept)}`],
+        ['Maximale waardering', `${F.money(kept)} ÷ ${F.nf(v.multiple, 1)} = ${F.money(r.post)}`],
+        r.stake != null ? ['Je deel bij de instap', `${F.money(v.ticket)} ÷ ${F.money(r.post)} = ${F.pct(r.stake, 2)}`] : null,
+        r.stake != null ? ['Concreet zou je bij de exit krijgen', `${F.money(v.ticket)} × ${F.nf(v.multiple, 1)} = ${F.money(v.ticket * v.multiple)}`] : null,
+      ];
+    },
+    portefeuille(v, r, F) {
+      return [
+        ['In totaal geïnvesteerd', `${F.nf(v.count)} × ${F.money(v.ticket)} = ${F.money(r.invested)}`],
+        ['Gemiddeld veelvoud', `${F.pct(v.mid)} × ${F.nf(v.midMultiple, 1)} + ${F.pct(r.win)} × ${F.nf(v.winMultiple, 1)} = ${F.times(r.multiple)}`],
+        ['Verwacht rendement', `${F.money(r.invested)} × ${F.nf(r.multiple, 2)} = ${F.money(r.proceeds)}`],
+        ['Concreet levert één groot succes op', `${F.money(v.ticket)} × ${F.nf(v.winMultiple, 1)} = ${F.money(v.ticket * v.winMultiple)}`],
+      ];
+    },
+    suivre(v, r, F) {
+      return [
+        ['Waardering na de ronde', `${F.money(v.pre)} + ${F.money(v.raise)} = ${F.money(r.post)}`],
+        ['Om je deel te houden', `${F.money(v.raise)} × ${F.pct(v.stake, 2)} = ${F.money(r.invest)}`],
+        ['Als je niet volgt', `${F.pct(v.stake, 2)} × ${F.money(v.pre)} ÷ ${F.money(r.post)} = ${F.pct(r.without, 2)}`],
+      ];
+    },
+    fonte(v, r, F) {
+      return [
+        ['Elke ronde laat je', `100% − ${F.pct(v.dilution)} = ${F.pct(100 - v.dilution)}`],
+        [`Na ${v.rounds} ${v.rounds > 1 ? 'rondes' : 'ronde'}`, `${F.pct(v.stake, 2)} × ${F.nf(1 - v.dilution / 100, 2)}^${v.rounds} = ${F.pct(r.final, 2)}`],
+        [`Concreet, bij een verkoop voor ${F.money(1e7)}`, `${F.pct(r.final, 2)} × ${F.money(1e7)} = ${F.money((r.final / 100) * 1e7)}`],
+      ];
+    },
+    convertible(v, r, F) {
+      const discounted = v.pre * (1 - v.discount / 100);
+      return [
+        ['Waardering met de korting', `${F.money(v.pre)} × (1 − ${F.pct(v.discount)}) = ${F.money(discounted)}`],
+        v.cap > 0 ? ['Gebruikte waardering: de laagste', `min(${F.money(v.cap)}; ${F.money(discounted)}) = ${F.money(r.effective)}`] : null,
+        ['De houder koopt alsof', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} van het bestaande kapitaal`],
+        ['Zijn deel na de ronde', F.pct(r.stake, 2)],
+      ];
+    },
+    cascade(v, r, F) {
+      return [
+        ['Voorkeur van de investeerders', `${F.money(v.invested)} × ${F.nf(v.multiple, 1)} = ${F.money(v.invested * v.multiple)}`],
+        ['Hun deel van de prijs', `${F.money(v.exit)} × ${F.pct(v.stake)} = ${F.money(r.asShares)}`],
+        ['Ze nemen het grootste', `max(${F.money(r.preference)}; ${F.money(r.asShares)}) = ${F.money(r.investors)}`],
+        ['Over voor de andere aandeelhouders', `${F.money(v.exit)} − ${F.money(r.investors)} = ${F.money(r.others)}`],
+      ];
+    },
+    note(v, r, F) {
+      const names = { team: 'Team', market: 'Markt', traction: 'Tractie', product: 'Product', terms: 'Voorwaarden' };
+      return [
+        ...r.parts.map((p) => [`${names[p.key]} (gewicht ${p.weight})`, `${F.nf(p.note, 1)} ÷ 10 × ${p.weight} = ${F.nf(p.points, 1)}`]),
+        ['Totaal', `${r.parts.map((p) => F.nf(p.points, 1)).join(' + ')} = ${F.nf(r.score, 1)}`],
+      ];
+    },
+    composes(v, r, F) {
+      return [
+        ['In totaal ingelegd', `${F.money(v.initial)} + ${F.money(v.monthly)} × ${v.years * 12} maanden = ${F.money(r.paid)}`],
+        ['Wat de rente toevoegt', `${F.money(r.value)} − ${F.money(r.paid)} = ${F.money(r.gain)}`],
+        v.rate > 0 ? ['Tijd om te verdubbelen (regel van 72)', `72 ÷ ${F.nf(v.rate, 1)} ≈ ${F.nf(72 / v.rate, 1)} jaar`] : null,
+        r.value > 0 ? ['Concreet, als je daarna 4% per jaar opneemt', `${F.money(r.value)} × 4% ÷ 12 = ${F.money((r.value * 0.04) / 12)} per maand`] : null,
+      ];
+    },
+    cible(v, r, F) {
+      return [
+        [`Je startkapitaal, over ${v.years} jaar`, `${F.money(v.initial)} → ${F.money(r.grown)}`],
+        ['Nog op te bouwen', `${F.money(v.target)} − ${F.money(r.grown)} = ${F.money(Math.max(0, v.target - r.grown))}`],
+        ['In totaal ingelegd', `${F.money(v.initial)} + ${F.money(r.monthly)} × ${v.years * 12} = ${F.money(r.paid)}`],
+        r.monthly > 0 ? ['Concreet, per dag', `${F.money(r.monthly)} × 12 ÷ 365 ≈ ${F.money((r.monthly * 12) / 365)}`] : null,
+      ];
+    },
+    frais(v, r, F) {
+      const [low, high] = v.feeA <= v.feeB ? [r.a, r.b] : [r.b, r.a];
+      return [
+        ['Netto rendement van belegging A', `${F.pct(v.rate)} − ${F.pct(v.feeA, 2)} = ${F.pct(v.rate - v.feeA, 2)}`],
+        ['Netto rendement van belegging B', `${F.pct(v.rate)} − ${F.pct(v.feeB, 2)} = ${F.pct(v.rate - v.feeB, 2)}`],
+        ['Verschil op het einde', `${F.money(low)} − ${F.money(high)} = ${F.money(r.gap)}`],
+        v.monthly > 0 && r.gap > 0 ? ['Concreet is dat verschil', `${F.money(r.gap)} ÷ ${F.money(v.monthly)} ≈ ${F.nf(r.gap / v.monthly)} maanden inleg`] : null,
+      ];
+    },
+    inflation(v, r, F) {
+      const prices = (1 + v.inflation / 100) ** v.years;
+      return [
+        [`De prijzen, over ${v.years} jaar`, `(1 + ${F.pct(v.inflation)})^${v.years} = × ${F.nf(prices, 2)}`],
+        v.rate !== 0 ? ['Getoond bedrag', `${F.money(v.amount)} × (1 + ${F.pct(v.rate)})^${v.years} = ${F.money(r.nominal)}`] : null,
+        ['Waarde in geld van vandaag', `${F.money(r.nominal)} ÷ ${F.nf(prices, 2)} = ${F.money(r.real)}`],
+        [`Concreet kost een boodschappenkar van ${F.money(100)} dan`, `${F.money(100)} × ${F.nf(prices, 2)} = ${F.money(100 * prices)}`],
+      ];
+    },
+    reserve(v, r, F) {
+      const monthly = ((1 + v.rate / 100) ** (1 / 12) - 1) * 100;
+      return [
+        ['Rendement per maand', `(1 + ${F.pct(v.rate)})^(1/12) − 1 = ${F.pct(monthly, 3)}`],
+        ['Wat het kapitaal per maand opbrengt', `${F.money(v.capital)} × ${F.pct(monthly, 3)} = ${F.money(r.sustainable)}`],
+        r.forever ? ['Je neemt minder op dan dat', `${F.money(v.monthly)} ≤ ${F.money(r.sustainable)}`]
+          : ['Je spreekt het kapitaal aan, in het begin', `${F.money(v.monthly)} − ${F.money(r.sustainable)} = ${F.money(v.monthly - r.sustainable)} per maand`],
+        r.total != null ? ['In totaal opgenomen', `${F.money(v.monthly)} × ${F.nf(r.months)} ${mnd(r.months)} = ${F.money(r.total)}`] : null,
+      ];
+    },
+    coussin(v, r, F) {
+      return [
+        ['Doel', `${F.money(v.expenses)} × ${F.nf(v.months)} ${mnd(v.months)} = ${F.money(r.target)}`],
+        ['Al gedekt', `${F.money(v.saved)} ÷ ${F.money(v.expenses)} = ${F.nf(r.covered, 1)} maanden`],
+        r.missing > 0 ? ['Er ontbreekt nog', `${F.money(r.target)} − ${F.money(v.saved)} = ${F.money(r.missing)}`] : null,
+        r.missing > 0 && v.monthly > 0 ? ['Tijd om er te geraken', `${F.money(r.missing)} ÷ ${F.money(v.monthly)} = ${F.nf(r.missing / v.monthly, 1)} → ${r.wait} ${mnd(r.wait)}`] : null,
+      ];
     },
   },
 

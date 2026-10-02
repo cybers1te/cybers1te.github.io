@@ -52,6 +52,12 @@ navigateur est choisie au premier passage, et `?lang=en` force une langue).
 - Chaque borne s'ouvre sur un **exemple inventé**, explique comment lire le
   résultat et dit ce que le calcul ne prend pas en compte. Les chiffres saisis
   sont dans l'adresse : la page se partage ou se recharge telle quelle.
+- Chaque calculateur montre **le calcul pas à pas** avec les chiffres saisis
+  (« 9 000 € − 3 000 € = 6 000 € »), jusqu'à un équivalent concret (« chaque
+  jour te coûte 200 € »), et **ce qui fait bouger le résultat** : un bouton
+  par chiffre, un cran en plus ou en moins, avec le résultat qu'il donnerait.
+  Un curseur sous chaque champ ; le grand chiffre défile, les barres glissent,
+  les colonnes montent (rien ne bouge si le système demande moins d'animations).
 - **Parcours** en six niveaux, **carte de pitch** à partager par lien (tout le
   contenu est dans le lien, rien n'est enregistré), **lexique** de 64 mots.
 - Rien d'inventé : pas de faux chiffres d'audience, pas de faux avis, pas de
@@ -78,7 +84,8 @@ npm run test:plateforme     # calculs, et cohérence des trois langues
 ```
 
 **Ajouter une borne.** Sa structure dans `contenu.js`, son calcul (testé)
-dans `calculs.js`, son affichage dans `RESULTS` (`arcade.js`), ses mots dans
+dans `calculs.js`, son affichage dans `RESULTS` et son grand chiffre dans
+`HEAD` (`arcade.js`), son pas à pas dans `steps` et ses mots dans
 les trois fichiers de `lang/`. Le test des langues échoue tant qu'une langue
 est incomplète.
 
