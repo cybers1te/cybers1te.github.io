@@ -14,12 +14,15 @@ permissions:
 
 env:
   # Le site publié à l'adresse GitHub Pages du dépôt :
-  #   repondeur   — la page de présentation du Répondeur IA (dossier repondeur/site/) ;
-  #   marketbuss  — le comparateur des meilleures IA, mis à jour toutes les 3 h ;
+  #   plateforme  — marketbuss, la plateforme d'outils pour entrepreneurs et
+  #                 investisseurs (dossier plateforme/site/), avec la page du
+  #                 Répondeur IA à l'adresse /repondeur/ ;
+  #   repondeur   — la page de présentation du Répondeur IA seule (dossier repondeur/site/) ;
+  #   marketbuss  — l'ancien comparateur des meilleures IA, mis à jour toutes les 3 h ;
   #   message-me  — remet la messagerie telle qu'elle était (dossier public/,
   #                 données Firebase intactes).
   # Voir « Changer de site publié » dans le README.
-  SITE: repondeur
+  SITE: plateforme
 
 jobs:
   config:
@@ -30,7 +33,7 @@ jobs:
     steps:
       - id: site
         run: |
-          case "$SITE" in repondeur|marketbuss|message-me) ;; *) echo "SITE inconnu : $SITE" >&2; exit 1 ;; esac
+          case "$SITE" in plateforme|repondeur|marketbuss|message-me) ;; *) echo "SITE inconnu : $SITE" >&2; exit 1 ;; esac
           echo "site=$SITE" >> "$GITHUB_OUTPUT"
 
   test:
@@ -105,9 +108,25 @@ jobs:
       - name: Tests du moteur de la démonstration
         run: node --test repondeur/tests/moteur.test.js
 
+  plateforme:
+    name: marketbuss — calculs des outils
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Tests des calculs
+        run: node --test plateforme/tests/calculs.test.js
+
   deploy:
     name: GitHub Pages
-    needs: [config, test, marketbuss, repondeur]
+    needs: [config, test, marketbuss, repondeur, plateforme]
     # Les tests sont sautés lors des collectes programmées : seul un échec bloque.
     # Une collecte programmée ne republie rien quand message-me est le site choisi.
     if: >-
@@ -154,6 +173,19 @@ jobs:
           # Fichiers versionnés : un navigateur ne garde jamais l'ancien CSS ou JS.
           sed -i "s/__V__/${GITHUB_SHA::8}/g" _site/index.html
           node marketbuss/tools/update.mjs --out _site/data --site "$base/" --previous "$base/data/latest.json"
+
+      # marketbuss, la plateforme : des pages statiques, sans collecte de données.
+      # La page du Répondeur IA est publiée à côté, à l'adresse /repondeur/.
+      - name: Prepare plateforme
+        if: needs.config.outputs.site == 'plateforme'
+        run: |
+          mkdir -p _site/repondeur
+          cp -r plateforme/site/. _site/
+          cp -r repondeur/site/. _site/repondeur/
+          # Fichiers versionnés : un navigateur ne garde jamais l'ancien CSS ou JS.
+          # (Pas de fichier nommé app.js ou styles.css à la racine : la fiche de
+          # révision, copiée juste après, porte ces noms.)
+          sed -i "s/__V__/${GITHUB_SHA::8}/g" _site/index.html _site/arcade.js _site/repondeur/index.html _site/repondeur/repondeur.js
 
       # Répondeur IA : une page statique, sans collecte de données.
       - name: Prepare repondeur

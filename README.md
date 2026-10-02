@@ -1,11 +1,11 @@
 # marketbuss.github.io
 
-Le site publié par GitHub Pages est la page de présentation du **Répondeur
-IA** : un assistant qui répond tout seul aux questions des clients d'un
-commerce (horaires, prix, réservations). Le comparateur **marketbuss** et la
-messagerie **message-me**, publiés avant lui, sont gardés intacts dans le
-dépôt et se remettent en ligne en changeant une ligne (voir
-[Changer de site publié](#changer-de-site-publié)).
+Le site publié par GitHub Pages est **marketbuss** : une plateforme d'outils
+gratuits pour entrepreneurs et investisseurs, en pixel art façon salle
+d'arcade. La page du **Répondeur IA** est publiée à côté, à l'adresse
+`/repondeur/`. L'ancien comparateur d'IA et la messagerie **message-me**,
+publiés avant, sont gardés intacts dans le dépôt et se remettent en ligne en
+changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 > **Adresse du site.** GitHub Pages publie un dépôt nommé
 > `<compte>.github.io` à la racine de `https://<compte>.github.io/`. Le compte
@@ -16,12 +16,53 @@ dépôt et se remettent en ligne en changeant une ligne (voir
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **Répondeur IA** — le site publié | `repondeur/` | Page de présentation statique, avec une démonstration |
-| **marketbuss** — en réserve | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
+| **marketbuss** — le site publié | `plateforme/` | Site statique : outils de calcul, parcours, carte de pitch, lexique |
+| **Répondeur IA** — publié à `/repondeur/` | `repondeur/` | Page de présentation statique, avec une démonstration |
+| **Comparateur d'IA** — en réserve | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
 | **message-me** — en réserve | `public/`, `firestore.rules`, `firebase.json`, `android/` | Site statique + Firebase (Auth, Firestore) |
 | **Fiche de révision** *L'Appel de la forêt* | `london.html`, `styles.css`, `app.js` | Site statique, publié à côté |
 | **Trueware** — boutique | `trueware/` | Application Flask + SQLite |
 | **Cowrie Watch** — tableau de bord de honeypot | `backend/`, `frontend/` | Application Flask + SQLite |
+
+## marketbuss, la plateforme
+
+Des outils pour chiffrer un projet, préparer une levée ou juger un
+investissement. Deux « joueurs » : l'entrepreneur (jaune) et l'investisseur
+(cyan). Tout se calcule dans le navigateur : pas de compte, aucun chiffre
+envoyé.
+
+- **Bornes de l'entrepreneur** : mois de survie (trésorerie mois par mois),
+  partage du capital après une levée, seuil de rentabilité, coût et valeur
+  d'un client (CAC, LTV), liste des 10 diapos du pitch deck.
+- **Bornes de l'investisseur** : retour sur un ticket à la revente, intérêts
+  composés, valorisation maximale à l'entrée pour un multiple visé, liste de
+  vérifications avant d'investir.
+- Chaque borne s'ouvre sur un **exemple inventé**, explique comment lire le
+  résultat et dit ce que le calcul ne prend pas en compte. Les chiffres saisis
+  sont dans l'adresse : la page se partage ou se recharge telle quelle.
+- **Parcours** en six niveaux (de l'idée à la série A), **carte de pitch** à
+  partager par lien (tout le contenu est dans le lien, rien n'est enregistré),
+  **lexique** de 34 mots avec recherche.
+- Rien d'inventé : pas de faux chiffres d'audience, pas de faux avis, pas de
+  faux investisseurs. Les outils servent à comprendre ; ce ne sont pas des
+  conseils financiers, juridiques ou fiscaux, et le site le dit.
+
+```text
+plateforme/site/index.html   La page (en-tête, pied de page)
+plateforme/site/arcade.js    Pages, bornes, graphiques, navigation
+plateforme/site/calculs.js   Les calculs (fonctions pures, testées)
+plateforme/site/contenu.js   Textes : bornes, listes, parcours, lexique
+plateforme/site/sprites.js   Dessins en pixel art, tracés dans le code
+plateforme/site/arcade.css   Identité visuelle, mise en page responsive
+plateforme/site/fonts/       Polices Press Start 2P et Jersey 15 (licence OFL)
+plateforme/tests/            Tests des calculs (node:test)
+plateforme/tools/serve.mjs   Serveur local
+```
+
+```bash
+npm run plateforme:dev      # http://127.0.0.1:5300/
+npm run test:plateforme     # tests des calculs
+```
 
 ## Répondeur IA
 
@@ -59,7 +100,9 @@ contact, remplie à partir de `CONTACT` dans `repondeur/site/repondeur.js`
 (Instagram, WhatsApp, e-mail). Tant que tout est vide, la page affiche
 « Les demandes de démo ouvrent très bientôt ».
 
-## marketbuss (en réserve)
+## Comparateur d'IA (en réserve)
+
+L'ancien site marketbuss, dans le dossier `marketbuss/`.
 
 Les meilleures IA du moment, classées en continu.
 
@@ -144,8 +187,9 @@ npm run test:marketbuss     # tests du moteur
 ### Changer de site publié
 
 Dans `.github/workflows/pages.yml`, la ligne `SITE:` choisit le site publié :
-`repondeur` (la page du Répondeur IA), `marketbuss` (le comparateur, avec sa
-collecte toutes les 3 heures) ou `message-me`. Changer la valeur, puis pousser
+`plateforme` (marketbuss, avec la page du Répondeur IA à `/repondeur/`),
+`repondeur` (la page du Répondeur IA seule), `marketbuss` (l'ancien
+comparateur, avec sa collecte toutes les 3 heures) ou `message-me`. Changer la valeur, puis pousser
 sur `main`.
 
 Avec `SITE: message-me`, le workflow republie `public/`
