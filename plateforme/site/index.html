@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>marketbuss — outils pour entrepreneurs et investisseurs</title>
+<meta name="description" content="marketbuss : des outils gratuits pour entrepreneurs et investisseurs. Mois de survie, dilution, seuil de rentabilité, retour sur investissement, intérêts composés, carte de pitch, lexique. Sans compte.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f0d24">
+<meta property="og:title" content="marketbuss — outils pour entrepreneurs et investisseurs">
+<meta property="og:description" content="Chiffrer un projet, préparer une levée, juger un investissement : des outils gratuits, sans compte, en pixel art.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/jersey-15.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/press-start-2p.woff2" as="font" type="font/woff2" crossorigin>
+<!-- ?v=__V__ : remplacé par la version publiée, pour ne jamais servir un ancien fichier. -->
+<link rel="stylesheet" href="arcade.css?v=__V__">
+<script type="module" src="arcade.js?v=__V__"></script>
+</head>
+<body>
+<a class="skip" href="#view">Aller au contenu</a>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="#/" aria-label="marketbuss, accueil">
+      <span class="logo" id="logo" aria-hidden="true"></span>
+      <span>marketbuss</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#/outils" data-nav="outils">Bornes</a>
+      <a href="#/parcours" data-nav="parcours">Parcours</a>
+      <a href="#/pitch" data-nav="pitch">Pitch</a>
+      <a href="#/lexique" data-nav="lexique">Lexique</a>
+      <a href="#/a-propos" data-nav="a-propos">À propos</a>
+    </nav>
+  </div>
+</header>
+<main id="view" tabindex="-1">
+  <div class="wrap loading"><p>Chargement…</p></div>
+  <noscript><div class="wrap loading"><p>marketbuss a besoin de JavaScript pour faire tourner ses outils.</p></div></noscript>
+</main>
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">marketbuss</p>
+      <p>Des outils gratuits pour entrepreneurs et investisseurs. Sans compte : tout se calcule dans ton navigateur.</p>
+    </div>
+    <nav aria-label="Pages">
+      <ul>
+        <li><a href="#/outils/entrepreneur">Bornes de l'entrepreneur</a></li>
+        <li><a href="#/outils/investisseur">Bornes de l'investisseur</a></li>
+        <li><a href="#/parcours">Le parcours</a></li>
+        <li><a href="#/pitch">Carte de pitch</a></li>
+        <li><a href="#/lexique">Le lexique</a></li>
+        <li><a href="#/a-propos">À propos</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="wrap foot-note">Les outils servent à comprendre et à s'entraîner. Ce ne sont pas des conseils financiers, juridiques ou fiscaux. Investir dans une jeune entreprise est risqué : on peut perdre toute sa mise.</div>
+</footer>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>

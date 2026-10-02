@@ -205,6 +205,7 @@ button, input { font: inherit; color: inherit; }
 .foot { background: var(--board); color: var(--board-muted); border-top: 1px solid var(--board-line); }
 .foot-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; padding-top: 20px; padding-bottom: 24px; font-size: 14.5px; }
 .foot b { color: var(--board-ink); }
+.foot a { color: inherit; }
 
 /* ---------- Tablettes et téléphones ---------- */
 
