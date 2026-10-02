@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>marketbuss — outils pour entrepreneurs et investisseurs</title>
-<meta name="description" content="marketbuss : des outils gratuits pour entrepreneurs et investisseurs. Mois de survie, dilution, seuil de rentabilité, retour sur investissement, intérêts composés, carte de pitch, lexique. Sans compte.">
+<meta name="description" content="marketbuss : des bornes gratuites pour entrepreneurs, indépendants, investisseurs et épargnants, et les vrais outils du moment. Sans compte.">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0f0d24">
 <meta property="og:title" content="marketbuss — outils pour entrepreneurs et investisseurs">
-<meta property="og:description" content="Chiffrer un projet, préparer une levée, juger un investissement : des outils gratuits, sans compte, en pixel art.">
+<meta property="og:description" content="Chiffrer un projet, fixer un prix, préparer une levée, juger un placement : des bornes gratuites et les vrais outils du moment, en pixel art. Français, English, Nederlands.">
 <!-- L'icône de l'onglet : la pièce en pixel art de l'en-tête. Nom de fichier neuf et
      versionné, pour qu'aucun navigateur ne garde l'icône d'un ancien site. -->
 <link rel="icon" href="piece.svg?v=__V__" type="image/svg+xml">
@@ -21,44 +21,47 @@
 <script type="module" src="arcade.js?v=__V__"></script>
 </head>
 <body>
+<!-- Les textes ci-dessous sont en français par défaut ; arcade.js les remplace par ceux de la langue choisie. -->
 <a class="skip" href="#view">Aller au contenu</a>
 <header class="top">
   <div class="wrap top-row">
-    <a class="brand" href="#/" aria-label="marketbuss, accueil">
+    <a class="brand" href="#/" aria-label="marketbuss">
       <span class="logo" id="logo" aria-hidden="true"></span>
       <span>marketbuss</span>
     </a>
-    <nav class="nav" aria-label="Sections">
+    <nav class="nav" aria-label="marketbuss">
       <a href="#/outils" data-nav="outils">Bornes</a>
+      <a href="#/arsenal" data-nav="arsenal">Arsenal</a>
       <a href="#/parcours" data-nav="parcours">Parcours</a>
       <a href="#/pitch" data-nav="pitch">Pitch</a>
       <a href="#/lexique" data-nav="lexique">Lexique</a>
       <a href="#/a-propos" data-nav="a-propos">À propos</a>
     </nav>
+    <div class="lang" id="lang" role="group" aria-label="Langue"></div>
   </div>
 </header>
 <main id="view" tabindex="-1">
-  <div class="wrap loading"><p>Chargement…</p></div>
-  <noscript><div class="wrap loading"><p>marketbuss a besoin de JavaScript pour faire tourner ses outils.</p></div></noscript>
+  <div class="wrap loading"><p>…</p></div>
+  <noscript><div class="wrap loading"><p>marketbuss a besoin de JavaScript. marketbuss needs JavaScript. marketbuss heeft JavaScript nodig.</p></div></noscript>
 </main>
 <footer class="foot">
   <div class="wrap foot-grid">
     <div>
       <p class="foot-brand">marketbuss</p>
-      <p>Des outils gratuits pour entrepreneurs et investisseurs. Sans compte : tout se calcule dans ton navigateur.</p>
+      <p data-foot="blurb">Des outils gratuits pour entrepreneurs, indépendants, investisseurs et épargnants. Sans compte : tout se calcule dans ton navigateur.</p>
     </div>
-    <nav aria-label="Pages">
+    <nav aria-label="marketbuss">
       <ul>
-        <li><a href="#/outils/entrepreneur">Bornes de l'entrepreneur</a></li>
-        <li><a href="#/outils/investisseur">Bornes de l'investisseur</a></li>
-        <li><a href="#/parcours">Le parcours</a></li>
-        <li><a href="#/pitch">Carte de pitch</a></li>
-        <li><a href="#/lexique">Le lexique</a></li>
-        <li><a href="#/a-propos">À propos</a></li>
+        <li><a href="#/outils" data-foot-link="outils">Toutes les bornes</a></li>
+        <li><a href="#/arsenal" data-foot-link="arsenal">L'arsenal</a></li>
+        <li><a href="#/parcours" data-foot-link="parcours">Le parcours</a></li>
+        <li><a href="#/pitch" data-foot-link="pitch">Carte de pitch</a></li>
+        <li><a href="#/lexique" data-foot-link="lexique">Le lexique</a></li>
+        <li><a href="#/a-propos" data-foot-link="a-propos">À propos</a></li>
       </ul>
     </nav>
   </div>
-  <div class="wrap foot-note">Les outils servent à comprendre et à s'entraîner. Ce ne sont pas des conseils financiers, juridiques ou fiscaux. Investir dans une jeune entreprise est risqué : on peut perdre toute sa mise.</div>
+  <div class="wrap foot-note" data-foot="note">Les outils servent à comprendre et à s'entraîner. Ce ne sont pas des conseils financiers, juridiques ou fiscaux. Investir est risqué : on peut perdre toute sa mise.</div>
 </footer>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 </body>
