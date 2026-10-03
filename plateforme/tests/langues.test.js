@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import * as calc from '../site/calculs.js';
-import { CANVAS, GUIDES, LEVELS, ROLES, TOOLS } from '../site/contenu.js';
+import { CANVAS, GUIDES, LEVELS, ROLES, STARTUP_EXAMPLE, STARTUP_MODULES, STARTUP_TASKS, TOOLS } from '../site/contenu.js';
 import { ARSENAL, VERIFIED } from '../site/arsenal.js';
 import fr from '../site/lang/fr.js';
 import en from '../site/lang/en.js';
@@ -32,6 +32,9 @@ const CALC = {
   seuil: calc.breakEven, tunnel: calc.funnel, tirelire: calc.setAside, ticket: calc.exitReturn, valo: calc.maxValuation, portefeuille: calc.portfolio,
   suivre: calc.proRata, fonte: calc.rounds, convertible: calc.convertible, cascade: calc.waterfall, note: calc.scorecard, composes: calc.compound,
   cible: calc.savingsGoal, frais: calc.fees, inflation: calc.inflation, reserve: calc.drawdown, coussin: calc.cushion,
+  credit: calc.mortgage, capacite: calc.borrowingCapacity, rendement: calc.rentalYield, cashflow: calc.rentalCashflow, louer: calc.rentOrBuy,
+  pub: calc.adsProfit, livraison: calc.freeShipping, stock: calc.reorder, retours: calc.returnsCost, marketplace: calc.marketplace,
+  budget: calc.budgetSplit, dette: calc.debtPayoff, heures: calc.workHours, voiture: calc.carCost,
 };
 
 const clean = (text, where) => {
@@ -105,16 +108,36 @@ describe('langues : tout le site est couvert', () => {
         clean(R.verdict(v, r, F, x), `${code} ${t.id}.verdict`);
         for (const pair of (R.facts ? R.facts(v, r, F) : []).filter(Boolean)) { clean(pair[0], `${code} ${t.id} fait`); clean(String(pair[1]), `${code} ${t.id} valeur`); }
         // Le libellé du grand chiffre dépend parfois du résultat (runway, objectif, seuil, tunnel, reserve), parfois de la saisie.
-        const label = typeof R.label !== 'function' ? R.label : ['runway', 'objectif', 'seuil', 'tunnel', 'reserve'].includes(t.id) ? R.label(r) : R.label(v);
+        const label = typeof R.label !== 'function' ? R.label : ['runway', 'objectif', 'seuil', 'tunnel', 'reserve', 'louer', 'marketplace', 'dette'].includes(t.id) ? R.label(r) : R.label(v);
         clean(label, `${code} ${t.id}.label`);
+      }
+    });
+
+    it(`${code} : le calcul pas à pas, pour chaque borne et dans les cas limites`, () => {
+      const F = formats(pack);
+      assert.deepEqual(Object.keys(pack.steps).sort(), TOOLS.filter((t) => t.kind === 'calc').map((t) => t.id).sort());
+      for (const t of TOOLS.filter((x) => x.kind === 'calc')) {
+        const base = Object.fromEntries(t.fields.map((f) => [f.key, f.value]));
+        // L'exemple, puis chaque chiffre à son minimum : les lignes doivent toujours se dire sans trou.
+        const cases = [base, ...t.fields.map((f) => ({ ...base, [f.key]: f.min ?? 0 }))];
+        let shown = 0;
+        for (const v of cases) {
+          const r = CALC[t.id](v);
+          if (!r) continue;
+          const rows = pack.steps[t.id](v, r, F).filter(Boolean);
+          if (v === base) assert.ok(rows.length >= 2, `${code} ${t.id} : au moins deux étapes`);
+          for (const [label, expr] of rows) { clean(label, `${code} ${t.id} étape`); clean(expr, `${code} ${t.id} étape « ${label} »`); }
+          shown++;
+        }
+        assert.ok(shown > 0, `${code} ${t.id}`);
       }
     });
 
     it(`${code} : les mots de l'interface`, () => {
       const ui = pack.ui;
-      for (const text of [ui.title, ui.description, ui.highest('1'), ui.nTools(1), ui.nTools(3), ui.nItems(2), ui.nWords(5), ui.home.toolsSub(35),
+      for (const text of [ui.title, ui.description, ui.highest('1'), ui.nTools(1), ui.nTools(3), ui.nItems(2), ui.nWords(5), ui.home.toolsSub(52),
         ui.home.arsenalSub(79, 'x'), ui.home.glossaryText(64), ui.tools.allSub(35), ui.check.left(1), ui.check.left(4), ui.check.progress(2, 10),
-        ui.writer.chars(10), ui.writer.charsFull(10), ui.arsenal.sub(79, 21), ui.arsenal.notice('x'), ui.glossary.sub(64), ui.glossary.useful('x')]) clean(text, `${code} interface`);
+        ui.writer.chars(10), ui.writer.charsFull(10), ui.steps, ui.stepsSub, ui.levers, ui.leversSub, ui.leverTry('a', '+1', 'b'), ui.slider('a'), ui.arsenal.sub(79, 21), ui.arsenal.notice('x'), ui.glossary.sub(64), ui.glossary.useful('x')]) clean(text, `${code} interface`);
       const sections = ui.about.sections({ tools: 35, arsenal: 79, words: 64, date: 'x' });
       assert.ok(sections.length >= 4);
       for (const [title, items] of sections) { clean(title, code); items.forEach((i) => clean(i, code)); }
@@ -172,4 +195,31 @@ describe('langues : le pitch en une phrase', () => {
     assert.equal(r.short, 'Nordlys helpt de buurtbakkers om hun onverkochte brood voor sluitingstijd te verkopen.');
     assert.equal(r.text, r.short + ' Ons verschil: Buurtbewoners krijgen een melding.');
   });
+});
+
+describe('langues : le studio Start-Up', () => {
+  for (const [code, pack] of Object.entries(PACKS)) {
+    it(`${code} : chaque phrase du studio se construit`, () => {
+      const F = formats(pack);
+      const ui = pack.ui.startup;
+      assert.equal(ui.tasks.length, STARTUP_TASKS.length, 'une phrase par étape de départ');
+      assert.equal(ui.defaultCosts.length, STARTUP_EXAMPLE.costs.length);
+      assert.deepEqual(Object.keys(ui.modules), STARTUP_MODULES.map((m) => m.id));
+      const s = calc.cleanStartup({ name: 'Nordlys', pitch: 'Une phrase.', sector: 'Food', stage: 2, pool: 10,
+        founders: [{ name: 'A', role: 'CEO', share: 50 }, { name: 'B', share: 40 }],
+        plan: { ...STARTUP_EXAMPLE.plan, costs: ui.defaultCosts.map((label, i) => ({ label, amount: STARTUP_EXAMPLE.costs[i] })), hires: [{ label: ui.defaultHire, ...STARTUP_EXAMPLE.hire }] },
+        kpis: [{ month: '2026-01', revenue: 1000, customers: 10, spend: 3000 }, { month: '2026-02', revenue: 1300, customers: 13, spend: 3000 }] });
+      for (const plan of [s.plan, { ...s.plan, price: 500 }, { ...s.plan, price: 0, cash: 1e6 }]) {
+        const r = calc.startupPlan(plan);
+        clean(ui.planVerdict(r, F), code);
+        ui.planFacts(r, F).forEach(([a, b]) => { clean(a, code); clean(String(b), code); });
+        clean(ui.planBar(r.series[0], F), code);
+        clean(ui.summary(s, r, calc.capTable(s), calc.kpiTrend(s.kpis), F, pack.stages), code);
+      }
+      const k = calc.kpiTrend(s.kpis);
+      ui.kpiFacts(k, F).forEach(([a, b]) => { clean(a, code); clean(String(b), code); });
+      for (const text of [ui.capOk(5, F), ui.capOk(0, F), ui.capOver(3, F), ui.actions.raise(1000, F), ui.actions.task('x'), ui.progress(1, 12), ui.progress(3, 12),
+        ui.removeConfirm('x'), ui.defaultFounder(2), pack.ui.next.go('x'), pack.ui.next.passes('a, b'), pack.ui.scenario.keep, pack.ui.currency]) clean(text, code);
+    });
+  }
 });

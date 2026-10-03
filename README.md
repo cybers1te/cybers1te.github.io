@@ -1,7 +1,8 @@
 # marketbuss.github.io
 
 Le site publié par GitHub Pages est **marketbuss** : une plateforme d'outils
-gratuits pour entrepreneurs, indépendants, investisseurs et épargnants, en
+gratuits pour entrepreneurs, indépendants, investisseurs, épargnants, futurs
+propriétaires, e-commerçants et pour le budget de tous les jours, en
 pixel art façon salle d'arcade, en français, anglais et néerlandais. La page du **Répondeur IA** est publiée à côté, à l'adresse
 `/repondeur/`. L'ancien comparateur d'IA et la messagerie **message-me**,
 publiés avant, sont gardés intacts dans le dépôt et se remettent en ligne en
@@ -16,7 +17,7 @@ changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **marketbuss** — le site publié | `plateforme/` | Site statique en trois langues : 35 outils de calcul, arsenal, parcours, carte de pitch, lexique |
+| **marketbuss** — le site publié | `plateforme/` | Site statique en trois langues : 52 bornes pour sept joueurs, studio Start-Up, arsenal, parcours, carte de pitch, lexique |
 | **Répondeur IA** — publié à `/repondeur/` | `repondeur/` | Page de présentation statique, avec une démonstration |
 | **Comparateur d'IA** — en réserve | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
 | **message-me** — en réserve | `public/`, `firestore.rules`, `firebase.json`, `android/` | Site statique + Firebase (Auth, Firestore) |
@@ -26,13 +27,14 @@ changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 ## marketbuss, la plateforme
 
-Des outils pour chiffrer un projet, fixer un prix, préparer une levée ou
-comprendre un placement, dans une salle d'arcade en pixel art. Tout se calcule
+Des outils pour chiffrer un projet, fixer un prix, préparer une levée,
+comprendre un placement, acheter un logement, vendre en ligne ou tenir son
+budget, dans une salle d'arcade en pixel art. Tout se calcule
 dans le navigateur : pas de compte, aucun chiffre envoyé. Le site existe en
 **français, anglais et néerlandais** (bouton en haut à droite ; la langue du
 navigateur est choisie au premier passage, et `?lang=en` force une langue).
 
-- **Quatre joueurs**, 35 bornes :
+- **Sept joueurs**, 52 bornes :
   - *Entrepreneur* (11) : mois de survie, combien lever, dilution, vesting,
     taille du marché, coût et valeur d'un client, objectif de revenu,
     croissance nécessaire, lean canvas, pitch en une phrase, les 10 diapos.
@@ -45,15 +47,47 @@ navigateur est choisie au premier passage, et `?lang=en` force une langue).
   - *Épargnant* (7) : intérêts composés, versement pour un objectif, frais,
     inflation, durée d'un capital, épargne de précaution, liste « avant de
     placer ».
-- **Huit guides** (personnages inventés) donnent un conseil sur chaque borne.
+  - *Immobilier* (6) : coût d'un crédit, combien emprunter, rendement
+    locatif, cash-flow d'un logement loué, louer ou acheter, liste « avant
+    d'acheter ».
+  - *E-commerçant* (6) : publicité rentable (ROAS d'équilibre), seuil de
+    livraison offerte, point de commande du stock, coût des retours, place de
+    marché ou boutique, liste « avant d'ouvrir ».
+  - *Budget* (5) : budget du mois face au repère 50 / 30 / 20, sortie de
+    dette, prix d'un achat en heures de travail, vrai coût d'une voiture,
+    liste « grand ménage ».
+- **Dix guides** (personnages inventés) donnent un conseil sur chaque borne.
 - **L'arsenal** : 79 vrais outils et services publics, en 21 rayons, avec lien
   officiel et type d'accès (offre gratuite, essai, payant…). Vérifiés le
   2 octobre 2026 ; aucun lien sponsorisé, aucun courtier, pas de prix.
 - Chaque borne s'ouvre sur un **exemple inventé**, explique comment lire le
   résultat et dit ce que le calcul ne prend pas en compte. Les chiffres saisis
   sont dans l'adresse : la page se partage ou se recharge telle quelle.
+- Chaque calculateur montre **le calcul pas à pas** avec les chiffres saisis
+  (« 9 000 € − 3 000 € = 6 000 € »), jusqu'à un équivalent concret (« chaque
+  jour te coûte 200 € »), et **ce qui fait bouger le résultat** : un bouton
+  par chiffre, un cran en plus ou en moins, avec le résultat qu'il donnerait.
+  Un curseur sous chaque champ ; le grand chiffre défile, les barres glissent,
+  les colonnes montent (rien ne bouge si le système demande moins d'animations).
+- **Studio Start-Up** (`#/startup`) : créer une ou plusieurs start-ups et les
+  piloter en sept modules. *Tableau de bord* (mois de trésorerie, mois
+  d'équilibre, argent à trouver, et les prochaines actions avec un lien vers
+  la bonne borne), *Identité*, *Équipe et capital* (qui possède quoi, réserve
+  salariés), *Plan financier* sur 24 mois (clients, départs, dépenses,
+  embauches), *Feuille de route* en trois colonnes (12 étapes de départ, liées
+  aux bornes), *Suivi* des vrais chiffres mois par mois (croissance, perte),
+  *Dossier* (résumé à copier, carte de pitch, impression, sauvegarde à
+  télécharger et à réimporter). Tout reste dans le navigateur ; un fichier
+  importé est nettoyé avant d'être lu (`cleanStartup`, testé).
+- **Scénario A** : garder ses chiffres, en changer, et voir l'écart et les
+  chiffres modifiés. **Bornes suivantes** : un lien qui ouvre la borne d'après
+  avec les chiffres déjà remplis (la mensualité du crédit va dans le
+  cash-flow, le tarif journalier dans le devis…). **Devise** au choix (€, $,
+  £, CHF, $ CA, FCFA, DH) : seul le symbole change, rien n'est converti.
+- **Recherche** dans les bornes (touche `/`), **dernières bornes ouvertes** sur
+  l'accueil (gardées dans ce navigateur) et compteurs animés.
 - **Parcours** en six niveaux, **carte de pitch** à partager par lien (tout le
-  contenu est dans le lien, rien n'est enregistré), **lexique** de 64 mots.
+  contenu est dans le lien, rien n'est enregistré), **lexique** de 78 mots.
 - Rien d'inventé : pas de faux chiffres d'audience, pas de faux avis, pas de
   faux investisseurs. Les outils servent à comprendre ; ce ne sont pas des
   conseils financiers, juridiques ou fiscaux, et le site le dit.
@@ -78,7 +112,8 @@ npm run test:plateforme     # calculs, et cohérence des trois langues
 ```
 
 **Ajouter une borne.** Sa structure dans `contenu.js`, son calcul (testé)
-dans `calculs.js`, son affichage dans `RESULTS` (`arcade.js`), ses mots dans
+dans `calculs.js`, son affichage dans `RESULTS` et son grand chiffre dans
+`HEAD` (`arcade.js`), son pas à pas dans `steps` et ses mots dans
 les trois fichiers de `lang/`. Le test des langues échoue tant qu'une langue
 est incomplète.
 

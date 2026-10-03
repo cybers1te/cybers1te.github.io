@@ -32,25 +32,25 @@ export const ARSENAL = [
     ['Figma', 'https://www.figma.com', 'free'],
     ['Adobe Express', 'https://www.adobe.com/express/', 'free'],
   ] },
-  { id: 'boutique', sprite: 'shop', guide: 'designer', roles: ['independant', 'entrepreneur'], tools: [
+  { id: 'boutique', sprite: 'shop', guide: 'designer', roles: ['independant', 'entrepreneur', 'ecommerce'], tools: [
     ['Wix', 'https://www.wix.com', 'free'],
     ['Shopify', 'https://www.shopify.com', 'trial'],
     ['WordPress + WooCommerce', 'https://woocommerce.com', 'open'],
     ['Squarespace', 'https://www.squarespace.com', 'trial'],
   ] },
-  { id: 'ia', sprite: 'bot', guide: 'robot', roles: ['entrepreneur', 'independant', 'investisseur', 'epargnant'], tools: [
+  { id: 'ia', sprite: 'bot', guide: 'robot', roles: ['entrepreneur', 'independant', 'investisseur', 'epargnant', 'ecommerce'], tools: [
     ['ChatGPT', 'https://chatgpt.com', 'free'],
     ['Claude', 'https://claude.ai', 'free'],
     ['Gemini', 'https://gemini.google.com', 'free'],
     ['Vibe (Mistral)', 'https://mistral.ai', 'free'],
   ] },
-  { id: 'organiser', sprite: 'board', guide: 'dev', roles: ['entrepreneur', 'independant'], tools: [
+  { id: 'organiser', sprite: 'board', guide: 'dev', roles: ['entrepreneur', 'independant', 'ecommerce'], tools: [
     ['Notion', 'https://www.notion.com', 'free'],
     ['Trello', 'https://trello.com', 'free'],
     ['Slack', 'https://slack.com', 'free'],
     ['Google Workspace', 'https://workspace.google.com', 'trial'],
   ] },
-  { id: 'crm', sprite: 'people', guide: 'client', roles: ['entrepreneur', 'independant'], tools: [
+  { id: 'crm', sprite: 'people', guide: 'client', roles: ['entrepreneur', 'independant', 'ecommerce'], tools: [
     ['HubSpot CRM', 'https://www.hubspot.com/products/crm', 'free'],
     ['Attio', 'https://attio.com', 'free'],
     ['folk', 'https://www.folk.app', 'trial'],
@@ -72,7 +72,7 @@ export const ARSENAL = [
     ['Google Forms', 'https://forms.google.com', 'free'],
     ['Typeform', 'https://www.typeform.com', 'limited'],
   ] },
-  { id: 'mesurer', sprite: 'chart', guide: 'designer', roles: ['entrepreneur', 'independant'], tools: [
+  { id: 'mesurer', sprite: 'chart', guide: 'designer', roles: ['entrepreneur', 'independant', 'ecommerce'], tools: [
     ['Google Analytics', 'https://analytics.google.com', 'free'],
     ['PostHog', 'https://posthog.com', 'free'],
     ['Plausible', 'https://plausible.io', 'trial'],
@@ -83,7 +83,7 @@ export const ARSENAL = [
     ['Pitch', 'https://pitch.com', 'free'],
     ['Canva', 'https://www.canva.com', 'free'],
   ] },
-  { id: 'banque', sprite: 'bank', guide: 'banker', roles: ['independant', 'entrepreneur'], tools: [
+  { id: 'banque', sprite: 'bank', guide: 'banker', roles: ['independant', 'entrepreneur', 'immobilier', 'budget'], tools: [
     ['Qonto', 'https://qonto.com', 'trial', ['BE', 'FR']],
     ['Shine', 'https://www.shine.fr', 'free', ['FR']],
     ['Revolut Business', 'https://www.revolut.com/business/', 'paid', ['BE', 'FR']],
@@ -95,7 +95,7 @@ export const ARSENAL = [
     ['Pennylane', 'https://www.pennylane.com/fr', 'limited', ['FR']],
     ['Indy', 'https://www.indy.fr', 'free', ['FR']],
   ] },
-  { id: 'paiements', sprite: 'coin', guide: 'banker', roles: ['independant', 'entrepreneur'], tools: [
+  { id: 'paiements', sprite: 'coin', guide: 'banker', roles: ['independant', 'entrepreneur', 'ecommerce'], tools: [
     ['Stripe', 'https://stripe.com', 'fee', ['BE', 'FR']],
     ['Mollie', 'https://www.mollie.com', 'fee', ['BE', 'FR']],
     ['SumUp', 'https://www.sumup.com', 'fee', ['BE', 'FR']],
@@ -116,19 +116,19 @@ export const ARSENAL = [
     ['Dealroom', 'https://dealroom.co', 'trial'],
     ['PitchBook', 'https://pitchbook.com', 'paid'],
   ] },
-  { id: 'verifier', sprite: 'building', guide: 'banker', roles: ['investisseur', 'epargnant', 'independant'], tools: [
+  { id: 'verifier', sprite: 'building', guide: 'banker', roles: ['investisseur', 'epargnant', 'independant', 'immobilier'], tools: [
     ['BCE / KBO Public Search', 'https://kbopub.economie.fgov.be/kbopub/zoeknummerform.html', 'public', ['BE']],
     ['Centrale des bilans (BNB)', 'https://consult.cbso.nbb.be/', 'public', ['BE']],
     ['Annuaire des Entreprises', 'https://annuaire-entreprises.data.gouv.fr/', 'public', ['FR']],
     ['Pappers', 'https://www.pappers.fr', 'free', ['FR']],
   ] },
-  { id: 'arnaques', sprite: 'shield', guide: 'robot', roles: ['epargnant', 'investisseur'], tools: [
+  { id: 'arnaques', sprite: 'shield', guide: 'robot', roles: ['epargnant', 'investisseur', 'budget', 'immobilier'], tools: [
     ['FSMA : Vérifiez votre fournisseur', 'https://www.fsma.be/fr/verifiez-votre-fournisseur', 'public', ['BE']],
     ['AMF : listes noires', 'https://www.amf-france.org/fr/espace-epargnants/proteger-son-epargne/listes-noires-et-mises-en-garde', 'public', ['FR']],
     ['AMF Protect Epargne', 'https://protectepargne.amf-france.org/', 'public', ['FR']],
     ['IOSCO I-SCAN', 'https://www.iosco.org/i-scan/', 'public'],
   ] },
-  { id: 'marches', sprite: 'steps', guide: 'robot', roles: ['epargnant', 'investisseur'], tools: [
+  { id: 'marches', sprite: 'steps', guide: 'robot', roles: ['epargnant', 'investisseur', 'budget'], tools: [
     ['justETF', 'https://www.justetf.com', 'free'],
     ['Portfolio Performance', 'https://www.portfolio-performance.info/en/', 'open'],
     ['TradingView', 'https://www.tradingview.com', 'limited'],

@@ -622,3 +622,438 @@ export function decodeCard(text) {
     return null;
   }
 }
+
+/* ---------- Immobilier ---------- */
+
+// Mensualité d'un prêt à taux fixe (sans assurance). r : taux par mois, n : nombre de mois.
+const annuity = (amount, r, n) => (r === 0 ? amount / n : (amount * r) / (1 - (1 + r) ** -n));
+
+/*
+  Un crédit immobilier à taux fixe.
+    amount    : montant emprunté
+    rate      : taux nominal, en % par an
+    years     : durée, en années entières
+    insurance : assurance, en % du montant emprunté par an
+  → mensualité, coût total, et une ligne par année : capital remboursé, intérêts, reste dû.
+*/
+export function mortgage({ amount, rate, years, insurance = 0 }) {
+  amount = num(amount); rate = num(rate); years = num(years); insurance = num(insurance);
+  if (!(amount > 0) || !(rate >= 0) || rate > 30 || !(years >= 1) || years > 40 || !Number.isInteger(years) || !(insurance >= 0) || insurance > 5) return null;
+  const n = years * 12;
+  const r = rate / 100 / 12;
+  const payment = annuity(amount, r, n);
+  const ins = (amount * insurance) / 100 / 12;
+  if (!Number.isFinite(payment)) return null;
+  const series = [];
+  let balance = amount;
+  let yp = 0;
+  let yi = 0;
+  for (let m = 1; m <= n; m++) {
+    const interest = balance * r;
+    const principal = payment - interest;
+    balance -= principal;
+    yp += principal; yi += interest;
+    if (m % 12 === 0) { series.push({ year: m / 12, principal: round(yp), interest: round(yi), balance: round(Math.max(0, balance)) }); yp = 0; yi = 0; }
+  }
+  const totalInterest = payment * n - amount;
+  return { payment: round(payment), insurance: round(ins), monthly: round(payment + ins), totalInterest: round(totalInterest),
+    totalInsurance: round(ins * n), totalCost: round(totalInterest + ins * n), totalPaid: round((payment + ins) * n),
+    firstInterest: round(amount * r), series };
+}
+
+/*
+  Combien emprunter avec ses revenus.
+    income : revenus nets du foyer, par mois
+    debts  : crédits en cours, par mois
+    ratio  : part maximale des revenus consacrée aux crédits, en %
+    rate   : taux, en % par an (assurance comprise, pour simplifier)
+    years  : durée, en années entières
+*/
+export function borrowingCapacity({ income, debts = 0, ratio, rate, years }) {
+  income = num(income); debts = num(debts); ratio = num(ratio); rate = num(rate); years = num(years);
+  if (!(income > 0) || !(debts >= 0) || !(ratio > 0) || ratio > 100 || !(rate >= 0) || rate > 30 || !(years >= 1) || years > 40 || !Number.isInteger(years)) return null;
+  const n = years * 12;
+  const r = rate / 100 / 12;
+  const room = income * (ratio / 100);
+  const maxMonthly = Math.max(0, room - debts);
+  const loan = r === 0 ? maxMonthly * n : (maxMonthly * (1 - (1 + r) ** -n)) / r;
+  if (!Number.isFinite(loan)) return null;
+  return { room: round(room), maxMonthly: round(maxMonthly), loan: round(loan), totalPaid: round(maxMonthly * n),
+    interest: round(maxMonthly * n - loan), used: round((debts / income) * 100, 1) };
+}
+
+/*
+  Rendement d'un logement mis en location.
+    price   : prix d'achat
+    costs   : frais d'achat et travaux
+    rent    : loyer par mois, hors charges
+    charges : dépenses par an à ta charge (taxe foncière, copropriété, assurance, entretien)
+    vacancy : mois sans locataire par an
+*/
+export function rentalYield({ price, costs = 0, rent, charges = 0, vacancy = 0 }) {
+  price = num(price); costs = num(costs); rent = num(rent); charges = num(charges); vacancy = num(vacancy);
+  if (!(price > 0) || !(costs >= 0) || !(rent >= 0) || !(charges >= 0) || !(vacancy >= 0) || vacancy > 12) return null;
+  const total = price + costs;
+  const yearRent = rent * (12 - vacancy);
+  const netIncome = yearRent - charges;
+  return { total: round(total), yearRent: round(yearRent), netIncome: round(netIncome),
+    gross: round(((rent * 12) / price) * 100, 2), net: round((netIncome / total) * 100, 2),
+    payback: netIncome > 0 ? round(total / netIncome, 1) : null };
+}
+
+/*
+  Ce qu'un logement loué laisse (ou coûte) chaque mois.
+    rent    : loyer par mois
+    vacancy : part de l'année sans locataire, en %
+    charges : dépenses par mois à ta charge
+    loan    : mensualité du crédit
+    works   : réserve pour les travaux, en % du loyer
+*/
+export function rentalCashflow({ rent, vacancy = 0, charges = 0, loan = 0, works = 0 }) {
+  rent = num(rent); vacancy = num(vacancy); charges = num(charges); loan = num(loan); works = num(works);
+  if (!(rent >= 0) || !(vacancy >= 0) || vacancy > 100 || !(charges >= 0) || !(loan >= 0) || !(works >= 0) || works > 100) return null;
+  const income = rent * (1 - vacancy / 100);
+  const reserve = rent * (works / 100);
+  const cash = income - charges - loan - reserve;
+  return { income: round(income), reserve: round(reserve), out: round(charges + loan + reserve), cash: round(cash), yearly: round(cash * 12),
+    cover: loan > 0 ? round((income / loan) * 100, 0) : null };
+}
+
+/*
+  Louer ou acheter : le patrimoine de chacun, année après année.
+    price    : prix du logement ;  buyCosts : frais d'achat, en % du prix
+    deposit  : apport ;  rate, years : le crédit
+    rent     : loyer par mois pour un logement équivalent
+    growth   : hausse par an des prix et des loyers, en %
+    invest   : rendement par an de l'argent placé, en %
+    horizon  : années avant de comparer
+  Conventions : le propriétaire paie aussi 1 % du prix par an (taxe, entretien) ;
+  chaque mois, celui qui dépense le moins place la différence ; le locataire
+  place l'apport dès le départ. Pas de frais de revente ni d'impôts.
+*/
+export const OWNER_COSTS = 1;
+export function rentOrBuy({ price, buyCosts = 0, deposit = 0, rate, years, rent, growth = 0, invest = 0, horizon }) {
+  price = num(price); buyCosts = num(buyCosts); deposit = num(deposit); rate = num(rate); years = num(years);
+  rent = num(rent); growth = num(growth); invest = num(invest); horizon = num(horizon);
+  if (!(price > 0) || !(buyCosts >= 0) || buyCosts > 30 || !(deposit >= 0) || !(rate >= 0) || rate > 30 || !(years >= 1) || years > 40 || !Number.isInteger(years)
+    || !(rent >= 0) || !(growth >= -20) || growth > 20 || !(invest >= -50) || invest > 50 || !(horizon >= 1) || horizon > 40 || !Number.isInteger(horizon)) return null;
+  const cost = price * (1 + buyCosts / 100);
+  const used = Math.min(deposit, cost);
+  const loan = cost - used;
+  const r = rate / 100 / 12;
+  const n = years * 12;
+  const payment = loan > 0 ? annuity(loan, r, n) : 0;
+  const g = (1 + growth / 100) ** (1 / 12);
+  const k = (1 + invest / 100) ** (1 / 12);
+  let balance = loan;
+  let home = price;
+  let monthRent = rent;
+  let renter = deposit; // l'apport, placé
+  let owner = deposit - used; // ce qui dépasse le coût d'achat, placé aussi
+  const series = [{ year: 0, buy: round(price - loan + owner), rent: round(renter) }];
+  let breakEven = null;
+  for (let m = 1; m <= horizon * 12; m++) {
+    const pay = m <= n ? payment : 0;
+    if (m <= n) balance -= pay - balance * r;
+    const ownerOut = pay + (home * OWNER_COSTS) / 100 / 12;
+    renter *= k; owner *= k;
+    if (ownerOut > monthRent) renter += ownerOut - monthRent; else owner += monthRent - ownerOut;
+    home *= g; monthRent *= g;
+    if (m % 12 === 0) {
+      const buy = home - Math.max(0, balance) + owner;
+      series.push({ year: m / 12, buy: round(buy), rent: round(renter) });
+      if (breakEven == null && buy >= renter) breakEven = m / 12;
+    }
+  }
+  const last = series[series.length - 1];
+  if (!Number.isFinite(last.buy) || !Number.isFinite(last.rent)) return null;
+  return { loan: round(loan), payment: round(payment), cost: round(cost), buy: last.buy, rent: last.rent, gap: round(last.buy - last.rent),
+    breakEven, series, firstOwnerOut: round(payment + (price * OWNER_COSTS) / 100 / 12), home: round(home) };
+}
+
+/* ---------- E-commerce ---------- */
+
+/*
+  Ce que rapportent les publicités.
+    basket   : panier moyen, TVA déduite
+    cogs     : coût des produits d'une commande
+    shipping : livraison payée par toi, par commande
+    fees     : frais de paiement, en % du panier
+    spend    : budget de publicité sur la période
+    orders   : commandes venues de ces publicités
+*/
+export function adsProfit({ basket, cogs = 0, shipping = 0, fees = 0, spend = 0, orders = 0 }) {
+  basket = num(basket); cogs = num(cogs); shipping = num(shipping); fees = num(fees); spend = num(spend); orders = num(orders);
+  if (!(basket > 0) || !(cogs >= 0) || !(shipping >= 0) || !(fees >= 0) || fees > 100 || !(spend >= 0) || !(orders >= 0)) return null;
+  const margin = basket - cogs - shipping - basket * (fees / 100);
+  const revenue = orders * basket;
+  return { margin: round(margin), revenue: round(revenue), profit: round(orders * margin - spend),
+    breakEvenRoas: margin > 0 ? round(basket / margin, 2) : null,
+    roas: spend > 0 ? round(revenue / spend, 2) : null,
+    cpa: orders > 0 ? round(spend / orders) : null, maxCpa: round(Math.max(0, margin)),
+    ordersNeeded: margin > 0 ? Math.ceil(round(spend / margin, 6)) : null };
+}
+
+/*
+  Livraison offerte : à partir de quel panier elle se paie toute seule.
+    basket   : panier moyen aujourd'hui
+    margin   : marge sur les produits, en % du prix
+    shipping : coût d'un envoi
+    orders   : commandes par mois
+*/
+export function freeShipping({ basket, margin, shipping, orders = 0 }) {
+  basket = num(basket); margin = num(margin); shipping = num(shipping); orders = num(orders);
+  if (!(basket > 0) || !(margin > 0) || margin > 100 || !(shipping >= 0) || !(orders >= 0)) return null;
+  const extra = shipping / (margin / 100);
+  return { extra: round(extra), threshold: round(basket + extra), monthly: round(orders * shipping),
+    eaten: round((shipping / (basket * (margin / 100))) * 100, 1) };
+}
+
+/*
+  Quand recommander du stock.
+    daily  : ventes par jour
+    lead   : jours entre la commande et la livraison du fournisseur
+    safety : jours de stock de sécurité
+    stock  : unités en stock aujourd'hui
+    cost   : coût d'achat d'une unité
+*/
+export function reorder({ daily, lead, safety = 0, stock, cost = 0 }) {
+  daily = num(daily); lead = num(lead); safety = num(safety); stock = num(stock); cost = num(cost);
+  if (!(daily > 0) || !(lead >= 0) || !(safety >= 0) || !(stock >= 0) || !(cost >= 0)) return null;
+  const point = daily * (lead + safety);
+  const daysLeft = stock / daily;
+  return { point: Math.ceil(round(point, 6)), daysLeft: round(daysLeft, 1), orderIn: Math.max(0, Math.floor(round((stock - point) / daily, 6))),
+    late: stock < point, gap: round(Math.max(0, lead - daysLeft), 1), value: round(stock * cost), pointValue: round(Math.ceil(point) * cost) };
+}
+
+/*
+  Ce que coûtent les retours, par mois.
+    orders : commandes par mois ;  rate : part retournée, en %
+    basket : panier moyen remboursé ;  cogs : coût des produits d'une commande
+    back   : frais de retour payés par toi, par colis
+    lost   : part des produits retournés qu'on ne peut plus vendre, en %
+  Un retour coûte la marge de la vente perdue, les frais de retour, et le coût
+  des produits qui ne se revendent pas.
+*/
+export function returnsCost({ orders, rate, basket, cogs = 0, back = 0, lost = 0 }) {
+  orders = num(orders); rate = num(rate); basket = num(basket); cogs = num(cogs); back = num(back); lost = num(lost);
+  if (!(orders >= 0) || !(rate >= 0) || rate > 100 || !(basket > 0) || !(cogs >= 0) || !(back >= 0) || !(lost >= 0) || lost > 100) return null;
+  const returned = orders * (rate / 100);
+  const marginLost = basket - cogs;
+  const perReturn = marginLost + back + cogs * (lost / 100);
+  const total = returned * perReturn;
+  const margin = orders * (basket - cogs);
+  return { returned: round(returned, 1), perReturn: round(perReturn), total: round(total), yearly: round(total * 12),
+    margin: round(margin), share: margin > 0 ? round((total / margin) * 100, 1) : null, after: round(margin - total) };
+}
+
+/*
+  Vendre sur une place de marché ou sur ta propre boutique : ce qui reste par vente.
+    price      : prix de vente, TVA déduite ;  cogs : coût du produit
+    commission : commission de la place de marché, en % ;  fixedFee : frais fixes par vente
+    siteFees   : frais de paiement sur ta boutique, en % ;  siteAds : publicité par vente sur ta boutique
+*/
+export function marketplace({ price, cogs = 0, commission = 0, fixedFee = 0, siteFees = 0, siteAds = 0 }) {
+  price = num(price); cogs = num(cogs); commission = num(commission); fixedFee = num(fixedFee); siteFees = num(siteFees); siteAds = num(siteAds);
+  if (!(price > 0) || !(cogs >= 0) || !(commission >= 0) || commission > 100 || !(fixedFee >= 0) || !(siteFees >= 0) || siteFees > 100 || !(siteAds >= 0)) return null;
+  const mpCost = price * (commission / 100) + fixedFee;
+  const siteCost = price * (siteFees / 100) + siteAds;
+  const mp = price - cogs - mpCost;
+  const site = price - cogs - siteCost;
+  return { mp: round(mp), site: round(site), gap: round(site - mp), mpCost: round(mpCost), siteCost: round(siteCost),
+    // Publicité par vente à partir de laquelle ta boutique ne rapporte plus davantage.
+    adsLimit: round(Math.max(0, mpCost - price * (siteFees / 100))) };
+}
+
+/* ---------- Budget ---------- */
+
+/*
+  Le budget d'un mois, comparé au repère 50 / 30 / 20.
+    income : revenus nets du mois ;  needs : dépenses obligatoires ;  wants : envies
+*/
+export const BUDGET_RULE = { needs: 50, wants: 30, savings: 20 };
+export function budgetSplit({ income, needs = 0, wants = 0 }) {
+  income = num(income); needs = num(needs); wants = num(wants);
+  if (!(income > 0) || !(needs >= 0) || !(wants >= 0)) return null;
+  const savings = income - needs - wants;
+  const pct = (x) => round((x / income) * 100, 1);
+  return { savings: round(savings), needsPct: pct(needs), wantsPct: pct(wants), savingsPct: pct(savings),
+    target: { needs: round((income * BUDGET_RULE.needs) / 100), wants: round((income * BUDGET_RULE.wants) / 100), savings: round((income * BUDGET_RULE.savings) / 100) },
+    yearly: round(savings * 12) };
+}
+
+/*
+  Rembourser une dette (carte, crédit renouvelable…) avec un versement fixe.
+    balance : reste dû ;  rate : taux, en % par an ;  payment : versement par mois
+    extra   : versement en plus chaque mois, pour comparer
+  → months (null = le versement ne couvre pas les intérêts), intérêts payés, série par année.
+*/
+function payDown(balance, r, payment) {
+  let b = balance;
+  let interest = 0;
+  const series = [{ year: 0, balance: round(b) }];
+  for (let m = 1; m <= 600; m++) {
+    const i = b * r;
+    if (payment <= i + 1e-9) return { months: null, interest: null, series };
+    interest += i;
+    b = b + i - payment;
+    if (b <= 0) { series.push({ year: Math.ceil(m / 12), balance: 0 }); return { months: m, interest: round(interest), series, last: round(payment + b) }; }
+    if (m % 12 === 0) series.push({ year: m / 12, balance: round(b) });
+  }
+  return { months: null, interest: null, series };
+}
+export function debtPayoff({ balance, rate, payment, extra = 0 }) {
+  balance = num(balance); rate = num(rate); payment = num(payment); extra = num(extra);
+  if (!(balance > 0) || !(rate >= 0) || rate > 100 || !(payment > 0) || !(extra >= 0)) return null;
+  const r = rate / 100 / 12;
+  const base = payDown(balance, r, payment);
+  const more = extra > 0 ? payDown(balance, r, payment + extra) : null;
+  return { months: base.months, interest: base.interest, series: base.series, firstInterest: round(balance * r),
+    moreMonths: more ? more.months : null, moreInterest: more ? more.interest : null,
+    saved: more && base.interest != null && more.interest != null ? round(base.interest - more.interest) : null,
+    minPayment: round(balance * r + 0.01) };
+}
+
+/*
+  Un achat, compté en heures de travail, et ce qu'il deviendrait s'il était placé.
+    price  : prix de l'achat ;  income : revenu net par mois ;  hours : heures travaillées par mois
+    years, rate : durée et rendement par an si la somme était placée à la place
+*/
+export function workHours({ price, income, hours, years = 0, rate = 0 }) {
+  price = num(price); income = num(income); hours = num(hours); years = num(years); rate = num(rate);
+  if (!(price > 0) || !(income > 0) || !(hours > 0) || hours > 744 || !(years >= 0) || years > 60 || !(rate > -100) || rate > 100) return null;
+  const hourly = income / hours;
+  const worked = price / hourly;
+  return { hourly: round(hourly), hours: round(worked, 1), days: round(worked / 7, 1), share: round((price / income) * 100, 1),
+    later: round(price * (1 + rate / 100) ** years) };
+}
+
+/*
+  Ce que coûte vraiment une voiture.
+    price   : prix d'achat ;  years : années de garde ;  resale : valeur de revente, en % du prix
+    km      : kilomètres par an ;  use : consommation pour 100 km (litres ou kWh)
+    energy  : prix d'un litre ou d'un kWh ;  fixed : assurance, entretien, stationnement… par an
+*/
+export function carCost({ price, years, resale = 0, km, use = 0, energy = 0, fixed = 0 }) {
+  price = num(price); years = num(years); resale = num(resale); km = num(km); use = num(use); energy = num(energy); fixed = num(fixed);
+  if (!(price >= 0) || !(years > 0) || years > 40 || !(resale >= 0) || resale > 100 || !(km >= 0) || !(use >= 0) || !(energy >= 0) || !(fixed >= 0)) return null;
+  const loss = (price * (1 - resale / 100)) / years;
+  const fuel = (km * use * energy) / 100;
+  const year = loss + fuel + fixed;
+  return { loss: round(loss), fuel: round(fuel), fixed: round(fixed), year: round(year), month: round(year / 12),
+    perKm: km > 0 ? round(year / km, 2) : null, total: round(year * years) };
+}
+
+/* ---------- Studio Start-Up ---------- */
+
+const clamp = (x, lo, hi, fallback = lo) => { const n = num(x); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback; };
+
+/*
+  Le plan financier d'une start-up, mois par mois.
+    cash        : trésorerie au départ
+    price       : revenu par client et par mois
+    start       : clients au départ
+    newPerMonth : nouveaux clients le premier mois ;  growth : leur hausse, en % par mois
+    churn       : clients qui partent, en % par mois
+    costs       : dépenses fixes par mois [{ amount }]
+    hires       : embauches [{ month, salary }] : le coût complet à partir de ce mois-là
+  → series (mois 1 à `months`), breakEven (mois à partir duquel les revenus
+    couvrent les dépenses jusqu'à la fin du plan, null sinon), runway (mois entiers avant de passer sous zéro,
+    null = tient tout le plan), need (argent qui manque au plus bas).
+*/
+export function startupPlan({ cash = 0, price = 0, start = 0, newPerMonth = 0, growth = 0, churn = 0, costs = [], hires = [] } = {}, months = 24) {
+  cash = num(cash); price = num(price); start = num(start); newPerMonth = num(newPerMonth); growth = num(growth); churn = num(churn);
+  if (!(cash >= 0) || !(price >= 0) || !(start >= 0) || !(newPerMonth >= 0) || !(growth >= -50) || growth > 100 || !(churn >= 0) || churn > 100) return null;
+  if (!Array.isArray(costs) || !Array.isArray(hires)) return null;
+  const fixed = costs.reduce((s, c) => s + (num(c && c.amount) >= 0 ? num(c.amount) : NaN), 0);
+  if (!Number.isFinite(fixed)) return null;
+  for (const x of hires) if (!(num(x && x.salary) >= 0) || !(num(x && x.month) >= 1)) return null;
+  const series = [];
+  let customers = start;
+  let balance = cash;
+  let breakEven = null;
+  let runway = null;
+  let min = cash;
+  for (let m = 1; m <= months; m++) {
+    customers = customers * (1 - churn / 100) + newPerMonth * (1 + growth / 100) ** (m - 1);
+    const revenue = customers * price;
+    const out = fixed + hires.reduce((s, x) => s + (num(x.month) <= m ? num(x.salary) : 0), 0);
+    balance += revenue - out;
+    if (!Number.isFinite(balance)) return null;
+    if (runway == null && balance < 0) runway = m - 1;
+    min = Math.min(min, balance);
+    series.push({ month: m, customers: round(customers, 1), revenue: round(revenue), costs: round(out), cash: round(balance) });
+  }
+  // L'équilibre : le mois à partir duquel les revenus couvrent les dépenses jusqu'à la fin du plan.
+  for (let m = months; m >= 1 && series[m - 1].revenue >= series[m - 1].costs && series[m - 1].costs > 0; m--) breakEven = m;
+  const at = (m) => series[Math.min(m, months) - 1];
+  return { series, breakEven, runway, need: round(Math.max(0, -min)), lowest: round(min), months,
+    burn: round(series[0].costs - series[0].revenue), revenue12: at(12).revenue, customers12: at(12).customers,
+    totalRevenue: round(series.reduce((s, p) => s + p.revenue, 0)), totalCosts: round(series.reduce((s, p) => s + p.costs, 0)) };
+}
+
+/*
+  La table de capitalisation : la part de chaque associé et la réserve pour
+  les salariés, en % du capital. `free` : ce qui n'est attribué à personne.
+*/
+export function capTable({ founders = [], pool = 0 } = {}) {
+  pool = num(pool);
+  if (!Array.isArray(founders) || !(pool >= 0) || pool > 50) return null;
+  const shares = founders.map((f) => num(f && f.share));
+  if (shares.some((s) => !(s >= 0))) return null;
+  const total = shares.reduce((s, x) => s + x, 0);
+  const free = 100 - pool - total;
+  return { shares: shares.map((s) => round(s, 2)), total: round(total, 2), pool: round(pool, 2), free: round(free, 2), ok: free > -0.005 };
+}
+
+/*
+  Le suivi des vrais chiffres, mois par mois : [{ month: 'AAAA-MM', revenue, customers, spend }].
+  → les lignes triées, avec la croissance du revenu sur le mois d'avant et la
+    perte du mois (dépenses − revenus), et la croissance moyenne des trois derniers mois.
+*/
+export function kpiTrend(rows = []) {
+  if (!Array.isArray(rows)) return null;
+  const list = rows.filter((r) => r && typeof r.month === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(r.month))
+    .map((r) => ({ month: r.month, revenue: Math.max(0, num(r.revenue) || 0), customers: Math.max(0, num(r.customers) || 0), spend: Math.max(0, num(r.spend) || 0) }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+  const out = list.map((r, i) => {
+    const prev = list[i - 1];
+    return { ...r, burn: round(r.spend - r.revenue), growth: prev && prev.revenue > 0 ? round((r.revenue / prev.revenue - 1) * 100, 1) : null };
+  });
+  const recent = out.slice(-3).map((r) => r.growth).filter((g) => g != null);
+  return { rows: out, last: out[out.length - 1] || null, avgGrowth: recent.length ? round(recent.reduce((s, g) => s + g, 0) / recent.length, 1) : null };
+}
+
+/*
+  Une start-up lue depuis le navigateur ou depuis un fichier importé : tout ce
+  qui n'a pas la bonne forme est corrigé ou retiré. `null` si ce n'est pas une start-up.
+*/
+export const STARTUP_LIMITS = { name: 60, text: 160, founders: 8, costs: 20, hires: 20, tasks: 80, kpis: 60 };
+export function cleanStartup(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const L = STARTUP_LIMITS;
+  const str = (x, max = L.text) => String(typeof x === 'string' ? x : '').replace(/\s+/g, ' ').trim().slice(0, max);
+  const name = str(data.name, L.name);
+  if (!name) return null;
+  const list = (x, max) => (Array.isArray(x) ? x.slice(0, max) : []);
+  const plan = data.plan && typeof data.plan === 'object' ? data.plan : {};
+  return {
+    id: typeof data.id === 'string' && /^[a-z0-9]{4,24}$/.test(data.id) ? data.id : 's' + Math.random().toString(36).slice(2, 10),
+    name,
+    pitch: str(data.pitch),
+    sector: str(data.sector, L.name),
+    stage: Math.round(clamp(data.stage, 0, 5, 0)),
+    founders: list(data.founders, L.founders).map((f) => ({ name: str(f && f.name, L.name), role: str(f && f.role, L.name), share: clamp(f && f.share, 0, 100, 0) })),
+    pool: clamp(data.pool, 0, 50, 0),
+    plan: {
+      cash: clamp(plan.cash, 0, 1e12, 0), price: clamp(plan.price, 0, 1e9, 0), start: clamp(plan.start, 0, 1e9, 0),
+      newPerMonth: clamp(plan.newPerMonth, 0, 1e9, 0), growth: clamp(plan.growth, -50, 100, 0), churn: clamp(plan.churn, 0, 100, 0),
+      costs: list(plan.costs, L.costs).map((c) => ({ label: str(c && c.label, L.name), amount: clamp(c && c.amount, 0, 1e9, 0) })),
+      hires: list(plan.hires, L.hires).map((x) => ({ label: str(x && x.label, L.name), month: Math.round(clamp(x && x.month, 1, 24, 1)), salary: clamp(x && x.salary, 0, 1e9, 0) })),
+    },
+    tasks: list(data.tasks, L.tasks).map((t) => ({ text: str(t && t.text), state: ['todo', 'doing', 'done'].includes(t && t.state) ? t.state : 'todo', tool: t && typeof t.tool === 'string' && /^[a-z]{2,20}$/.test(t.tool) ? t.tool : '' }))
+      .filter((t) => t.text),
+    kpis: list(data.kpis, L.kpis).filter((k) => k && typeof k.month === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(k.month))
+      .map((k) => ({ month: k.month, revenue: clamp(k.revenue, 0, 1e12, 0), customers: clamp(k.customers, 0, 1e9, 0), spend: clamp(k.spend, 0, 1e12, 0) })),
+  };
+}

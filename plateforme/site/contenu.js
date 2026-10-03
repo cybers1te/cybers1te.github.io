@@ -10,6 +10,9 @@ export const ROLES = {
   independant: { id: 'independant', sprite: 'freelance', color: 'p3', letter: 'd' },
   investisseur: { id: 'investisseur', sprite: 'investor', color: 'p2', letter: 'i' },
   epargnant: { id: 'epargnant', sprite: 'saver', color: 'p4', letter: 's' },
+  immobilier: { id: 'immobilier', sprite: 'owner', color: 'p5', letter: 'm' },
+  ecommerce: { id: 'ecommerce', sprite: 'merchant', color: 'p6', letter: 'c' },
+  budget: { id: 'budget', sprite: 'household', color: 'p7', letter: 'b' },
 };
 
 /* Les guides : des personnages inventés, qui donnent un conseil sur chaque borne. */
@@ -22,6 +25,8 @@ export const GUIDES = {
   banker: { sprite: 'banker' },
   angel: { sprite: 'angel' },
   robot: { sprite: 'robot' },
+  agent: { sprite: 'agent' },
+  shopkeeper: { sprite: 'shopkeeper' },
 };
 
 // Un champ : clé, valeur de départ (un exemple), pas, minimum, maximum.
@@ -104,6 +109,44 @@ export const TOOLS = [
   { id: 'coussin', role: 'epargnant', sprite: 'umbrella', kind: 'calc', guide: 'banker', arsenal: ['banque'],
     fields: [f('expenses', 1500, 50, 1), f('months', 4, 1, 1, 60), f('saved', 1000, 100, 0), f('monthly', 200, 10, 0)] },
   { id: 'avant', role: 'epargnant', sprite: 'shield', kind: 'checklist', list: 'avant', size: 10, guide: 'robot', arsenal: ['arnaques', 'marches'] },
+
+  // ----- Immobilier -----
+  { id: 'credit', role: 'immobilier', sprite: 'key', kind: 'calc', guide: 'banker', arsenal: ['banque', 'verifier'],
+    fields: [f('amount', 200000, 5000, 1), f('rate', 3.5, 0.1, 0, 30), f('years', 20, 1, 1, 40), f('insurance', 0.3, 0.05, 0, 5)] },
+  { id: 'capacite', role: 'immobilier', sprite: 'bank', kind: 'calc', guide: 'banker', arsenal: ['banque'],
+    fields: [f('income', 4000, 100, 1), f('debts', 200, 50, 0), f('ratio', 35, 1, 1, 100), f('rate', 3.5, 0.1, 0, 30), f('years', 25, 1, 1, 40)] },
+  { id: 'rendement', role: 'immobilier', sprite: 'house', kind: 'calc', guide: 'agent', arsenal: ['verifier'],
+    fields: [f('price', 200000, 5000, 1), f('costs', 20000, 1000, 0), f('rent', 900, 25, 0), f('charges', 2000, 100, 0), f('vacancy', 1, 0.5, 0, 12)] },
+  { id: 'cashflow', role: 'immobilier', sprite: 'drop', kind: 'calc', guide: 'agent', arsenal: ['banque', 'compta'],
+    fields: [f('rent', 900, 25, 0), f('vacancy', 5, 1, 0, 100), f('charges', 180, 10, 0), f('loan', 750, 25, 0), f('works', 5, 1, 0, 100)] },
+  { id: 'louer', role: 'immobilier', sprite: 'scale', kind: 'calc', guide: 'agent', arsenal: ['banque', 'marches'],
+    fields: [f('price', 300000, 10000, 1), f('buyCosts', 8, 0.5, 0, 30), f('deposit', 60000, 5000, 0), f('rate', 3.5, 0.1, 0, 30), f('years', 25, 1, 1, 40),
+      f('rent', 1100, 50, 0), f('growth', 2, 0.5, -20, 20), f('invest', 5, 0.5, -50, 50), f('horizon', 15, 1, 1, 40)] },
+  { id: 'visite', role: 'immobilier', sprite: 'lens', kind: 'checklist', list: 'visite', size: 10, guide: 'agent', arsenal: ['verifier', 'arnaques'] },
+
+  // ----- E-commerce -----
+  { id: 'pub', role: 'ecommerce', sprite: 'megaphone', kind: 'calc', guide: 'shopkeeper', arsenal: ['mesurer', 'boutique'],
+    fields: [f('basket', 50, 1, 0.01), f('cogs', 15, 1, 0), f('shipping', 5, 0.5, 0), f('fees', 2, 0.5, 0, 100), f('spend', 1000, 100, 0), f('orders', 40, 1, 0)] },
+  { id: 'livraison', role: 'ecommerce', sprite: 'truck', kind: 'calc', guide: 'shopkeeper', arsenal: ['boutique', 'paiements'],
+    fields: [f('basket', 40, 1, 0.01), f('margin', 50, 1, 1, 100), f('shipping', 6, 0.5, 0), f('orders', 300, 10, 0)] },
+  { id: 'stock', role: 'ecommerce', sprite: 'box', kind: 'calc', guide: 'dev', arsenal: ['organiser', 'boutique'],
+    fields: [f('daily', 4, 1, 0.1), f('lead', 10, 1, 0), f('safety', 5, 1, 0), f('stock', 100, 10, 0), f('cost', 8, 1, 0)] },
+  { id: 'retours', role: 'ecommerce', sprite: 'return', kind: 'calc', guide: 'client', arsenal: ['boutique', 'crm'],
+    fields: [f('orders', 300, 10, 0), f('rate', 15, 1, 0, 100), f('basket', 60, 1, 0.01), f('cogs', 20, 1, 0), f('back', 6, 0.5, 0), f('lost', 20, 5, 0, 100)] },
+  { id: 'marketplace', role: 'ecommerce', sprite: 'cart', kind: 'calc', guide: 'shopkeeper', arsenal: ['boutique', 'paiements'],
+    fields: [f('price', 40, 1, 0.01), f('cogs', 12, 1, 0), f('commission', 15, 1, 0, 100), f('fixedFee', 1, 0.5, 0), f('siteFees', 2, 0.5, 0, 100), f('siteAds', 6, 0.5, 0)] },
+  { id: 'boutique', role: 'ecommerce', sprite: 'shop', kind: 'checklist', list: 'boutique', size: 10, guide: 'shopkeeper', arsenal: ['boutique', 'paiements', 'compta'] },
+
+  // ----- Budget -----
+  { id: 'budget', role: 'budget', sprite: 'wallet', kind: 'calc', guide: 'banker', arsenal: ['banque'],
+    fields: [f('income', 2200, 50, 1), f('needs', 1200, 50, 0), f('wants', 650, 50, 0)] },
+  { id: 'dette', role: 'budget', sprite: 'creditcard', kind: 'calc', guide: 'banker', arsenal: ['banque', 'arnaques'],
+    fields: [f('balance', 3000, 100, 1), f('rate', 19, 0.5, 0, 100), f('payment', 120, 10, 1), f('extra', 50, 10, 0)] },
+  { id: 'heures', role: 'budget', sprite: 'clock', kind: 'calc', guide: 'robot', arsenal: ['marches'],
+    fields: [f('price', 300, 10, 1), f('income', 2000, 50, 1), f('hours', 151, 1, 1, 744), f('years', 10, 1, 0, 60), f('rate', 5, 0.5, -50, 100)] },
+  { id: 'voiture', role: 'budget', sprite: 'car', kind: 'calc', guide: 'robot', arsenal: ['banque'],
+    fields: [f('price', 20000, 1000, 0), f('years', 6, 1, 1, 40), f('resale', 35, 5, 0, 100), f('km', 12000, 1000, 0), f('use', 6, 0.5, 0), f('energy', 1.8, 0.05, 0), f('fixed', 1500, 100, 0)] },
+  { id: 'menage', role: 'budget', sprite: 'clip', kind: 'checklist', list: 'menage', size: 10, guide: 'banker', arsenal: ['banque', 'arnaques'] },
 ];
 
 /* Le parcours : six niveaux. Les textes sont dans les fichiers de langue, dans le même ordre. */
@@ -118,3 +161,27 @@ export const LEVELS = [
 
 /* Les neuf cases du lean canvas, dans l'ordre où on les remplit. */
 export const CANVAS = ['problem', 'segments', 'uvp', 'solution', 'channels', 'revenue', 'costs', 'metrics', 'edge'];
+
+/* Le studio Start-Up : ses modules, dans l'ordre des onglets, et la feuille de
+   route de départ (les textes sont dans ui.startup.tasks, dans le même ordre ;
+   `tool` : la borne qui aide à faire l'étape). */
+export const STARTUP_MODULES = [
+  { id: 'tableau', sprite: 'star' },
+  { id: 'identite', sprite: 'bubble' },
+  { id: 'equipe', sprite: 'pie' },
+  { id: 'plan', sprite: 'chart' },
+  { id: 'route', sprite: 'flag' },
+  { id: 'suivi', sprite: 'up' },
+  { id: 'dossier', sprite: 'folder' },
+];
+export const STARTUP_TASKS = [
+  { tool: 'canvas' }, { tool: 'canvas' }, { tool: 'phrase' }, { tool: 'marche' }, { tool: 'prix' }, { tool: '' },
+  { tool: 'tunnel' }, { tool: '' }, { tool: 'vesting' }, { tool: 'client' }, { tool: 'deck' }, { tool: 'lever' },
+];
+// Le plan d'une start-up toute neuve : un exemple inventé, à remplacer par ses chiffres.
+export const STARTUP_EXAMPLE = {
+  pool: 10, founderShare: 90,
+  plan: { cash: 15000, price: 29, start: 0, newPerMonth: 8, growth: 10, churn: 3 },
+  costs: [150, 500, 120, 400],
+  hire: { month: 6, salary: 4500 },
+};

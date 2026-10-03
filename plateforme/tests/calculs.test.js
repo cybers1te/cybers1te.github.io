@@ -5,6 +5,8 @@ import {
   breakEven, compound, convertible, dayRate, decodeCard, dilution, encodeCard, exitReturn, fees, funnel, inflation, marketSize, maxValuation,
   phraseParts, portfolio, pricing, raiseNeed, runway, unitEconomics, waterfall,
   cushion, discount, drawdown, growthRate, proRata, quote, revenueTarget, rounds, savingsGoal, scorecard, setAside, vesting,
+  mortgage, borrowingCapacity, rentalYield, rentalCashflow, rentOrBuy, adsProfit, freeShipping, reorder, returnsCost, marketplace,
+  budgetSplit, debtPayoff, workHours, carCost, startupPlan, capTable, kpiTrend, cleanStartup,
 } from '../site/calculs.js';
 
 describe('entrepreneur', () => {
@@ -355,5 +357,174 @@ describe('bornes supplémentaires', () => {
     assert.equal(cushion({ expenses: 1500, months: 4, saved: 9000, monthly: 0 }).wait, 0, 'déjà couvert');
     assert.equal(cushion({ expenses: 1500, months: 4, saved: 0, monthly: 0 }).wait, null, 'sans épargne, jamais');
     assert.equal(cushion({ expenses: 0, months: 4 }), null);
+  });
+});
+
+describe('immobilier', () => {
+  it('mortgage : mensualité, coût et tableau par année', () => {
+    const r = mortgage({ amount: 200000, rate: 3.5, years: 20, insurance: 0.3 });
+    assert.equal(r.payment, 1159.92, 'formule de la mensualité constante');
+    assert.equal(r.insurance, 50);
+    assert.equal(r.monthly, 1209.92);
+    assert.equal(r.series.length, 20);
+    assert.equal(r.series[19].balance, 0);
+    const capital = r.series.reduce((s, y) => s + y.principal, 0);
+    assert.ok(Math.abs(capital - 200000) < 1, 'tout le capital est remboursé');
+    assert.ok(r.series[0].interest > r.series[19].interest, 'les intérêts pèsent surtout au début');
+    assert.equal(mortgage({ amount: 12000, rate: 0, years: 1 }).payment, 1000, 'à taux zéro');
+    assert.equal(mortgage({ amount: 1000, rate: 3, years: 2.5 }), null);
+  });
+  it('borrowingCapacity : la mensualité maximale devient un montant', () => {
+    const r = borrowingCapacity({ income: 4000, debts: 200, ratio: 35, rate: 0, years: 20 });
+    assert.equal(r.maxMonthly, 1200);
+    assert.equal(r.loan, 288000);
+    assert.equal(borrowingCapacity({ income: 1000, debts: 900, ratio: 35, rate: 3, years: 20 }).loan, 0, 'déjà trop de crédits');
+    const back = mortgage({ amount: borrowingCapacity({ income: 4000, ratio: 35, rate: 3.5, years: 25 }).loan, rate: 3.5, years: 25 });
+    assert.ok(Math.abs(back.payment - 1400) < 0.02, 'la capacité redonne la mensualité de départ');
+  });
+  it('rentalYield : brut et net', () => {
+    const r = rentalYield({ price: 200000, costs: 20000, rent: 1000, charges: 1800, vacancy: 1 });
+    assert.equal(r.gross, 6);
+    assert.equal(r.netIncome, 9200);
+    assert.equal(r.net, 4.18);
+    assert.equal(rentalYield({ price: 1, rent: 0, charges: 10 }).payback, null);
+  });
+  it('rentalCashflow : ce qui reste chaque mois', () => {
+    const r = rentalCashflow({ rent: 900, vacancy: 0, charges: 150, loan: 800, works: 5 });
+    assert.equal(r.cash, -95);
+    assert.equal(r.yearly, -1140);
+  });
+  it('rentOrBuy : sans croissance ni placement, comparer est une affaire de mensualités', () => {
+    const r = rentOrBuy({ price: 120000, buyCosts: 0, deposit: 120000, rate: 0, years: 1, rent: 1000, growth: 0, invest: 0, horizon: 1 });
+    // Acheter comptant : 120 000 de logement, 1 % de frais par an, et le loyer non payé placé.
+    assert.equal(r.loan, 0);
+    assert.equal(r.buy, 120000 + 12 * (1000 - 100));
+    assert.equal(r.rent, 120000);
+    assert.equal(r.breakEven, 1);
+    assert.equal(rentOrBuy({ price: 1, rate: 1, years: 1, rent: 1, horizon: 0 }), null);
+  });
+});
+
+describe('e-commerce', () => {
+  it('adsProfit : ROAS d\'équilibre et coût par commande', () => {
+    const r = adsProfit({ basket: 50, cogs: 15, shipping: 5, fees: 2, spend: 1000, orders: 40 });
+    assert.equal(r.margin, 29);
+    assert.equal(r.breakEvenRoas, 1.72);
+    assert.equal(r.roas, 2);
+    assert.equal(r.cpa, 25);
+    assert.equal(r.profit, 160);
+    assert.equal(r.ordersNeeded, 35);
+    assert.equal(adsProfit({ basket: 10, cogs: 12 }).breakEvenRoas, null, 'vendu à perte');
+  });
+  it('freeShipping : panier minimum', () => {
+    const r = freeShipping({ basket: 40, margin: 50, shipping: 6, orders: 100 });
+    assert.equal(r.extra, 12);
+    assert.equal(r.threshold, 52);
+    assert.equal(r.monthly, 600);
+  });
+  it('reorder : point de commande', () => {
+    const r = reorder({ daily: 4, lead: 10, safety: 5, stock: 100, cost: 3 });
+    assert.equal(r.point, 60);
+    assert.equal(r.orderIn, 10);
+    assert.equal(r.late, false);
+    assert.equal(reorder({ daily: 4, lead: 10, safety: 5, stock: 30 }).late, true);
+  });
+  it('returnsCost : coût par retour', () => {
+    const r = returnsCost({ orders: 200, rate: 10, basket: 60, cogs: 20, back: 6, lost: 25 });
+    assert.equal(r.returned, 20);
+    assert.equal(r.perReturn, 51);
+    assert.equal(r.total, 1020);
+    assert.equal(r.share, 12.8);
+  });
+  it('marketplace : ce qui reste par vente', () => {
+    const r = marketplace({ price: 40, cogs: 12, commission: 15, fixedFee: 1, siteFees: 2, siteAds: 4 });
+    assert.equal(r.mp, 21);
+    assert.equal(r.site, 23.2);
+    assert.equal(r.gap, 2.2);
+    assert.equal(r.adsLimit, 6.2);
+  });
+});
+
+describe('budget', () => {
+  it('budgetSplit : 50 / 30 / 20', () => {
+    const r = budgetSplit({ income: 2000, needs: 1100, wants: 600 });
+    assert.equal(r.savings, 300);
+    assert.equal(r.savingsPct, 15);
+    assert.deepEqual(r.target, { needs: 1000, wants: 600, savings: 400 });
+  });
+  it('debtPayoff : durée, intérêts, et l\'effet d\'un versement en plus', () => {
+    const r = debtPayoff({ balance: 1200, rate: 0, payment: 100 });
+    assert.equal(r.months, 12);
+    assert.equal(r.interest, 0);
+    const card = debtPayoff({ balance: 3000, rate: 19, payment: 100, extra: 50 });
+    assert.ok(card.moreMonths < card.months);
+    assert.ok(card.saved > 0);
+    assert.equal(debtPayoff({ balance: 10000, rate: 24, payment: 150 }).months, null, 'le versement ne couvre pas les intérêts');
+  });
+  it('workHours : un achat en heures', () => {
+    const r = workHours({ price: 300, income: 1800, hours: 150, years: 10, rate: 0 });
+    assert.equal(r.hourly, 12);
+    assert.equal(r.hours, 25);
+    assert.equal(r.later, 300);
+  });
+  it('carCost : par mois et par kilomètre', () => {
+    const r = carCost({ price: 20000, years: 5, resale: 40, km: 12000, use: 6, energy: 1.8, fixed: 1200 });
+    assert.equal(r.loss, 2400);
+    assert.equal(r.fuel, 1296);
+    assert.equal(r.year, 4896);
+    assert.equal(r.month, 408);
+    assert.equal(r.perKm, 0.41);
+  });
+});
+
+describe('studio start-up', () => {
+  it('startupPlan : sans clients, la trésorerie fond au rythme des dépenses', () => {
+    const r = startupPlan({ cash: 10000, costs: [{ amount: 2000 }, { amount: 500 }] }, 12);
+    assert.equal(r.runway, 4, '10 000 / 2 500 : quatre mois pleins');
+    assert.equal(r.need, 20000, 'au plus bas : 10 000 − 12 × 2 500');
+    assert.equal(r.breakEven, null);
+    assert.equal(r.burn, 2500);
+  });
+  it('startupPlan : clients, départs, embauche', () => {
+    const r = startupPlan({ cash: 0, price: 100, start: 0, newPerMonth: 10, growth: 0, churn: 0, costs: [{ amount: 1000 }], hires: [{ month: 3, salary: 2000 }] }, 6);
+    assert.deepEqual(r.series.map((p) => p.revenue), [1000, 2000, 3000, 4000, 5000, 6000]);
+    assert.deepEqual(r.series.map((p) => p.costs), [1000, 1000, 3000, 3000, 3000, 3000]);
+    assert.equal(r.breakEven, 1);
+    // Rentable au mois 1, puis une grosse embauche : l'équilibre durable n'arrive qu'après.
+    const hire = startupPlan({ price: 100, newPerMonth: 10, costs: [{ amount: 500 }], hires: [{ month: 2, salary: 3000 }] }, 6);
+    assert.equal(hire.series[0].revenue >= hire.series[0].costs, true);
+    assert.equal(hire.breakEven, 4, '4 000 de revenus pour 3 500 de dépenses au mois 4');
+    const churn = startupPlan({ start: 100, churn: 10, price: 1 }, 2);
+    assert.equal(churn.series[1].customers, 81);
+    assert.equal(startupPlan({ cash: -1 }), null);
+    assert.equal(startupPlan({ costs: [{ amount: -5 }] }), null);
+  });
+  it('capTable : ce qui reste à attribuer', () => {
+    const r = capTable({ founders: [{ share: 50 }, { share: 35 }], pool: 10 });
+    assert.equal(r.free, 5);
+    assert.equal(r.ok, true);
+    assert.equal(capTable({ founders: [{ share: 60 }, { share: 45 }] }).ok, false);
+  });
+  it('kpiTrend : tri et croissance', () => {
+    const r = kpiTrend([{ month: '2026-03', revenue: 1200, spend: 3000 }, { month: '2026-02', revenue: 1000, spend: 3000 }, { month: 'nope' }]);
+    assert.deepEqual(r.rows.map((x) => x.month), ['2026-02', '2026-03']);
+    assert.equal(r.last.growth, 20);
+    assert.equal(r.last.burn, 1800);
+    assert.equal(r.avgGrowth, 20);
+  });
+  it('cleanStartup : un fichier importé est nettoyé', () => {
+    const s = cleanStartup({ name: '  Nordlys  ', stage: 9, pool: 80, founders: [{ name: 'A', share: 150 }], plan: { cash: -5, costs: [{ label: 'x', amount: 'abc' }] },
+      tasks: [{ text: 'Parler à 10 clients', state: 'bizarre' }, { text: '' }], kpis: [{ month: '2026-13' }, { month: '2026-01', revenue: 5 }], hack: '<script>' });
+    assert.equal(s.name, 'Nordlys');
+    assert.equal(s.stage, 5);
+    assert.equal(s.pool, 50);
+    assert.equal(s.founders[0].share, 100);
+    assert.equal(s.plan.cash, 0);
+    assert.equal(s.plan.costs[0].amount, 0);
+    assert.deepEqual(s.tasks, [{ text: 'Parler à 10 clients', state: 'todo', tool: '' }]);
+    assert.equal(s.kpis.length, 1);
+    assert.equal(s.hack, undefined);
+    assert.equal(cleanStartup({ name: '' }), null);
+    assert.equal(cleanStartup([1, 2]), null);
   });
 });
