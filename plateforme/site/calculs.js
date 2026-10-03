@@ -372,7 +372,7 @@ export function inflation({ amount, inflation: inf, years, rate = 0 }) {
     realRate: round(((1 + rate / 100) / (1 + inf / 100) - 1) * 100, 2) };
 }
 
-/* ---------- Bornes supplémentaires ---------- */
+/* ---------- Outils supplémentaires ---------- */
 
 /*
   Vesting : la part déjà acquise d'une attribution.

@@ -2,8 +2,8 @@
 
 Le site publié par GitHub Pages est **marketbuss** : une plateforme d'outils
 gratuits pour entrepreneurs, indépendants, investisseurs, épargnants, futurs
-propriétaires, e-commerçants et pour le budget de tous les jours, en
-pixel art façon salle d'arcade, en français, anglais et néerlandais. La page du **Répondeur IA** est publiée à côté, à l'adresse
+propriétaires, e-commerçants et pour le budget de tous les jours, en français,
+anglais et néerlandais. La page du **Répondeur IA** est publiée à côté, à l'adresse
 `/repondeur/`. L'ancien comparateur d'IA et la messagerie **message-me**,
 publiés avant, sont gardés intacts dans le dépôt et se remettent en ligne en
 changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
@@ -17,7 +17,7 @@ changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **marketbuss** — le site publié | `plateforme/` | Site statique en trois langues : 52 bornes pour sept joueurs, studio Start-Up, arsenal, parcours, carte de pitch, lexique |
+| **marketbuss** — le site publié | `plateforme/` | Site statique en trois langues : 52 outils pour sept profils, studio Start-Up, arsenal, parcours, carte de pitch, lexique |
 | **Répondeur IA** — publié à `/repondeur/` | `repondeur/` | Page de présentation statique, avec une démonstration |
 | **Comparateur d'IA** — en réserve | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
 | **message-me** — en réserve | `public/`, `firestore.rules`, `firebase.json`, `android/` | Site statique + Firebase (Auth, Firestore) |
@@ -29,12 +29,12 @@ changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 Des outils pour chiffrer un projet, fixer un prix, préparer une levée,
 comprendre un placement, acheter un logement, vendre en ligne ou tenir son
-budget, dans une salle d'arcade en pixel art. Tout se calcule
+budget. Tout se calcule
 dans le navigateur : pas de compte, aucun chiffre envoyé. Le site existe en
 **français, anglais et néerlandais** (bouton en haut à droite ; la langue du
 navigateur est choisie au premier passage, et `?lang=en` force une langue).
 
-- **Sept joueurs**, 52 bornes :
+- **Sept profils**, 52 outils :
   - *Entrepreneur* (11) : mois de survie, combien lever, dilution, vesting,
     taille du marché, coût et valeur d'un client, objectif de revenu,
     croissance nécessaire, lean canvas, pitch en une phrase, les 10 diapos.
@@ -56,11 +56,11 @@ navigateur est choisie au premier passage, et `?lang=en` force une langue).
   - *Budget* (5) : budget du mois face au repère 50 / 30 / 20, sortie de
     dette, prix d'un achat en heures de travail, vrai coût d'une voiture,
     liste « grand ménage ».
-- **Dix guides** (personnages inventés) donnent un conseil sur chaque borne.
-- **L'arsenal** : 79 vrais outils et services publics, en 21 rayons, avec lien
+- **Dix guides** (personnages inventés) donnent un conseil sur chaque outil.
+- **L'arsenal** : 79 vrais logiciels et services publics, en 21 catégories, avec lien
   officiel et type d'accès (offre gratuite, essai, payant…). Vérifiés le
   2 octobre 2026 ; aucun lien sponsorisé, aucun courtier, pas de prix.
-- Chaque borne s'ouvre sur un **exemple inventé**, explique comment lire le
+- Chaque outil s'ouvre sur un **exemple inventé**, explique comment lire le
   résultat et dit ce que le calcul ne prend pas en compte. Les chiffres saisis
   sont dans l'adresse : la page se partage ou se recharge telle quelle.
 - Chaque calculateur montre **le calcul pas à pas** avec les chiffres saisis
@@ -69,56 +69,84 @@ navigateur est choisie au premier passage, et `?lang=en` force une langue).
   par chiffre, un cran en plus ou en moins, avec le résultat qu'il donnerait.
   Un curseur sous chaque champ ; le grand chiffre défile, les barres glissent,
   les colonnes montent (rien ne bouge si le système demande moins d'animations).
+- **L'accueil** ouvre sur un vrai outil à essayer (le seuil de rentabilité),
+  puis sur les sept profils, présentés comme les intercalaires d'un classeur.
 - **Studio Start-Up** (`#/startup`) : créer une ou plusieurs start-ups et les
   piloter en sept modules. *Tableau de bord* (mois de trésorerie, mois
   d'équilibre, argent à trouver, et les prochaines actions avec un lien vers
-  la bonne borne), *Identité*, *Équipe et capital* (qui possède quoi, réserve
+  le bon outil), *Identité*, *Équipe et capital* (qui possède quoi, réserve
   salariés), *Plan financier* sur 24 mois (clients, départs, dépenses,
   embauches), *Feuille de route* en trois colonnes (12 étapes de départ, liées
-  aux bornes), *Suivi* des vrais chiffres mois par mois (croissance, perte),
+  aux outils), *Suivi* des vrais chiffres mois par mois (croissance, perte),
   *Dossier* (résumé à copier, carte de pitch, impression, sauvegarde à
   télécharger et à réimporter). Tout reste dans le navigateur ; un fichier
   importé est nettoyé avant d'être lu (`cleanStartup`, testé).
 - **Scénario A** : garder ses chiffres, en changer, et voir l'écart et les
-  chiffres modifiés. **Bornes suivantes** : un lien qui ouvre la borne d'après
+  chiffres modifiés. **Outils suivants** : un lien qui ouvre l'outil d'après
   avec les chiffres déjà remplis (la mensualité du crédit va dans le
   cash-flow, le tarif journalier dans le devis…). **Devise** au choix (€, $,
   £, CHF, $ CA, FCFA, DH) : seul le symbole change, rien n'est converti.
-- **Recherche** dans les bornes (touche `/`), **dernières bornes ouvertes** sur
-  l'accueil (gardées dans ce navigateur) et compteurs animés.
+- **Recherche** dans les outils (touche `/`), **derniers outils ouverts** sur
+  l'accueil (gardés dans ce navigateur).
 - **Parcours** en six niveaux, **carte de pitch** à partager par lien (tout le
   contenu est dans le lien, rien n'est enregistré), **lexique** de 78 mots.
 - Rien d'inventé : pas de faux chiffres d'audience, pas de faux avis, pas de
   faux investisseurs. Les outils servent à comprendre ; ce ne sont pas des
   conseils financiers, juridiques ou fiscaux, et le site le dit.
 
+**Le design : le cahier de calcul.** Un papier quadrillé là où il y a un
+calcul, le résultat passé au surligneur jaune (ou corrigé en rouge quand il
+est mauvais), le détail écrit ligne par ligne, et une couleur d'intercalaire
+par profil. Le thème clair ou sombre suit l'appareil ; un bouton de l'en-tête
+permet de le changer. La mise en forme est écrite avec **Tailwind CSS** (v4),
+les icônes viennent de **Lucide**, les personnages et le logo sont dessinés
+en SVG dans le code, la police est **Recursive** (licence OFL), hébergée avec
+le site.
+
 ```text
-plateforme/site/index.html   La page (en-tête, pied de page, choix de la langue)
-plateforme/site/arcade.js    Pages, bornes, graphiques, navigation (aucun texte)
-plateforme/site/calculs.js   Les calculs (fonctions pures, testées)
-plateforme/site/contenu.js   Structure : joueurs, guides, bornes, parcours
-plateforme/site/arsenal.js   Structure de l'arsenal : outils, adresses, accès
-plateforme/site/lang/        Les mots : fr.js, en.js, nl.js (même forme)
-plateforme/site/sprites.js   Dessins en pixel art, tracés dans le code
-plateforme/site/arcade.css   Identité visuelle, mise en page responsive
-plateforme/site/fonts/       Polices Press Start 2P et Jersey 15 (licence OFL)
-plateforme/tests/            Tests des calculs et des langues (node:test)
-plateforme/tools/serve.mjs   Serveur local
+plateforme/site/index.html     La page (en-tête, pied de page, choix de la langue)
+plateforme/site/marketbuss.js  Pages, outils, graphiques, navigation (aucun texte)
+plateforme/site/calculs.js     Les calculs (fonctions pures, testées)
+plateforme/site/contenu.js     Structure : profils, guides, outils, parcours
+plateforme/site/arsenal.js     Structure de l'arsenal : sites, adresses, accès
+plateforme/site/lang/          Les mots : fr.js, en.js, nl.js (même forme)
+plateforme/site/dessins.js     Personnages et logo (SVG), et l'affichage des icônes
+plateforme/site/icons.js       Les icônes Lucide dont le site se sert (fichier fabriqué)
+plateforme/site/marketbuss.css La feuille de style (fichier fabriqué par Tailwind CSS)
+plateforme/site/fonts/         Police Recursive, réduite aux caractères utiles (OFL)
+plateforme/tailwind.css        La source de la feuille de style : couleurs, polices, composants
+plateforme/package.json        Tailwind CSS et Lucide, pour fabriquer les deux fichiers ci-dessus
+plateforme/tests/              Tests des calculs, des langues et des dessins (node:test)
+plateforme/tools/              Serveur local, fabrication des icônes et des polices
 ```
 
 ```bash
 npm run plateforme:dev      # http://127.0.0.1:5300/
-npm run test:plateforme     # calculs, et cohérence des trois langues
+npm run test:plateforme     # calculs, cohérence des trois langues, dessins
+
+# Après avoir changé une classe ou une icône (une seule fois : npm --prefix plateforme install)
+npm run plateforme:css      # refait plateforme/site/marketbuss.css
+npm run plateforme:icons    # refait plateforme/site/icons.js
 ```
 
-**Ajouter une borne.** Sa structure dans `contenu.js`, son calcul (testé)
-dans `calculs.js`, son affichage dans `RESULTS` et son grand chiffre dans
-`HEAD` (`arcade.js`), son pas à pas dans `steps` et ses mots dans
-les trois fichiers de `lang/`. Le test des langues échoue tant qu'une langue
-est incomplète.
+**Changer le design.** Les classes Tailwind sont écrites dans `index.html` et
+dans `marketbuss.js` (les plus utilisées sont regroupées dans `C`, en haut du
+fichier) ; les couleurs, les polices et les quelques composants faits main
+(papier quadrillé, surligneur, curseur) sont dans `plateforme/tailwind.css`.
+Tailwind ne garde que les classes qu'il lit, écrites en entier : après un
+changement, refaire `npm run plateforme:css` et enregistrer
+`marketbuss.css`. Le site publié n'a rien à construire ; la vérification du
+dépôt refait la feuille et refuse une version qui n'est plus à jour.
+
+**Ajouter un outil.** Sa structure et son icône (un nom de
+<https://lucide.dev/icons>, puis `npm run plateforme:icons`) dans
+`contenu.js`, son calcul (testé) dans `calculs.js`, son affichage dans
+`RESULTS` et son grand chiffre dans `HEAD` (`marketbuss.js`), son pas à pas
+dans `steps` et ses mots dans les trois fichiers de `lang/`. Le test des
+langues échoue tant qu'une langue est incomplète.
 
 **Ajouter une langue.** Copier `lang/fr.js`, traduire, puis ajouter son code
-dans `LANGS` (`arcade.js`) et dans `PACKS` (`tests/langues.test.js`).
+dans `LANGS` (`marketbuss.js`) et dans `PACKS` (`tests/langues.test.js`).
 
 **Mettre l'arsenal à jour.** Revérifier chaque adresse et chaque type d'accès
 sur le site officiel, puis changer `VERIFIED` dans `arsenal.js`.

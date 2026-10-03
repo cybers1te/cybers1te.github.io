@@ -1,0 +1,340 @@
+/* marketbuss — la feuille de style, écrite avec Tailwind CSS v4.
+ *
+ * Ce fichier est la source. Le site charge site/marketbuss.css, fabriqué par :
+ *
+ *   cd plateforme && npm install && npm run css
+ *
+ * Tailwind lit les classes écrites dans index.html et marketbuss.js, et ne
+ * garde que celles qui servent. Après avoir changé une classe, refaire la
+ * commande : la vérification du dépôt refuse une feuille qui n'est plus à jour.
+ *
+ * L'idée du design : le cahier de calcul. Un papier quadrillé là où il y a un
+ * calcul, le résultat passé au surligneur, le détail écrit ligne par ligne, et
+ * une couleur d'intercalaire par profil. Rien d'autre n'est décoré.
+ */
+
+@import "tailwindcss" source(none);
+@source "./site/index.html";
+@source "./site/marketbuss.js";
+
+@font-face {
+  font-family: "Recursive";
+  src: url("fonts/recursive-sans.woff2") format("woff2");
+  font-weight: 300 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Recursive Mono";
+  src: url("fonts/recursive-mono.woff2") format("woff2");
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+/* ---------- Les couleurs ----------
+   Le stylo quatre couleurs : noir pour le texte, bleu pour agir, rouge pour ce
+   qui manque, vert pour ce qui va. Le surligneur jaune : le résultat, et rien
+   d'autre. p1 à p7 : les sept profils (et les séries des graphiques). */
+
+:root {
+  color-scheme: light;
+  --paper: #f5f6fb;
+  --sheet: #ffffff;
+  --ink: #171a33;
+  --ink-2: #4a4f72;
+  --ink-3: #636989;
+  --line: #d6dbee;
+  --grid: #e3e7f6;
+  --pen: #2a41d6;
+  --pen-ink: #ffffff;
+  --fluo: #ffe53b;
+  --fluo-ink: #171a33;
+  --hot: #cf2e3c;
+  --ok: #0c7a52;
+  --p1: #2a41d6;
+  --p2: #0b93ad;
+  --violet: #7c4ddb;
+  --p5: #e06c0a;
+  --p6: #d13b98;
+  --p7: #8e5f33;
+  --off: #c9cfe6;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #121d1a;
+  --sheet: #1a2925;
+  --ink: #eef2ea;
+  --ink-2: #bfcabe;
+  --ink-3: #97a69b;
+  --line: #35493f;
+  --grid: #22342e;
+  --pen: #a9bcff;
+  --pen-ink: #121d1a;
+  --fluo: #ffe46b;
+  --fluo-ink: #121d1a;
+  --hot: #ff8f86;
+  --ok: #74dba8;
+  --p1: #a9bcff;
+  --p2: #63d3e6;
+  --violet: #c3a6ff;
+  --p5: #ffab66;
+  --p6: #ff8fcd;
+  --p7: #d9b086;
+  --off: #46594f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #121d1a;
+    --sheet: #1a2925;
+    --ink: #eef2ea;
+    --ink-2: #bfcabe;
+    --ink-3: #97a69b;
+    --line: #35493f;
+    --grid: #22342e;
+    --pen: #a9bcff;
+    --pen-ink: #121d1a;
+    --fluo: #ffe46b;
+    --fluo-ink: #121d1a;
+    --hot: #ff8f86;
+    --ok: #74dba8;
+    --p1: #a9bcff;
+    --p2: #63d3e6;
+    --violet: #c3a6ff;
+    --p5: #ffab66;
+    --p6: #ff8fcd;
+    --p7: #d9b086;
+    --off: #46594f;
+  }
+}
+
+@theme {
+  --color-*: initial;
+  --font-sans: "Recursive", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Recursive Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@theme inline {
+  --color-paper: var(--paper);
+  --color-sheet: var(--sheet);
+  --color-ink: var(--ink);
+  --color-soft: var(--ink-2);
+  --color-faint: var(--ink-3);
+  --color-line: var(--line);
+  --color-grid: var(--grid);
+  --color-pen: var(--pen);
+  --color-pen-ink: var(--pen-ink);
+  --color-fluo: var(--fluo);
+  --color-fluo-ink: var(--fluo-ink);
+  --color-bad: var(--hot);
+  --color-good: var(--ok);
+  --color-role: var(--c, var(--pen));
+  /* La même couleur, foncée d'un quart d'encre : pour les chiffres et les icônes, qui doivent rester lisibles. */
+  --color-role-ink: color-mix(in srgb, var(--c, var(--pen)) 75%, var(--ink));
+  --color-off: var(--off);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+}
+
+/* « casual » : l'écriture ronde des titres et des annotations. */
+@utility casual {
+  font-variation-settings: "CASL" 1;
+}
+@utility linear {
+  font-variation-settings: "CASL" 0;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 5.5rem;
+    background: var(--paper);
+  }
+  body {
+    font-synthesis: none;
+    font-variant-ligatures: none;
+  }
+  h1, h2 {
+    font-variation-settings: "CASL" 1;
+    font-weight: 800;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+  }
+  h3 {
+    font-weight: 700;
+  }
+  :focus-visible {
+    outline: 3px solid var(--pen);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--fluo);
+    color: var(--fluo-ink);
+  }
+  input[type="search"]::-webkit-search-cancel-button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* La couleur du profil en cours : --c. */
+  .p1 { --c: var(--p1); }
+  .p2 { --c: var(--p2); }
+  .p3 { --c: var(--ok); }
+  .p4 { --c: var(--violet); }
+  .p5 { --c: var(--p5); }
+  .p6 { --c: var(--p6); }
+  .p7 { --c: var(--p7); }
+
+  /* Les couleurs des séries : pastilles de légende, barres, cases. */
+  .s-p1 { background: var(--p1); }
+  .s-p2 { background: var(--p2); }
+  .s-ok, .s-p3 { background: var(--ok); }
+  .s-violet, .s-p4 { background: var(--violet); }
+  .s-hot { background: var(--hot); }
+  .s-p5 { background: var(--p5); }
+  .s-p6 { background: var(--p6); }
+  .s-p7 { background: var(--p7); }
+  .s-off { background: var(--off); }
+  .s-free { background: transparent; box-shadow: inset 0 0 0 1.5px var(--off); }
+  .s-role { background: var(--c, var(--pen)); }
+
+  /* Le papier quadrillé : seulement là où il y a un calcul. */
+  .quadrille {
+    background-color: var(--sheet);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: -1px -1px;
+  }
+
+  /* Le surligneur : un trait un peu irrégulier, derrière le résultat. */
+  .surligne {
+    display: inline;
+    padding: 0.02em 0.16em;
+    margin-inline: -0.08em;
+    color: var(--fluo-ink);
+    background: linear-gradient(transparent 14%, var(--fluo) 14%, var(--fluo) 92%, transparent 92%);
+    border-radius: 0.14em 0.3em 0.18em 0.26em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  .surligne.rate {
+    background: none;
+    color: var(--hot);
+    text-decoration: underline wavy var(--hot) 2px;
+    text-underline-offset: 0.14em;
+  }
+
+  /* Le curseur sous chaque chiffre. */
+  .curseur {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 1.5rem;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .curseur::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--line); }
+  .curseur::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line); }
+  .curseur::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -7px;
+    border: 2px solid var(--sheet);
+    border-radius: 50%;
+    background: var(--c, var(--pen));
+    box-shadow: 0 0 0 1.5px var(--c, var(--pen));
+  }
+  .curseur::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--sheet);
+    border-radius: 50%;
+    background: var(--c, var(--pen));
+    box-shadow: 0 0 0 1.5px var(--c, var(--pen));
+  }
+
+  /* Les colonnes d'un graphique. */
+  .colonnes {
+    display: block;
+    width: 100%;
+    height: 11rem;
+  }
+
+  /* Le lean canvas : neuf cases, à leur place habituelle. */
+  .canvas-grid {
+    display: grid;
+    gap: 0.875rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 48rem) {
+    .canvas-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas: "problem segments" "uvp uvp" "solution channels" "revenue costs" "metrics edge";
+    }
+    .canvas-grid > * { grid-area: var(--area); }
+  }
+  @media (min-width: 64rem) {
+    .canvas-grid {
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      grid-template-areas:
+        "problem problem solution solution uvp uvp edge edge segments segments"
+        "problem problem metrics metrics uvp uvp channels channels segments segments"
+        "costs costs costs costs costs revenue revenue revenue revenue revenue";
+    }
+  }
+
+  .icon, .avatar, .coin { display: block; flex: none; }
+
+  /* ---------- Mouvement ----------
+     Seulement en réponse à un geste : le chiffre défile, les barres glissent.
+     `.arrive` : la première fois qu'un résultat s'affiche. */
+  [data-bar] { transition: width 0.4s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .ecart { animation: ecart 1.8s ease-out forwards; }
+  .arrive .colonnes rect[data-col] {
+    animation: monte 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i) * 12ms);
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+  }
+  .arrive .colonnes rect[data-col="neg"] { transform-origin: 50% 0; }
+  .arrive .colonnes[data-rise] {
+    animation: monte 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    transform-origin: 50% 100%;
+  }
+  .arrive [data-step] {
+    animation: ecrit 0.35s ease-out both;
+    animation-delay: calc(250ms + var(--i) * 90ms);
+  }
+  .confetti { position: fixed; z-index: 70; width: 0; height: 0; pointer-events: none; }
+  .confetti i {
+    position: absolute;
+    left: -5px;
+    top: -5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    animation: confetti 1.1s cubic-bezier(0.2, 0.7, 0.3, 1) var(--d) both;
+  }
+  @keyframes monte { from { transform: scaleY(0); } }
+  @keyframes ecrit { from { opacity: 0; transform: translateX(-8px); } }
+  @keyframes ecart { 0% { opacity: 0; transform: translateY(6px); } 12% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+  @keyframes confetti {
+    0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+    60% { opacity: 1; }
+    100% { transform: translate(var(--dx), calc(var(--dy) + 90px)) rotate(var(--r)); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-bar] { transition: none; }
+    .ecart, .arrive .colonnes rect[data-col], .arrive .colonnes[data-rise], .arrive [data-step], .confetti i { animation: none; }
+  }
+}
+
+/* ---------- Impression : le contenu seul ---------- */
+@media print {
+  [data-chrome], [data-noprint] { display: none !important; }
+  html, body { background: #fff !important; color: #000; }
+  .quadrille { background-image: none; }
+}

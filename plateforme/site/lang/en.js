@@ -46,18 +46,19 @@ export default {
 
   ui: {
     title: 'marketbuss — tools for founders and investors',
-    description: 'marketbuss: free arcade machines to start a business, invest, save, buy a home, sell online and manage a budget, plus today\'s real tools. No account.',
+    description: 'marketbuss: free tools to start a business, invest, save, buy a home, sell online and manage a budget. Each one shows its maths, line by line. No account.',
     skip: 'Skip to content',
     loading: 'Loading…',
     language: 'Language',
-    nav: { outils: 'Machines', startup: 'Start-up', arsenal: 'Arsenal', parcours: 'Journey', pitch: 'Pitch', lexique: 'Glossary', 'a-propos': 'About' },
+    nav: { outils: 'Tools', startup: 'Start-up', arsenal: 'Arsenal', parcours: 'Journey', pitch: 'Pitch', lexique: 'Glossary', 'a-propos': 'About' },
     foot: {
       blurb: "Free tools to start a business, invest, save, buy a home, sell online and keep a budget, plus a studio to run your start-up. No account: everything is worked out in your browser.",
-      links: { outils: 'All machines', startup: 'Start-up Studio', arsenal: 'The arsenal', parcours: 'The journey', pitch: 'Pitch card', lexique: 'The glossary', 'a-propos': 'About' },
+      links: { outils: 'All tools', startup: 'Start-up Studio', arsenal: 'The arsenal', parcours: 'The journey', pitch: 'Pitch card', lexique: 'The glossary', 'a-propos': 'About' },
       note: 'The tools are for understanding and practising. They are not financial, legal or tax advice. Investing is risky: you can lose everything you put in.',
     },
     all: 'All',
-    player: 'Player',
+    profile: 'Profile',
+    theme: 'Light or dark theme',
     result: 'Result',
     yourNumbers: 'Your numbers',
     reset: 'Reset the example',
@@ -71,31 +72,32 @@ export default {
     steps: 'The maths, step by step',
     stepsSub: 'With your numbers, rounded.',
     levers: 'What moves the result',
-    leversSub: 'Each button changes one number by one notch and shows the result it would give. The yellow bar shows which ones weigh most.',
+    leversSub: 'Each button changes one number by one notch and shows the result it would give. The small bar shows which ones matter most.',
     leverTry: (label, step, result) => `${label} ${step}: the result would become ${result}`,
     slider: (label) => `${label} (slider)`,
     highest: (v) => `Highest: ${v}`,
     newTab: '(new tab)',
-    nTools: (n) => `${n} machine${s(n)}`,
-    nItems: (n) => `${n} tool${s(n)}`,
+    nTools: (n) => `${n} tool${s(n)}`,
+    nItems: (n) => `${n} site${s(n)}`,
     nWords: (n) => `${n} word${s(n)}`,
     fineprint: 'These tools are for understanding and practising. They are not financial, legal or tax advice.',
 
     home: {
-      insert: 'Free tools, no account',
-      recent: 'Your latest machines',
+      headline: 'Do the maths before you leap.',
+      allTools: (n) => `See all ${n} tools`,
+      note: 'Free, no account. Your numbers stay in your browser.',
+      demo: 'Try it with your numbers',
+      demoOpen: 'Open the full tool',
+      recent: 'Your recent tools',
       recentSub: 'Pick up where you left off. They stay in this browser.',
-      stats: { tools: 'machines', players: 'players', arsenal: 'real tools', words: 'words explained' },
-      tagline: 'The arcade for founders and investors.',
-      lead: 'Cost a project, set a price, prepare a funding round, judge an investment, buy a home, sell online, keep a budget: machines that do the maths and show it, and today\'s real tools.',
-      choose: 'Choose your player',
-      tools: 'The machines',
-      toolsSub: (n) => `${n} machines, each answering one question. The starting numbers are examples: replace them with yours.`,
+      lead: (n) => `${n} free tools to cost a project, set a price, prepare a funding round, judge an investment, buy a home, sell online or keep a budget. Each one shows its maths, line by line.`,
+      choose: 'Choose your profile',
+      toolsSub: (n) => `${n} tools, each answering one question. The starting numbers are examples: replace them with yours.`,
       arsenal: 'The arsenal',
-      arsenalSub: (n, date) => `Today's real tools, sorted by need: ${n} tools and public services, checked on ${date}. No sponsored links.`,
+      arsenalSub: (n, date) => `Today's real apps and services, sorted by need: ${n} sites, checked on ${date}. No sponsored links.`,
       arsenalOpen: 'Open the arsenal',
       guides: 'The guides',
-      guidesSub: 'Made-up characters. On every machine, one of them gives you a tip.',
+      guidesSub: 'Made-up characters. On every tool, one of them gives you a tip.',
       path: 'The journey',
       pathSub: 'From the idea to series A, in six levels: what to do, and what an investor looks at, at each step.',
       card: 'Your pitch card',
@@ -110,22 +112,21 @@ export default {
       labText: 'An assistant that answers a shop\'s customers on its own: opening hours, prices, bookings. First version, with a demo to try. The page is in French.',
       labOpen: 'See Répondeur IA',
       studio: 'Start-up Studio',
-      studioSub: 'Create your start-up and run it in one place.',
       studioText: 'Seven modules that work together: identity, team and equity, a 24-month financial plan, roadmap, tracking of real numbers, and a file ready to share. The dashboard tells you what to do next.',
       studioOpen: 'Open the studio',
     },
 
     tools: {
-      all: 'All machines',
-      allSub: (n) => `${n} machines, for seven players.`,
-      search: 'Find a machine: mortgage, VAT, stock, debt…',
-      noMatch: 'No machine matches. Try another word.',
-      crumb: 'Machines',
+      all: 'All tools',
+      allSub: (n) => `${n} tools, for seven profiles.`,
+      search: 'Find a tool: mortgage, VAT, stock, debt…',
+      noMatch: 'No tool matches. Try another word.',
+      crumb: 'Tools',
       howRead: 'How to read the result',
       howUse: 'How to use it',
       inArsenal: 'In the arsenal',
-      inArsenalSub: 'The real tools that go with this machine.',
-      others: 'This player\'s other machines',
+      inArsenalSub: 'The apps and services that go with this tool.',
+      others: 'Other tools for the same profile',
     },
 
     check: {
@@ -181,7 +182,7 @@ export default {
       level: 'Level',
       founder: 'Founder side',
       investor: 'Investor side',
-      tools: 'Useful machines:',
+      tools: 'Useful tools:',
       arsenal: 'In the arsenal:',
     },
 
@@ -215,10 +216,10 @@ export default {
 
     arsenal: {
       title: 'The arsenal',
-      sub: (n, k) => `Today's real tools, sorted by need: ${n} tools and public services, on ${k} shelves.`,
+      sub: (n, k) => `Today's real apps and services, sorted by need: ${n} sites, in ${k} categories.`,
       notice: (date) => `Selection checked on ${date}. No sponsored links: marketbuss earns nothing. The order is not a ranking. Offers change fast: read the terms on the official site before you commit.`,
-      search: 'Search for a tool or a need',
-      empty: 'No tool matches. Try another word, or remove the filter.',
+      search: 'Search for a site or a need',
+      empty: 'No site matches. Try another word, or remove the filter.',
       fineprint: '"No subscription": a fee is taken on each payment. "Free, limited": the free plan exists but fills up fast. The names quoted belong to their owners; marketbuss has no connection with them.',
     },
 
@@ -227,7 +228,7 @@ export default {
       sub: (n) => `${n} words of business and money, explained simply.`,
       search: 'Search for a word',
       empty: 'No word matches. Try another term, or remove the filter.',
-      useful: (name) => `Useful for the ${name} player`,
+      useful: (name) => `Useful for the ${name} profile`,
     },
 
     about: {
@@ -235,8 +236,8 @@ export default {
       sub: 'What marketbuss is, and what it is not.',
       sections: (n) => [
         ['What you will find here', [
-          `${n.tools} machines to cost a project, set a price, assess an investment, understand a savings product, buy or rent a home, sell online or keep a budget. Each one shows its maths, step by step.`,
-          `An arsenal of ${n.arsenal} real tools and public services, a six-level journey, a glossary of ${n.words} words and a pitch card to share.`,
+          `${n.tools} tools to cost a project, set a price, assess an investment, understand a savings product, buy or rent a home, sell online or keep a budget. Each one shows its maths, step by step.`,
+          `An arsenal of ${n.arsenal} real apps and public services, a six-level journey, a glossary of ${n.words} words and a pitch card to share.`,
           'Everything is free and needs no account.',
           'Everything is calculated in your browser: your numbers are not sent anywhere. Ticked lists and drafts stay in this browser.',
         ]],
@@ -246,19 +247,21 @@ export default {
           'Not a directory: marketbuss does not connect people and does not check the pitch cards visitors make.',
         ]],
         ['How the arsenal is chosen', [
-          `Every tool was checked on ${n.date}: it is active, the address is its official site, and the free plan mentioned exists.`,
+          `Every site was checked on ${n.date}: it is active, the address is the official one, and the free plan mentioned exists.`,
           'The selection draws on recent comparisons and on the official sites. It is not a ranking, and it is not complete.',
           'No sponsored or affiliate links: marketbuss earns nothing. No broker or seller of investment products is listed.',
           'Offers and prices change fast: the official site is the reference.',
           'The selection leans towards Belgium and France: some public services are in French or Dutch only.',
         ]],
         ['The characters and the examples', [
-          'The players and the guides (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) are made-up characters. Their tips are general pointers.',
-          'The values shown when a machine opens are examples invented to show the calculation. They describe no real company.',
+          'The profile characters and the guides (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) are made up. Their tips are general pointers.',
+          'The values shown when a tool opens are examples invented to show the calculation. They describe no real company.',
         ]],
         ['How it is made', [
-          'The site is a static page with no dependencies. The drawings are pixel art, drawn by hand in the code.',
-          'The Press Start 2P and Jersey 15 fonts are under the free OFL licence and hosted with the site.',
+          'The site is a static page. The styling is written with Tailwind CSS.',
+          'The icons come from Lucide (ISC licence). The characters and the logo are drawn in the code.',
+          'The Recursive font is under the open OFL licence and hosted with the site.',
+          'The light or dark theme follows your device; the button at the top of the page changes it.',
           'The site exists in French, English and Dutch. The language you choose stays saved in this browser.',
         ]],
       ],
@@ -309,7 +312,7 @@ export default {
         sector: ['Sector', 'E.g.: food, software, fashion…'],
         stage: ['Stage', ''],
       },
-      pitchHelp: 'Need help with the sentence? The "Lightning pitch" machine builds it with you.',
+      pitchHelp: 'Need help with the sentence? The "Lightning pitch" tool builds it with you.',
       founderName: 'Name',
       founderRole: 'Role',
       share: 'Share of equity (%)',
@@ -321,7 +324,7 @@ export default {
       freeName: 'Not allocated yet',
       capOk: (free, F) => (free > 0 ? `All good. ${F.pct(free)} of the equity isn't allocated to anyone yet.` : 'All the equity is allocated.'),
       capOver: (over, F) => `The shares go over 100% by ${F.pct(over)}: lower a share or the pool.`,
-      capTip: 'Plan vesting for each co-founder: the "Hourglass" machine shows how.',
+      capTip: 'Plan vesting for each co-founder: the "Hourglass" tool shows how.',
       planFields: {
         cash: ['Cash at the start', '€'],
         price: ['Price per customer', '€ a month'],
@@ -364,7 +367,7 @@ export default {
       move: { todo: 'Back to to-do', doing: 'Start', done: 'Finish' },
       taskPlaceholder: 'New step',
       addTask: 'Add',
-      openTool: 'Open the machine',
+      openTool: 'Open the tool',
       progress: (a, b) => `${a} of ${b} steps done`,
       tasks: [
         'Ask 10 possible customers about their problem',
@@ -434,7 +437,7 @@ export default {
       print: 'Print',
       backupNote: 'Everything is saved in this browser only. Download a backup to switch device or to lose nothing.',
     },
-    missing: { title: 'Page not found', sub: 'This page does not exist, or the link is incomplete.', home: 'Back to the home page', tools: 'See the machines' },
+    missing: { title: 'Page not found', sub: 'This page does not exist, or the link is incomplete.', home: 'Back to the home page', tools: 'See the tools' },
   },
 
   roles: {
@@ -460,7 +463,7 @@ export default {
     shopkeeper: { name: 'Kai', job: 'the online seller', line: 'Counts every parcel, every return and every euro of ads before celebrating a sale.' },
   },
 
-  /* A machine: name, question, intro, fields {key: [label, unit, help]}, how to read, limits, the guide's tip. */
+  /* A tool: name, question, intro, fields {key: [label, unit, help]}, how to read, limits, the guide's tip. */
   tools: {
     runway: {
       name: 'Months of survival',
@@ -496,7 +499,7 @@ export default {
         'A common rule of thumb: enough to last 18 to 24 months, because a round takes time and you need progress to show before the next one.',
         'Share given up = amount raised ÷ (valuation before the round + amount raised).',
       ],
-      limits: 'The calculation assumes constant spending and revenue. If your revenue grows, the real need is lower: compare with the "Months of survival" machine.',
+      limits: 'The calculation assumes constant spending and revenue. If your revenue grows, the real need is lower: compare with the "Months of survival" tool.',
       tip: 'Raise to reach a precise milestone, not to "hang on". An investor wants to know what the money will prove.',
     },
     dilution: {
@@ -588,7 +591,7 @@ export default {
         'Each month some of your customers leave: you have to replace them as well as grow.',
         'Lowering the churn rate cuts the number of customers to find, every month.',
       ],
-      limits: 'The calculation assumes a single price and a constant churn rate. It does not tell you whether your market holds enough customers: see the "World map" machine.',
+      limits: 'The calculation assumes a single price and a constant churn rate. It does not tell you whether your market holds enough customers: see the "World map" tool.',
       tip: 'Before chasing new customers, ask yourself why the old ones leave.',
     },
     croissance: {
@@ -772,7 +775,7 @@ export default {
       tip: 'The rules change with the country and your status. An hour with an accountant at the start saves a lot of trouble.',
     },
     ticket: {
-      name: 'Coin return',
+      name: 'Return on stake',
       question: 'What is my stake worth if the company is sold?',
       lead: 'An amount invested, a valuation at entry, one at exit: the tool gives the multiple and the return per year.',
       fields: {
@@ -934,7 +937,7 @@ export default {
         years: ['Duration', 'years'],
       },
       read: [
-        'In yellow, what you paid in. In green, what interest added.',
+        'In blue, what you paid in. In green, what interest added.',
         'The longer the duration, the faster the green part grows: that is the snowball effect.',
       ],
       limits: 'The return is assumed constant. In real life it varies from year to year and can be negative; fees, taxes and inflation are not counted.',
@@ -1085,7 +1088,7 @@ export default {
       read: [
         "Gross yield = a year's rent ÷ price. It's the figure in the listings, but it leaves out costs and expenses.",
         'Net yield = (rent collected − expenses) ÷ (price + costs). That is the one to compare with an investment.',
-        'The figure is before tax and without a loan: for the loan, use the "Cash flow" machine.',
+        'The figure is before tax and without a loan: for the loan, use the "Cash flow" tool.',
       ],
       limits: 'Before tax, without a loan and without resale. Rents, expenses and empty months change from year to year.',
       tip: 'A very high gross yield often hides a difficult area or big works. Go and see it, twice.',
@@ -1098,7 +1101,7 @@ export default {
         rent: ['Rent', '€ a month'],
         vacancy: ['Share of the year without a tenant', '%', 'About 5% = just over two weeks a year.'],
         charges: ['Expenses you pay', '€ a month', 'Property tax, building charges, insurance, management, per month.'],
-        loan: ['Mortgage payment', '€ a month', 'The "Keys in hand" machine works it out.'],
+        loan: ['Mortgage payment', '€ a month', 'The "Keys in hand" tool works it out.'],
         works: ['Reserve for works', '% of rent'],
       },
       read: [
@@ -1125,7 +1128,7 @@ export default {
         horizon: ['Compare after', 'years'],
       },
       read: [
-        'Each column is the wealth gap between the buyer and the renter. Orange: buying is ahead. Cyan: renting is ahead.',
+        'Each column is the wealth gap between the buyer and the renter. Above the line: buying is ahead. Below it: renting is ahead.',
         'The renter invests the deposit, then each month whatever they spend less than the buyer. If renting costs more, the buyer invests the difference.',
         'The longer you stay, the more likely buying wins: the buying costs are only paid once.',
       ],
@@ -1531,7 +1534,7 @@ export default {
   arsenal: {
     access: { free: 'Free plan', limited: 'Free, limited', trial: 'Free trial', paid: 'Paid', fee: 'No subscription', open: 'Open source', public: 'Public service' },
     places: { BE: 'Belgium', FR: 'France', BXL: 'Brussels', WAL: 'Wallonia', VLA: 'Flanders' },
-    /* A shelf: name, need, descriptions of the tools (in the order of arsenal.js), the guide's tip. */
+    /* A category: name, need, descriptions of the tools (in the order of arsenal.js), the guide's tip. */
     cats: {
       construire: { name: 'Build an app without coding', need: 'You describe what you want, an AI builds the application.',
         tools: [
@@ -1882,7 +1885,8 @@ export default {
       return [
         ['Valuation with the discount', `${F.money(v.pre)} × (1 − ${F.pct(v.discount)}) = ${F.money(discounted)}`],
         v.cap > 0 ? ['Valuation used: the lower one', `min(${F.money(v.cap)}; ${F.money(discounted)}) = ${F.money(r.effective)}`] : null,
-        ['The holder buys as if', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} of the existing equity`],
+        // Sans valorisation au-dessus de zéro, la division ne veut rien dire : la ligne disparaît.
+        r.effective > 0 ? ['The holder buys as if', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} of the existing equity`] : null,
         ['Their stake after the round', F.pct(r.stake, 2)],
       ];
     },
@@ -2082,7 +2086,7 @@ export default {
     },
   },
 
-  /* The results of the machines. v = what you typed, r = the calculation, F = the formats. */
+  /* The results of the tools. v = what you typed, r = the calculation, F = the formats. */
   res: {
     runway: {
       invalid: 'Check your numbers: cash, spending and revenue cannot be negative.',
@@ -2102,8 +2106,8 @@ export default {
         if (r.breakEven) t += ` Your revenue would only cover your spending in the ${F.ord(r.breakEven)} month: too late, unless you raise money or cut spending.`;
         return t;
       },
-      hearts: (n) => `${n} heart${s(n)} out of 12`,
-      heartsNote: 'One heart per month, twelve at most.',
+      months: (n) => `${n} month${s(n)} out of 12`,
+      monthsNote: 'One box per month, twelve at most.',
       facts: (v, r, F) => [
         ['You lose each month, today', r.netBurn > 0 ? F.money(r.netBurn) : 'nothing'],
         ['Revenue covers spending', r.breakEven === 1 ? (v.growth < 0 ? 'today, but shrinking' : 'already today') : r.breakEven ? `in the ${F.ord(r.breakEven)} month` : `not within ${r.horizon} months`],

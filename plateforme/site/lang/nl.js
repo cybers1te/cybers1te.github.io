@@ -41,18 +41,19 @@ export default {
 
   ui: {
     title: 'marketbuss — tools voor ondernemers en investeerders',
-    description: 'marketbuss: gratis arcademachines om te ondernemen, te investeren, te sparen, een woning te kopen, online te verkopen en je budget te beheren, en de echte tools van het moment. Zonder account.',
+    description: 'marketbuss: gratis tools om te ondernemen, te investeren, te sparen, een woning te kopen, online te verkopen en je budget te beheren. Elke tool toont zijn berekening, regel voor regel. Zonder account.',
     skip: 'Naar de inhoud',
     loading: 'Laden…',
     language: 'Taal',
-    nav: { outils: 'Machines', startup: 'Start-up', arsenal: 'Arsenaal', parcours: 'Traject', pitch: 'Pitch', lexique: 'Woordenlijst', 'a-propos': 'Over' },
+    nav: { outils: 'Tools', startup: 'Start-up', arsenal: 'Arsenaal', parcours: 'Traject', pitch: 'Pitch', lexique: 'Woordenlijst', 'a-propos': 'Over' },
     foot: {
       blurb: "Gratis tools om te ondernemen, te investeren, te sparen, een woning te kopen, online te verkopen en je budget bij te houden, en een studio om je start-up te sturen. Zonder account: alles wordt in je browser berekend.",
-      links: { outils: 'Alle machines', startup: 'Start-up Studio', arsenal: 'Het arsenaal', parcours: 'Het traject', pitch: 'Pitchkaart', lexique: 'De woordenlijst', 'a-propos': 'Over' },
+      links: { outils: 'Alle tools', startup: 'Start-up Studio', arsenal: 'Het arsenaal', parcours: 'Het traject', pitch: 'Pitchkaart', lexique: 'De woordenlijst', 'a-propos': 'Over' },
       note: 'De tools dienen om te begrijpen en te oefenen. Het is geen financieel, juridisch of fiscaal advies. Investeren is riskant: je kunt je hele inleg verliezen.',
     },
     all: 'Alle',
-    player: 'Speler',
+    profile: 'Profiel',
+    theme: 'Licht of donker thema',
     result: 'Resultaat',
     yourNumbers: 'Jouw cijfers',
     reset: 'Voorbeeld terugzetten',
@@ -66,31 +67,32 @@ export default {
     steps: 'De berekening, stap voor stap',
     stepsSub: 'Met jouw cijfers, afgerond.',
     levers: 'Wat het resultaat doet bewegen',
-    leversSub: 'Elke knop verandert één cijfer met één stap en toont het resultaat dat het zou geven. De gele balk toont welke het zwaarst wegen.',
+    leversSub: 'Elke knop verandert één cijfer met één stap en toont het resultaat dat het zou geven. Het balkje toont welke het zwaarst wegen.',
     leverTry: (label, step, result) => `${label} ${step}: het resultaat zou ${result} worden`,
     slider: (label) => `${label} (schuifregelaar)`,
     highest: (v) => `Hoogste: ${v}`,
     newTab: '(nieuw tabblad)',
-    nTools: (n) => `${n} machine${n === 1 ? '' : 's'}`,
-    nItems: (n) => `${n} tool${n === 1 ? '' : 's'}`,
+    nTools: (n) => `${n} tool${n === 1 ? '' : 's'}`,
+    nItems: (n) => `${n} site${n === 1 ? '' : 's'}`,
     nWords: (n) => `${n} ${n === 1 ? 'woord' : 'woorden'}`,
     fineprint: 'Deze tools dienen om te begrijpen en te oefenen. Het is geen financieel, juridisch of fiscaal advies.',
 
     home: {
-      insert: 'Gratis tools, zonder account',
-      recent: 'Je laatste machines',
+      headline: 'Reken het uit voor je begint.',
+      allTools: (n) => `Bekijk de ${n} tools`,
+      note: 'Gratis en zonder account. Je cijfers blijven in je browser.',
+      demo: 'Probeer het met jouw cijfers',
+      demoOpen: 'Open de volledige tool',
+      recent: 'Je recente tools',
       recentSub: 'Ga verder waar je was. Ze blijven in deze browser.',
-      stats: { tools: 'machines', players: 'spelers', arsenal: 'echte tools', words: 'uitgelegde woorden' },
-      tagline: 'De speelhal voor ondernemers en investeerders.',
-      lead: 'Een project doorrekenen, een prijs bepalen, een kapitaalronde voorbereiden, een belegging beoordelen, een woning kopen, online verkopen, je budget bijhouden: machines die rekenen en de berekening tonen, en de echte tools van het moment.',
-      choose: 'Kies je speler',
-      tools: 'De machines',
-      toolsSub: (n) => `${n} machines die elk één vraag beantwoorden. De startcijfers zijn voorbeelden: vervang ze door de jouwe.`,
+      lead: (n) => `${n} gratis tools om een project door te rekenen, een prijs te bepalen, een kapitaalronde voor te bereiden, een belegging te beoordelen, een woning te kopen, online te verkopen of je budget bij te houden. Elke tool toont zijn berekening, regel voor regel.`,
+      choose: 'Kies je profiel',
+      toolsSub: (n) => `${n} tools die elk één vraag beantwoorden. De startcijfers zijn voorbeelden: vervang ze door de jouwe.`,
       arsenal: 'Het arsenaal',
-      arsenalSub: (n, date) => `De echte tools van het moment, per behoefte: ${n} tools en overheidsdiensten, gecontroleerd op ${date}. Geen gesponsorde links.`,
+      arsenalSub: (n, date) => `De echte software en diensten van het moment, geordend per behoefte: ${n} sites, gecontroleerd op ${date}. Geen gesponsorde links.`,
       arsenalOpen: 'Open het arsenaal',
       guides: 'De gidsen',
-      guidesSub: 'Verzonnen personages. Op elke machine geeft een van hen je een tip.',
+      guidesSub: 'Verzonnen personages. Bij elke tool geeft een van hen je een tip.',
       path: 'Het traject',
       pathSub: 'Van idee tot serie A, in zes niveaus: wat je moet doen, en waar een investeerder bij elke stap naar kijkt.',
       card: 'Jouw pitchkaart',
@@ -105,22 +107,21 @@ export default {
       labText: 'Een assistent die zelf de vragen van klanten van een zaak beantwoordt: openingsuren, prijzen, reservaties. Eerste versie, met een demo om uit te proberen. De pagina is in het Frans.',
       labOpen: 'Bekijk Répondeur IA',
       studio: 'Start-up Studio',
-      studioSub: 'Maak je start-up aan en stuur ze op één plek.',
       studioText: 'Zeven modules die samenwerken: identiteit, team en kapitaal, een financieel plan over 24 maanden, stappenplan, opvolging van echte cijfers, en een dossier klaar om te delen. Het dashboard zegt je wat je daarna doet.',
       studioOpen: 'Open de studio',
     },
 
     tools: {
-      all: 'Alle machines',
-      allSub: (n) => `${n} machines, voor zeven spelers.`,
-      search: 'Zoek een machine: lening, btw, voorraad, schuld…',
-      noMatch: 'Geen enkele machine past. Probeer een ander woord.',
-      crumb: 'Machines',
+      all: 'Alle tools',
+      allSub: (n) => `${n} tools, voor zeven profielen.`,
+      search: 'Zoek een tool: lening, btw, voorraad, schuld…',
+      noMatch: 'Geen tool gevonden. Probeer een ander woord.',
+      crumb: 'Tools',
       howRead: 'Hoe lees je het resultaat',
       howUse: 'Hoe gebruik je het',
       inArsenal: 'In het arsenaal',
-      inArsenalSub: 'De echte tools die bij deze machine horen.',
-      others: 'De andere machines van deze speler',
+      inArsenalSub: 'De software en diensten die bij deze tool horen.',
+      others: 'Andere tools voor hetzelfde profiel',
     },
 
     check: {
@@ -176,7 +177,7 @@ export default {
       level: 'Niveau',
       founder: 'Kant van de ondernemer',
       investor: 'Kant van de investeerder',
-      tools: 'Nuttige machines:',
+      tools: 'Nuttige tools:',
       arsenal: 'In het arsenaal:',
     },
 
@@ -210,10 +211,10 @@ export default {
 
     arsenal: {
       title: 'Het arsenaal',
-      sub: (n, k) => `De echte tools van het moment, per behoefte: ${n} tools en overheidsdiensten, op ${k} schappen.`,
+      sub: (n, k) => `De echte software en diensten van het moment, geordend per behoefte: ${n} sites, in ${k} categorieën.`,
       notice: (date) => `Selectie gecontroleerd op ${date}. Geen gesponsorde links: marketbuss verdient er niets aan. De volgorde is geen rangschikking. Aanbiedingen veranderen snel: lees de voorwaarden op de officiële site voor je je vastlegt.`,
-      search: 'Zoek een tool of een behoefte',
-      empty: 'Geen enkele tool past. Probeer een ander woord, of haal de filter weg.',
+      search: 'Zoek een site of een behoefte',
+      empty: 'Geen site gevonden. Probeer een ander woord, of haal de filter weg.',
       fineprint: '"Zonder abonnement": er gaat een commissie af van elke betaling. "Gratis, beperkt": het gratis aanbod bestaat maar zit snel vol. De genoemde namen zijn van hun eigenaars; marketbuss heeft er geen band mee.',
     },
 
@@ -222,7 +223,7 @@ export default {
       sub: (n) => `${n} woorden over ondernemen en geld, eenvoudig uitgelegd.`,
       search: 'Zoek een woord',
       empty: 'Geen enkel woord past. Probeer een andere term, of haal de filter weg.',
-      useful: (name) => `Nuttig voor de speler ${name}`,
+      useful: (name) => `Nuttig voor het profiel ${name}`,
     },
 
     about: {
@@ -230,8 +231,8 @@ export default {
       sub: 'Wat marketbuss is, en wat het niet is.',
       sections: (n) => [
         ['Wat je hier vindt', [
-          `${n.tools} machines om een project door te rekenen, een prijs te bepalen, een investering te beoordelen, een belegging te begrijpen, een woning te kopen of te huren, online te verkopen of je budget te beheren. Elke machine toont haar berekening, stap voor stap.`,
-          `Een arsenaal van ${n.arsenal} echte tools en overheidsdiensten, een traject in zes niveaus, een woordenlijst van ${n.words} woorden en een pitchkaart om te delen.`,
+          `${n.tools} tools om een project door te rekenen, een prijs te bepalen, een investering te beoordelen, een belegging te begrijpen, een woning te kopen of te huren, online te verkopen of je budget te beheren. Elke tool toont zijn berekening, stap voor stap.`,
+          `Een arsenaal van ${n.arsenal} echte software en overheidsdiensten, een traject in zes niveaus, een woordenlijst van ${n.words} woorden en een pitchkaart om te delen.`,
           'Alles is gratis en zonder account.',
           'Alles wordt in je browser berekend: je cijfers worden nergens naartoe gestuurd. Afgevinkte lijsten en kladversies blijven in deze browser.',
         ]],
@@ -241,19 +242,21 @@ export default {
           'Geen gids met contacten: marketbuss brengt niemand met elkaar in contact en controleert de pitchkaarten van bezoekers niet.',
         ]],
         ['Hoe het arsenaal gekozen is', [
-          `Elke tool is gecontroleerd op ${n.date}: hij is actief, het adres is dat van de officiële site, en het vermelde gratis aanbod bestaat.`,
+          `Elke site is gecontroleerd op ${n.date}: ze is actief, het adres is het officiële adres, en het vermelde gratis aanbod bestaat.`,
           'De selectie steunt op recente vergelijkingen en op de officiële sites. Het is geen rangschikking, en ze is niet volledig.',
           'Geen gesponsorde of affiliate links: marketbuss verdient er niets aan. Er staat geen enkele broker of verkoper van beleggingen in.',
           'Aanbiedingen en prijzen veranderen snel: de officiële site is de referentie.',
           'De selectie is gericht op België en Frankrijk: sommige overheidsdiensten bestaan alleen in het Frans.',
         ]],
         ['De personages en de voorbeelden', [
-          'De spelers en de gidsen (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) zijn verzonnen personages. Hun tips zijn algemene richtlijnen.',
-          'De waarden die je ziet als een machine opent, zijn verzonnen voorbeelden om de berekening te tonen. Ze beschrijven geen echt bedrijf.',
+          'De personages van de profielen en de gidsen (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) zijn verzonnen. Hun tips zijn algemene richtlijnen.',
+          'De waarden die je ziet als je een tool opent, zijn verzonnen voorbeelden om de berekening te tonen. Ze beschrijven geen echt bedrijf.',
         ]],
         ['Hoe het gemaakt is', [
-          'De site is een statische pagina zonder afhankelijkheden. De tekeningen zijn pixelart, met de hand in de code getekend.',
-          'De lettertypes Press Start 2P en Jersey 15 vallen onder de vrije OFL-licentie en staan bij de site zelf.',
+          'De site is een statische pagina. De opmaak is geschreven met Tailwind CSS.',
+          'De iconen komen van Lucide (ISC-licentie). De personages en het logo zijn in de code getekend.',
+          'Het lettertype Recursive valt onder de vrije OFL-licentie en wordt samen met de site gehost.',
+          'Het lichte of donkere thema volgt je toestel; met de knop bovenaan de pagina verander je het.',
           'De site bestaat in het Frans, het Engels en het Nederlands. De gekozen taal blijft in deze browser bewaard.',
         ]],
       ],
@@ -304,7 +307,7 @@ export default {
         sector: ['Sector', 'Bv.: voeding, software, mode…'],
         stage: ['Fase', ''],
       },
-      pitchHelp: 'Hulp nodig bij de zin? De kast "Bliksempitch" bouwt hem samen met jou.',
+      pitchHelp: 'Hulp nodig bij de zin? De tool "Bliksempitch" bouwt hem samen met jou.',
       founderName: 'Naam',
       founderRole: 'Rol',
       share: 'Deel van het kapitaal (%)',
@@ -316,7 +319,7 @@ export default {
       freeName: 'Nog niet toegekend',
       capOk: (free, F) => (free > 0 ? `Alles in orde. ${F.pct(free)} van het kapitaal is nog aan niemand toegekend.` : 'Het hele kapitaal is toegekend.'),
       capOver: (over, F) => `De delen gaan ${F.pct(over)} boven 100%: verlaag een deel of de pool.`,
-      capTip: 'Voorzie vesting voor elke vennoot: de kast "Zandloper" toont hoe.',
+      capTip: 'Voorzie vesting voor elke vennoot: de tool "Zandloper" toont hoe.',
       planFields: {
         cash: ['Kasgeld bij de start', '€'],
         price: ['Prijs per klant', '€ per maand'],
@@ -359,7 +362,7 @@ export default {
       move: { todo: 'Terug naar te doen', doing: 'Beginnen', done: 'Afronden' },
       taskPlaceholder: 'Nieuwe stap',
       addTask: 'Toevoegen',
-      openTool: 'Open de machine',
+      openTool: 'Open de tool',
       progress: (a, b) => `${a} van de ${b} stappen klaar`,
       tasks: [
         'Tien mogelijke klanten bevragen over hun probleem',
@@ -429,7 +432,7 @@ export default {
       print: 'Afdrukken',
       backupNote: 'Alles wordt alleen in deze browser bewaard. Download een back-up om van toestel te wisselen of niets te verliezen.',
     },
-    missing: { title: 'Pagina niet gevonden', sub: 'Deze pagina bestaat niet, of de link is onvolledig.', home: 'Terug naar de startpagina', tools: 'Bekijk de machines' },
+    missing: { title: 'Pagina niet gevonden', sub: 'Deze pagina bestaat niet, of de link is onvolledig.', home: 'Terug naar de startpagina', tools: 'Bekijk de tools' },
   },
 
   roles: {
@@ -455,7 +458,7 @@ export default {
     shopkeeper: { name: 'Kai', job: 'de webwinkelier', line: 'Telt elk pakje, elke retour en elke euro advertentie voor hij een verkoop viert.' },
   },
 
-  /* Een machine: naam, vraag, inleiding, velden {sleutel: [label, eenheid, hulp]}, uitleg, grenzen, tip van de gids. */
+  /* Een tool: naam, vraag, inleiding, velden {sleutel: [label, eenheid, hulp]}, uitleg, grenzen, tip van de gids. */
   tools: {
     runway: {
       name: 'Maanden overleven',
@@ -491,7 +494,7 @@ export default {
         'Een vaak genoemde vuistregel: genoeg voor 18 tot 24 maanden, want een ronde kost tijd en je moet vooruitgang kunnen tonen voor de volgende.',
         'Afgestaan deel = opgehaald bedrag ÷ (waardering vóór de ronde + opgehaald bedrag).',
       ],
-      limits: 'De berekening gaat uit van constante uitgaven en inkomsten. Groeien je inkomsten, dan is de echte behoefte lager: vergelijk met de machine "Maanden overleven".',
+      limits: 'De berekening gaat uit van constante uitgaven en inkomsten. Groeien je inkomsten, dan is de echte behoefte lager: vergelijk met de tool "Maanden overleven".',
       tip: 'Haal geld op om een precieze mijlpaal te halen, niet om "vol te houden". Een investeerder wil weten wat het geld gaat bewijzen.',
     },
     dilution: {
@@ -583,7 +586,7 @@ export default {
         'Elke maand vertrekt een deel van je klanten: je moet hen vervangen én groeien.',
         'Een lager klantverloop verkleint het aantal klanten dat je moet vinden, elke maand.',
       ],
-      limits: 'De berekening gaat uit van één prijs en een constant klantverloop. Ze zegt niet of je markt genoeg klanten telt: zie de machine "Wereldkaart".',
+      limits: 'De berekening gaat uit van één prijs en een constant klantverloop. Ze zegt niet of je markt genoeg klanten telt: zie de tool "Wereldkaart".',
       tip: 'Vraag je, voor je nieuwe klanten gaat zoeken, af waarom de oude vertrekken.',
     },
     croissance: {
@@ -767,7 +770,7 @@ export default {
       tip: 'De regels verschillen per land en per statuut. Een uur met een boekhouder bij de start bespaart veel zorgen.',
     },
     ticket: {
-      name: 'Muntje terug',
+      name: 'Rendement op inleg',
       question: 'Wat is mijn inleg waard als het bedrijf verkocht wordt?',
       lead: 'Een geïnvesteerd bedrag, een waardering bij instap, een bij exit: de tool geeft het veelvoud en het rendement per jaar.',
       fields: {
@@ -929,7 +932,7 @@ export default {
         years: ['Duur', 'jaar'],
       },
       read: [
-        'In het geel wat je gestort hebt. In het groen wat de rente heeft toegevoegd.',
+        'In het blauw wat je gestort hebt. In het groen wat de rente heeft toegevoegd.',
         'Hoe langer de duur, hoe sneller het groene deel groeit: dat is het sneeuwbaleffect.',
       ],
       limits: 'Het rendement wordt constant verondersteld. In het echt schommelt het van jaar tot jaar en kan het negatief zijn; kosten, belastingen en inflatie zijn niet meegeteld.',
@@ -1080,7 +1083,7 @@ export default {
       read: [
         'Brutorendement = huur van een jaar ÷ prijs. Het is het cijfer uit de advertenties, maar het vergeet de kosten en de uitgaven.',
         'Nettorendement = (ontvangen huur − uitgaven) ÷ (prijs + kosten). Dat cijfer vergelijk je met een belegging.',
-        'Het cijfer is voor belastingen en zonder lening: voor de lening gebruik je de kast "Cashflow".',
+        'Het cijfer is vóór belastingen en zonder lening: voor de lening gebruik je de tool "Cashflow".',
       ],
       limits: 'Voor belastingen, zonder lening en zonder doorverkoop. Huur, uitgaven en leegstand veranderen van jaar tot jaar.',
       tip: 'Een heel hoog brutorendement verbergt vaak een moeilijke buurt of grote werken. Ga het bekijken, twee keer.',
@@ -1093,7 +1096,7 @@ export default {
         rent: ['Huur', '€ per maand'],
         vacancy: ['Deel van het jaar zonder huurder', '%', 'Ongeveer 5% = iets meer dan twee weken per jaar.'],
         charges: ['Uitgaven voor jou', '€ per maand', 'Onroerende voorheffing, mede-eigendom, verzekering, beheer, per maand.'],
-        loan: ['Maandlast van de lening', '€ per maand', 'De kast "Sleutel op zak" berekent ze.'],
+        loan: ['Maandlast van de lening', '€ per maand', 'De tool "Sleutel op zak" berekent die.'],
         works: ['Reserve voor werken', '% van de huur'],
       },
       read: [
@@ -1120,7 +1123,7 @@ export default {
         horizon: ['Vergelijken na', 'jaar'],
       },
       read: [
-        'Elke kolom is het verschil in vermogen tussen de koper en de huurder. Oranje: kopen staat voor. Cyaan: huren staat voor.',
+        'Elke kolom is het verschil in vermogen tussen de koper en de huurder. Boven de lijn: kopen staat voor. Eronder: huren staat voor.',
         'De huurder belegt de eigen inbreng, en daarna elke maand wat hij minder uitgeeft dan de koper. Kost huren meer, dan belegt de koper het verschil.',
         'Hoe langer je blijft, hoe groter de kans dat kopen wint: de aankoopkosten betaal je maar één keer.',
       ],
@@ -1526,7 +1529,7 @@ export default {
   arsenal: {
     access: { free: 'Gratis aanbod', limited: 'Gratis, beperkt', trial: 'Gratis proefperiode', paid: 'Betalend', fee: 'Zonder abonnement', open: 'Open source', public: 'Overheidsdienst' },
     places: { BE: 'België', FR: 'Frankrijk', BXL: 'Brussel', WAL: 'Wallonië', VLA: 'Vlaanderen' },
-    /* Een schap: naam, behoefte, beschrijvingen van de tools (in de volgorde van arsenal.js), tip van de gids. */
+    /* Een categorie: naam, behoefte, beschrijvingen van de tools (in de volgorde van arsenal.js), tip van de gids. */
     cats: {
       construire: { name: 'Een app bouwen zonder code', need: 'Jij beschrijft wat je wilt, een AI bouwt de applicatie.',
         tools: [
@@ -1877,7 +1880,8 @@ export default {
       return [
         ['Waardering met de korting', `${F.money(v.pre)} × (1 − ${F.pct(v.discount)}) = ${F.money(discounted)}`],
         v.cap > 0 ? ['Gebruikte waardering: de laagste', `min(${F.money(v.cap)}; ${F.money(discounted)}) = ${F.money(r.effective)}`] : null,
-        ['De houder koopt alsof', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} van het bestaande kapitaal`],
+        // Sans valorisation au-dessus de zéro, la division ne veut rien dire : la ligne disparaît.
+        r.effective > 0 ? ['De houder koopt alsof', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} van het bestaande kapitaal`] : null,
         ['Zijn deel na de ronde', F.pct(r.stake, 2)],
       ];
     },
@@ -2077,7 +2081,7 @@ export default {
     },
   },
 
-  /* De resultaten van de machines. v = wat je invulde, r = de berekening, F = de formaten. */
+  /* De resultaten van de tools. v = wat je invulde, r = de berekening, F = de formaten. */
   res: {
     runway: {
       invalid: 'Controleer je cijfers: kasgeld, uitgaven en inkomsten kunnen niet negatief zijn.',
@@ -2097,8 +2101,8 @@ export default {
         if (r.breakEven) t += ` Je inkomsten zouden je uitgaven pas dekken in de ${F.ord(r.breakEven)} maand: te laat, tenzij je geld ophaalt of minder uitgeeft.`;
         return t;
       },
-      hearts: (n) => `${n} ${n === 1 ? 'hartje' : 'hartjes'} van de 12`,
-      heartsNote: 'Eén hartje per maand, hoogstens twaalf.',
+      months: (n) => `${n} ${n === 1 ? 'maand' : 'maanden'} van de 12`,
+      monthsNote: 'Eén vakje per maand, hoogstens twaalf.',
       facts: (v, r, F) => [
         ['Je verliest elke maand, vandaag', r.netBurn > 0 ? F.money(r.netBurn) : 'niets'],
         ['Inkomsten dekken de uitgaven', r.breakEven === 1 ? (v.growth < 0 ? 'vandaag, maar dalend' : 'vandaag al') : r.breakEven ? `in de ${F.ord(r.breakEven)} maand` : `niet binnen ${r.horizon} maanden`],

@@ -121,8 +121,22 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Tests des calculs et des langues
-        run: node --test plateforme/tests/calculs.test.js plateforme/tests/langues.test.js
+      - name: Tests des calculs, des langues et des dessins
+        run: node --test plateforme/tests/calculs.test.js plateforme/tests/langues.test.js plateforme/tests/dessins.test.js
+
+      # La feuille de style (Tailwind CSS) et les icônes (Lucide) sont fabriquées
+      # puis enregistrées dans le dépôt : le site publié n'a rien à construire.
+      # On les refait ici pour vérifier qu'elles sont bien à jour.
+      - name: Feuille de style et icônes à jour
+        working-directory: plateforme
+        run: |
+          npm ci
+          npm run css
+          npm run icons
+          git diff --exit-code -- site/marketbuss.css site/icons.js || {
+            echo "::error::plateforme/site/marketbuss.css ou icons.js n'est pas à jour. Lancer : cd plateforme && npm install && npm run css && npm run icons, puis enregistrer les fichiers."
+            exit 1
+          }
 
   deploy:
     name: GitHub Pages
@@ -185,7 +199,7 @@ jobs:
           # Fichiers versionnés : un navigateur ne garde jamais l'ancien CSS ou JS.
           # (Pas de fichier nommé app.js ou styles.css à la racine : la fiche de
           # révision, copiée juste après, porte ces noms.)
-          sed -i "s/__V__/${GITHUB_SHA::8}/g" _site/index.html _site/arcade.js _site/repondeur/index.html _site/repondeur/repondeur.js
+          sed -i "s/__V__/${GITHUB_SHA::8}/g" _site/index.html _site/marketbuss.js _site/dessins.js _site/repondeur/index.html _site/repondeur/repondeur.js
 
       # Répondeur IA : une page statique, sans collecte de données.
       - name: Prepare repondeur

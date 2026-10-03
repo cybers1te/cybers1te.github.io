@@ -12,8 +12,10 @@
     "marketbuss:dev": "node marketbuss/tools/serve.mjs",
     "test:repondeur": "node --test repondeur/tests/moteur.test.js",
     "repondeur:dev": "node repondeur/tools/serve.mjs",
-    "test:plateforme": "node --test plateforme/tests/calculs.test.js plateforme/tests/langues.test.js",
-    "plateforme:dev": "node plateforme/tools/serve.mjs"
+    "test:plateforme": "node --test plateforme/tests/calculs.test.js plateforme/tests/langues.test.js plateforme/tests/dessins.test.js",
+    "plateforme:dev": "node plateforme/tools/serve.mjs",
+    "plateforme:css": "npm --prefix plateforme run css",
+    "plateforme:icons": "npm --prefix plateforme run icons"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
