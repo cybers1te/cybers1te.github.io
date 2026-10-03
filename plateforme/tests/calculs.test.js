@@ -6,7 +6,7 @@ import {
   phraseParts, portfolio, pricing, raiseNeed, runway, unitEconomics, waterfall,
   cushion, discount, drawdown, growthRate, proRata, quote, revenueTarget, rounds, savingsGoal, scorecard, setAside, vesting,
   mortgage, borrowingCapacity, rentalYield, rentalCashflow, rentOrBuy, adsProfit, freeShipping, reorder, returnsCost, marketplace,
-  budgetSplit, debtPayoff, workHours, carCost,
+  budgetSplit, debtPayoff, workHours, carCost, startupPlan, capTable, kpiTrend, cleanStartup,
 } from '../site/calculs.js';
 
 describe('entrepreneur', () => {
@@ -474,5 +474,57 @@ describe('budget', () => {
     assert.equal(r.year, 4896);
     assert.equal(r.month, 408);
     assert.equal(r.perKm, 0.41);
+  });
+});
+
+describe('studio start-up', () => {
+  it('startupPlan : sans clients, la trésorerie fond au rythme des dépenses', () => {
+    const r = startupPlan({ cash: 10000, costs: [{ amount: 2000 }, { amount: 500 }] }, 12);
+    assert.equal(r.runway, 4, '10 000 / 2 500 : quatre mois pleins');
+    assert.equal(r.need, 20000, 'au plus bas : 10 000 − 12 × 2 500');
+    assert.equal(r.breakEven, null);
+    assert.equal(r.burn, 2500);
+  });
+  it('startupPlan : clients, départs, embauche', () => {
+    const r = startupPlan({ cash: 0, price: 100, start: 0, newPerMonth: 10, growth: 0, churn: 0, costs: [{ amount: 1000 }], hires: [{ month: 3, salary: 2000 }] }, 6);
+    assert.deepEqual(r.series.map((p) => p.revenue), [1000, 2000, 3000, 4000, 5000, 6000]);
+    assert.deepEqual(r.series.map((p) => p.costs), [1000, 1000, 3000, 3000, 3000, 3000]);
+    assert.equal(r.breakEven, 1);
+    // Rentable au mois 1, puis une grosse embauche : l'équilibre durable n'arrive qu'après.
+    const hire = startupPlan({ price: 100, newPerMonth: 10, costs: [{ amount: 500 }], hires: [{ month: 2, salary: 3000 }] }, 6);
+    assert.equal(hire.series[0].revenue >= hire.series[0].costs, true);
+    assert.equal(hire.breakEven, 4, '4 000 de revenus pour 3 500 de dépenses au mois 4');
+    const churn = startupPlan({ start: 100, churn: 10, price: 1 }, 2);
+    assert.equal(churn.series[1].customers, 81);
+    assert.equal(startupPlan({ cash: -1 }), null);
+    assert.equal(startupPlan({ costs: [{ amount: -5 }] }), null);
+  });
+  it('capTable : ce qui reste à attribuer', () => {
+    const r = capTable({ founders: [{ share: 50 }, { share: 35 }], pool: 10 });
+    assert.equal(r.free, 5);
+    assert.equal(r.ok, true);
+    assert.equal(capTable({ founders: [{ share: 60 }, { share: 45 }] }).ok, false);
+  });
+  it('kpiTrend : tri et croissance', () => {
+    const r = kpiTrend([{ month: '2026-03', revenue: 1200, spend: 3000 }, { month: '2026-02', revenue: 1000, spend: 3000 }, { month: 'nope' }]);
+    assert.deepEqual(r.rows.map((x) => x.month), ['2026-02', '2026-03']);
+    assert.equal(r.last.growth, 20);
+    assert.equal(r.last.burn, 1800);
+    assert.equal(r.avgGrowth, 20);
+  });
+  it('cleanStartup : un fichier importé est nettoyé', () => {
+    const s = cleanStartup({ name: '  Nordlys  ', stage: 9, pool: 80, founders: [{ name: 'A', share: 150 }], plan: { cash: -5, costs: [{ label: 'x', amount: 'abc' }] },
+      tasks: [{ text: 'Parler à 10 clients', state: 'bizarre' }, { text: '' }], kpis: [{ month: '2026-13' }, { month: '2026-01', revenue: 5 }], hack: '<script>' });
+    assert.equal(s.name, 'Nordlys');
+    assert.equal(s.stage, 5);
+    assert.equal(s.pool, 50);
+    assert.equal(s.founders[0].share, 100);
+    assert.equal(s.plan.cash, 0);
+    assert.equal(s.plan.costs[0].amount, 0);
+    assert.deepEqual(s.tasks, [{ text: 'Parler à 10 clients', state: 'todo', tool: '' }]);
+    assert.equal(s.kpis.length, 1);
+    assert.equal(s.hack, undefined);
+    assert.equal(cleanStartup({ name: '' }), null);
+    assert.equal(cleanStartup([1, 2]), null);
   });
 });

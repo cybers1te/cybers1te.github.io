@@ -161,3 +161,27 @@ export const LEVELS = [
 
 /* Les neuf cases du lean canvas, dans l'ordre où on les remplit. */
 export const CANVAS = ['problem', 'segments', 'uvp', 'solution', 'channels', 'revenue', 'costs', 'metrics', 'edge'];
+
+/* Le studio Start-Up : ses modules, dans l'ordre des onglets, et la feuille de
+   route de départ (les textes sont dans ui.startup.tasks, dans le même ordre ;
+   `tool` : la borne qui aide à faire l'étape). */
+export const STARTUP_MODULES = [
+  { id: 'tableau', sprite: 'star' },
+  { id: 'identite', sprite: 'bubble' },
+  { id: 'equipe', sprite: 'pie' },
+  { id: 'plan', sprite: 'chart' },
+  { id: 'route', sprite: 'flag' },
+  { id: 'suivi', sprite: 'up' },
+  { id: 'dossier', sprite: 'folder' },
+];
+export const STARTUP_TASKS = [
+  { tool: 'canvas' }, { tool: 'canvas' }, { tool: 'phrase' }, { tool: 'marche' }, { tool: 'prix' }, { tool: '' },
+  { tool: 'tunnel' }, { tool: '' }, { tool: 'vesting' }, { tool: 'client' }, { tool: 'deck' }, { tool: 'lever' },
+];
+// Le plan d'une start-up toute neuve : un exemple inventé, à remplacer par ses chiffres.
+export const STARTUP_EXAMPLE = {
+  pool: 10, founderShare: 90,
+  plan: { cash: 15000, price: 29, start: 0, newPerMonth: 8, growth: 10, churn: 3 },
+  costs: [150, 500, 120, 400],
+  hire: { month: 6, salary: 4500 },
+};

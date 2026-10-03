@@ -8,13 +8,22 @@
 // structure des pages. T = la langue en cours, F = ses formats.
 
 import * as calc from './calculs.js?v=__V__';
-import { CANVAS, GUIDES, LEVELS, ROLES, TOOLS } from './contenu.js?v=__V__';
+import { CANVAS, GUIDES, LEVELS, ROLES, STARTUP_EXAMPLE, STARTUP_MODULES, STARTUP_TASKS, TOOLS } from './contenu.js?v=__V__';
 import { ARSENAL, VERIFIED } from './arsenal.js?v=__V__';
 import { skyline, sprite } from './sprites.js?v=__V__';
 
 /* ---------- Langues ---------- */
 
 const LANGS = { fr: 'FR', en: 'EN', nl: 'NL' };
+/* La devise : seulement le symbole affiché (les calculs ne convertissent rien). */
+const CURRENCIES = { EUR: '€', USD: '$', GBP: '£', CHF: 'CHF', CAD: '$ CA', XOF: 'FCFA', MAD: 'DH' };
+let currency = 'EUR';
+// Un texte avec « € » → le même avec la devise choisie (« €1,200 » → « CHF 1,200 », « 1 200 € » → « 1 200 CHF »).
+function cur(text) {
+  if (currency === 'EUR' || text == null) return text;
+  const sym = CURRENCIES[currency];
+  return String(text).replace(/€(?=[\d-])/g, sym.length > 1 ? sym + ' ' : sym).replace(/€/g, sym);
+}
 let T = null; // les mots de la langue en cours
 let F = null; // ses formats : nombres, argent, pourcentages
 let verifiedDate = '';
@@ -42,7 +51,7 @@ async function setLang(code) {
   const nf = (n, d = 0) => new Intl.NumberFormat(pack.locale, { maximumFractionDigits: d, minimumFractionDigits: 0 }).format(n);
   F = {
     nf,
-    money: (n) => (n == null || !Number.isFinite(n) ? '—' : pack.money(n, nf)),
+    money: (n) => (n == null || !Number.isFinite(n) ? '—' : cur(pack.money(n, nf))),
     pct: (n, d = 1) => pack.pct(nf(n, d)),
     times: (n) => pack.times(nf(n, n < 10 ? 1 : 0)),
     ord: pack.ord,
@@ -63,6 +72,16 @@ function paintChrome() {
   for (const a of document.querySelectorAll('[data-foot-link]')) a.textContent = ui.foot.links[a.dataset.footLink];
   const box = document.getElementById('lang');
   box.setAttribute('aria-label', ui.language);
+  // La devise, à côté de la langue : retenue dans le navigateur.
+  let money = document.getElementById('cur');
+  if (!money) {
+    money = h('select', { id: 'cur', class: 'cur', onchange: (e) => { currency = e.target.value; store.set('mb-currency', currency); render(); } },
+      Object.entries(CURRENCIES).map(([code, sym]) => h('option', { value: code }, `${sym} ${code}`)));
+    box.after(money);
+  }
+  money.value = currency;
+  money.setAttribute('aria-label', ui.currency);
+  money.title = ui.currency;
   box.replaceChildren(...Object.entries(LANGS).map(([code, label]) => h('button', { type: 'button', class: code === T.code ? 'on' : '', lang: code,
     'aria-pressed': code === T.code ? 'true' : 'false',
     onclick: async () => {
@@ -169,8 +188,8 @@ const catChip = (c) => h('a', { class: 'chip', href: '#/arsenal/' + c.id }, spri
 const toolChip = (t) => h('a', { class: 'chip', href: '#/outil/' + t.id }, sprite(t.sprite, 2), T.tools[t.id].name);
 
 /* Le grand chiffre d'un résultat. */
-const score = (value, label, cls = '') => h('div', { class: 'score ' + cls }, h('b', { text: value }), h('span', { text: label }));
-const facts = (list) => h('div', { class: 'facts' }, list.filter(Boolean).map(([label, value]) => h('div', { class: 'fact' }, h('span', { text: label }), h('b', { text: value }))));
+const score = (value, label, cls = '') => h('div', { class: 'score ' + cls }, h('b', { text: value }), h('span', { text: cur(label) }));
+const facts = (list) => h('div', { class: 'facts' }, list.filter(Boolean).map(([label, value]) => h('div', { class: 'fact' }, h('span', { text: cur(label) }), h('b', { text: cur(value) }))));
 
 /* Le graphique et ses repères : les textes restent en HTML, donc lisibles à toutes les largeurs. */
 function figure(chart, ticks, top) {
@@ -262,7 +281,7 @@ function valuesTable(head, rows) {
 }
 
 const top = (...kids) => h('div', { class: 'result-top' }, ...kids);
-const verdict = (text) => h('p', { class: 'verdict', text });
+const verdict = (text) => h('p', { class: 'verdict', text: cur(text) });
 const years = (n) => (n > 30 ? 10 : 5);
 
 /* ---------- Résultats des calculateurs ----------
@@ -911,7 +930,7 @@ function stepsBlock(rows) {
   if (!list.length) return null;
   return h('div', { class: 'steps' },
     h('h3', { text: T.ui.steps }), h('p', { class: 'steps-sub', text: T.ui.stepsSub }),
-    h('ol', {}, list.map(([label, expr], i) => h('li', { style: `--i:${i}` }, h('span', { text: label }), h('b', { text: expr })))));
+    h('ol', {}, list.map(([label, expr], i) => h('li', { style: `--i:${i}` }, h('span', { text: cur(label) }), h('b', { text: cur(expr) })))));
 }
 
 /* Un chiffre qui défile jusqu'à sa valeur, par crans, comme un compteur de borne. */
@@ -977,6 +996,9 @@ function viewHome() {
   if (!calm) strip.querySelectorAll('b').forEach((b, i) => tween(b, 0, stats[i][0], (x) => F.nf(Math.round(x)), () => { b.textContent = F.nf(stats[i][0]); }));
   const recent = store.get('mb-recent', []).filter((id) => toolById.has(id)).slice(0, 4);
   if (recent.length) body.append(section(ui.recent, ui.recentSub, h('div', { class: 'minis' }, recent.map((id) => miniTool(toolById.get(id))))));
+  body.append(section(ui.studio, ui.studioSub,
+    h('a', { class: 'panel link-panel studio-promo', href: '#/startup' }, sprite('rocket', 7),
+      h('div', {}, h('p', { text: ui.studioText }), h('span', { class: 'btn p1', text: ui.studioOpen })))));
   body.append(section(ui.tools, ui.toolsSub(TOOLS.length),
     h('div', { class: 'squads' }, Object.values(ROLES).map((r) => h('div', { class: 'squad ' + r.color },
       h('a', { class: 'squad-head', href: '#/outils/' + r.id },
@@ -1081,6 +1103,47 @@ function viewTool(id, query) {
   return frag;
 }
 
+/* Les bornes qui se suivent : quels chiffres passent de l'une à l'autre.
+   Chaque fonction reçoit les chiffres saisis et le calcul, et rend { champ: valeur } pour la borne suivante. */
+const LINKS = {
+  runway: [['lever', (v) => ({ burn: v.burn, revenue: v.revenue })]],
+  lever: [['dilution', (v, r) => ({ pre: v.pre, raise: r.raise })]],
+  marche: [['objectif', (v, r) => ({ target: r.som / 12, price: v.price / 12 })]],
+  client: [['tunnel', (v) => ({ spend: v.spend })]],
+  tarif: [['devis', (v, r) => ({ rate: r.rate })]],
+  devis: [['tirelire', (v, r) => ({ amount: r.ht, vat: v.vat })]],
+  prix: [['remise', (v, r) => ({ price: r.ht, margin: v.margin })], ['seuil', (v, r) => ({ price: r.ht, variable: v.cost })]],
+  ticket: [['valo', (v) => ({ exit: v.exit, dilution: v.dilution, ticket: v.ticket })]],
+  suivre: [['fonte', (v, r) => ({ stake: r.without })]],
+  composes: [['frais', (v) => ({ initial: v.initial, monthly: v.monthly, rate: v.rate, years: v.years })], ['inflation', (v, r) => ({ amount: r.value, years: v.years })]],
+  cible: [['composes', (v, r) => ({ initial: v.initial, monthly: r.monthly, rate: v.rate, years: v.years })]],
+  capacite: [['credit', (v, r) => ({ amount: r.loan, rate: v.rate, years: v.years })]],
+  credit: [['cashflow', (v, r) => ({ loan: r.monthly })], ['louer', (v) => ({ rate: v.rate, years: v.years })]],
+  rendement: [['cashflow', (v, r) => ({ rent: v.rent, charges: v.charges / 12 })]],
+  pub: [['livraison', (v) => ({ basket: v.basket, shipping: v.shipping })], ['retours', (v) => ({ basket: v.basket, cogs: v.cogs })]],
+  marketplace: [['pub', (v) => ({ basket: v.price, cogs: v.cogs })]],
+  budget: [['coussin', (v, r) => ({ expenses: v.needs, monthly: Math.max(0, r.savings) })], ['dette', (v, r) => ({ payment: Math.max(1, Math.round(Math.max(0, r.savings) / 2)) })]],
+  heures: [['composes', (v) => ({ initial: v.price, monthly: 0, rate: v.rate, years: Math.max(1, v.years) })]],
+};
+function nextBlock(id, v, r) {
+  const list = (LINKS[id] || []).filter(([to]) => toolById.has(to));
+  if (!list.length) return null;
+  return h('div', { class: 'next' }, h('h3', { text: T.ui.next.title }), list.map(([to, fn]) => {
+    const target = toolById.get(to);
+    const vals = Object.entries(fn(v, r)).filter(([key, x]) => Number.isFinite(x) && target.fields.some((f) => f.key === key));
+    // Les valeurs passent dans l'adresse, arrondies et gardées dans les bornes du champ.
+    const q = vals.map(([key, x]) => {
+      const f = target.fields.find((y) => y.key === key);
+      const n = Math.min(f.max ?? Infinity, Math.max(f.min ?? -Infinity, Math.round(x * 100) / 100));
+      return `${key}=${encodeURIComponent(Number.isInteger(f.step) && f.key === 'years' ? Math.round(n) : n)}`;
+    }).join('&');
+    const labels = vals.map(([key]) => T.tools[to].fields[key][0].toLowerCase()).join(', ');
+    return h('a', { class: 'next-link ' + ROLES[target.role].color, href: `#/outil/${to}?${q}` },
+      h('span', { class: 'next-icon' }, sprite(target.sprite, 3)),
+      h('span', {}, h('b', { text: T.ui.next.go(T.tools[to].name) }), labels ? h('small', { text: T.ui.next.passes(labels) }) : null));
+  }));
+}
+
 function calculator(t, query) {
   const w = T.tools[t.id];
   const R = T.res[t.id];
@@ -1118,7 +1181,7 @@ function calculator(t, query) {
     const rows = t.fields.map((f) => {
       if (!Number.isFinite(values[f.key])) return null;
       const [label, unit] = w.fields[f.key];
-      const stepText = F.nf(f.step, 2) + (unit ? ' ' + unit : '');
+      const stepText = F.nf(f.step, 2) + (unit ? ' ' + cur(unit) : '');
       const buttons = [-1, 1].map((dir) => {
         const n = nudge(f, dir);
         if (n === values[f.key]) return { dir, off: true };
@@ -1150,6 +1213,29 @@ function calculator(t, query) {
     if (focused) { const again = levers.querySelector(`[data-lever="${focused}"]`); if (again) again.focus(); }
   };
 
+  let scenarioA = null; // { values, head } : les chiffres gardés pour comparer
+  const fieldText = (f, n) => (Number.isFinite(n) ? F.nf(n, 2) + (w.fields[f.key][1] ? ' ' + cur(w.fields[f.key][1]) : '') : '—');
+  const compareBlock = (head) => {
+    const S = T.ui.scenario;
+    const changed = t.fields.filter((f) => scenarioA.values[f.key] !== values[f.key]);
+    const d = deltaOf(scenarioA.head, head);
+    return h('div', { class: 'compare' },
+      h('h3', { text: S.title }),
+      h('div', { class: 'compare-row' },
+        h('div', {}, h('small', { text: S.a }), h('b', { text: scenarioA.head ? scenarioA.head.text : '—' })),
+        h('span', { class: 'compare-arrow', 'aria-hidden': 'true', text: '→' }),
+        h('div', {}, h('small', { text: S.now }), h('b', { text: head.text })),
+        d ? h('em', { class: 'delta-static ' + d.cls, text: d.text }) : null),
+      changed.length ? h('ul', { class: 'compare-list' }, h('li', { class: 'compare-head', text: S.changed }),
+        changed.map((f) => h('li', { text: `${w.fields[f.key][0]} : ${fieldText(f, scenarioA.values[f.key])} → ${fieldText(f, values[f.key])}` })))
+        : h('p', { class: 'fineprint', text: S.same }),
+      h('div', { class: 'form-actions' },
+        h('button', { class: 'btn small', type: 'button', onclick: () => {
+          for (const f of t.fields) { values[f.key] = scenarioA.values[f.key]; controls[f.key][0].value = values[f.key]; controls[f.key][1].value = values[f.key]; }
+          draw();
+        } }, S.restore),
+        h('button', { class: 'btn small', type: 'button', onclick: () => { scenarioA = null; draw(); } }, S.clear)));
+  };
   const draw = () => {
     const first = !prev && !out.childElementCount;
     // Avant de tout remplacer : la largeur des barres et le nombre de cœurs, pour animer le passage.
@@ -1166,7 +1252,12 @@ function calculator(t, query) {
       const block = stepsBlock(T.steps[t.id](values, head.r, F));
       const at = nodes.findIndex((n) => n.classList && n.classList.contains('values'));
       if (block) nodes.splice(at < 0 ? nodes.length : at, 0, block);
+      // Les bornes qui continuent le calcul, avec ces chiffres déjà remplis.
+      const links = nextBlock(t.id, values, head.r);
+      if (links) nodes.splice(at < 0 ? nodes.length : at, 0, links);
     }
+    // Le scénario A gardé : il se met juste sous le grand chiffre.
+    if (scenarioA && head) nodes.splice(1, 0, compareBlock(head));
     out.classList.toggle('enter', first && !calm);
     out.replaceChildren(h('h2', { class: 'result-title', text: T.ui.result }), ...nodes);
 
@@ -1220,7 +1311,8 @@ function calculator(t, query) {
   const form = h('form', { class: 'panel form ' + ROLES[t.role].color, onsubmit: (e) => e.preventDefault() },
     h('h2', { class: 'result-title', text: T.ui.yourNumbers }),
     t.fields.map((f) => {
-      const [label, unit, hint] = w.fields[f.key];
+      const [label, rawUnit, hint] = w.fields[f.key];
+      const unit = cur(rawUnit);
       const input = h('input', { type: 'number', inputmode: 'decimal', id: 'f-' + f.key, step: f.step, min: f.min, max: f.max, value: values[f.key],
         'aria-describedby': hint ? 'h-' + f.key : null,
         oninput: (e) => {
@@ -1240,14 +1332,18 @@ function calculator(t, query) {
         h('label', { for: 'f-' + f.key, text: label }),
         h('div', { class: 'field-in' }, input, unit ? h('span', { class: 'unit', text: unit }) : null),
         range,
-        hint ? h('small', { id: 'h-' + f.key, text: hint }) : null);
+        hint ? h('small', { id: 'h-' + f.key, text: cur(hint) }) : null);
     }),
     h('div', { class: 'form-actions' },
       h('button', { class: 'btn', type: 'button', onclick: () => {
         for (const f of t.fields) { values[f.key] = f.value; controls[f.key][0].value = f.value; controls[f.key][1].value = f.value; }
         draw();
       } }, T.ui.reset),
-      h('button', { class: 'btn', type: 'button', onclick: () => copyText(location.origin + location.pathname + linkFor(), T.ui.linkCopied) }, T.ui.copyLink)));
+      h('button', { class: 'btn', type: 'button', onclick: () => copyText(location.origin + location.pathname + linkFor(), T.ui.linkCopied) }, T.ui.copyLink),
+      h('button', { class: 'btn', type: 'button', onclick: () => {
+        scenarioA = { values: { ...values }, head: headOf(t.id, values, R) };
+        toast(T.ui.scenario.kept); draw();
+      } }, 'A · ' + T.ui.scenario.keep)));
   draw();
   // Sur grand écran, les crans vont sous les chiffres ; sur téléphone, après le résultat.
   return h('div', { class: 'tool-grid calc-grid' }, form, out, levers);
@@ -1547,6 +1643,333 @@ function viewMissing() {
       h('div', { class: 'form-actions' }, h('a', { class: 'btn p1', href: '#/' }, ui.home), h('a', { class: 'btn', href: '#/outils' }, ui.tools)))));
 }
 
+/* ---------- Studio Start-Up ----------
+   Les start-ups vivent dans ce navigateur (clé mb-startups), relues et
+   nettoyées par calc.cleanStartup à chaque ouverture. Tout texte saisi est
+   affiché avec textContent. Un module = un onglet. */
+
+const startups = {
+  all: () => (store.get('mb-startups', []) || []).map(calc.cleanStartup).filter(Boolean),
+  save: (list) => store.set('mb-startups', list),
+  current: (list) => list.find((x) => x.id === store.get('mb-startup', null)) || list[0] || null,
+};
+// Aller à une adresse, même si c'est celle de la page affichée.
+const go = (hash) => { if (location.hash === hash) render(); else location.hash = hash; };
+
+function newStartup(name) {
+  const ui = T.ui.startup;
+  const ex = STARTUP_EXAMPLE;
+  return calc.cleanStartup({
+    name, stage: 0, pool: ex.pool,
+    founders: [{ name: ui.defaultFounder(1), role: '', share: ex.founderShare }],
+    plan: { ...ex.plan, costs: ui.defaultCosts.map((label, i) => ({ label, amount: ex.costs[i] || 0 })), hires: [{ label: ui.defaultHire, ...ex.hire }] },
+    tasks: STARTUP_TASKS.map((x, i) => ({ text: ui.tasks[i], state: 'todo', tool: x.tool })),
+  });
+}
+
+/* Les champs du studio : un nombre ou un texte, qui préviennent à chaque frappe. */
+let fieldSeq = 0;
+// Dans une liste, seul le premier rang montre ses libellés ; les autres les gardent pour les lecteurs d'écran.
+const lab = (text, i) => ({ text, hide: i > 0 });
+const labelFor = (id, label) => (label ? h('label', { for: id, class: label.hide ? 'sr' : null, text: label.text != null ? label.text : label }) : null);
+function stNumber(label, unit, value, onInput, attrs = {}) {
+  const id = 'st-' + ++fieldSeq;
+  return h('div', { class: 'field' }, labelFor(id, label),
+    h('div', { class: 'field-in' },
+      h('input', { id, type: 'number', inputmode: 'decimal', value: Number.isFinite(value) ? value : '', ...attrs,
+        oninput: (e) => onInput(e.target.value === '' ? NaN : Number(e.target.value)) }),
+      unit ? h('span', { class: 'unit', text: cur(unit) }) : null));
+}
+function stText(label, value, onInput, { placeholder = '', max = 60, area = false, hint = '' } = {}) {
+  const id = 'st-' + ++fieldSeq;
+  const input = h(area ? 'textarea' : 'input', { id, maxlength: max, placeholder, rows: area ? 3 : null, type: area ? null : 'text',
+    oninput: (e) => onInput(e.target.value) });
+  input.value = value || '';
+  return h('div', { class: 'field' }, labelFor(id, label), input, hint ? h('small', { text: hint }) : null);
+}
+const rowRemove = (label, fn) => h('button', { class: 'btn row-x', type: 'button', 'aria-label': label, title: label, onclick: fn }, '×');
+const PALETTE = ['p1', 'p2', 'ok', 'violet', 'p5', 'p6', 'p7', 'hot'];
+const planOf = (s) => calc.startupPlan(s.plan);
+
+const MODULES = {
+  tableau({ s }) {
+    const ui = T.ui.startup;
+    const r = planOf(s);
+    const cap = calc.capTable(s);
+    const k = calc.kpiTrend(s.kpis);
+    const done = s.tasks.filter((x) => x.state === 'done').length;
+    const tile = (value, label, bad) => h('div', { class: 'tile' + (bad ? ' bad' : '') }, h('b', { text: value }), h('span', { text: label }));
+    const acts = [];
+    if (!s.pitch) acts.push([ui.actions.pitch, '#/startup/identite']);
+    if (cap && !cap.ok) acts.push([ui.actions.capOver, '#/startup/equipe']);
+    else if (!cap || cap.total === 0) acts.push([ui.actions.cap, '#/startup/equipe']);
+    if (r && r.need > 0) acts.push([ui.actions.raise(r.need, F), `#/outil/lever?burn=${Math.round(r.series[0].costs)}&revenue=${Math.round(r.series[0].revenue)}&months=18&buffer=20`]);
+    if (r && !r.breakEven) acts.push([ui.actions.profit, '#/startup/plan']);
+    if (!s.kpis.length) acts.push([ui.actions.kpi, '#/startup/suivi']);
+    const nextTask = s.tasks.find((x) => x.state === 'doing') || s.tasks.find((x) => x.state === 'todo');
+    if (nextTask) acts.push([ui.actions.task(nextTask.text), nextTask.tool && toolById.has(nextTask.tool) ? '#/outil/' + nextTask.tool : '#/startup/route']);
+    else if (s.tasks.length) acts.push([ui.actions.allDone, '#/startup/route']);
+    return h('div', { class: 'studio-grid' },
+      h('div', { class: 'panel result p1' },
+        h('div', { class: 'tiles' },
+          tile(r ? (r.runway == null ? '24+' : F.nf(r.runway)) : '—', ui.tiles.runway, r && r.runway != null && r.runway < 6),
+          tile(r && r.breakEven ? 'M' + r.breakEven : '—', ui.tiles.breakEven, r && !r.breakEven),
+          tile(r ? F.money(r.need) : '—', ui.tiles.need, r && r.need > 0),
+          tile(cap ? F.pct(cap.total) : '—', ui.tiles.founders, cap && !cap.ok),
+          tile(`${done} / ${s.tasks.length}`, ui.tiles.tasks),
+          tile(k && k.last && k.last.growth != null ? F.pct(k.last.growth) : '—', ui.tiles.growth, k && k.last && k.last.growth < 0)),
+        r ? [h('h3', { text: ui.planChart }),
+          columns(r.series.map((p) => ({ label: ui.planTick(p.month), value: p.cash, title: ui.planBar(p, F) })), { pos: 'var(--ok)' })] : null),
+      h('div', { class: 'panel' },
+        h('h2', { class: 'result-title', text: ui.nextTitle }),
+        h('ol', { class: 'actions' }, acts.map(([text, href], i) => h('li', { style: `--i:${i}` }, h('span', { text }), h('a', { class: 'btn', href }, ui.go + ' →'))))));
+  },
+
+  identite({ s, save, refreshName }) {
+    const ui = T.ui.startup;
+    const f = ui.fields;
+    return h('div', { class: 'panel form narrow-form' },
+      stText(f.name[0], s.name, (x) => { if (x.trim()) { s.name = x; save(); refreshName(); } }, { max: calc.STARTUP_LIMITS.name }),
+      stText(f.pitch[0], s.pitch, (x) => { s.pitch = x; save(); }, { area: true, max: calc.STARTUP_LIMITS.text, placeholder: f.pitch[1] }),
+      h('p', { class: 'fineprint' }, ui.pitchHelp, ' ', h('a', { href: '#/outil/phrase', text: '→ ' + T.tools.phrase.name })),
+      h('div', { class: 'field-row' },
+        stText(f.sector[0], s.sector, (x) => { s.sector = x; save(); }, { placeholder: f.sector[1] }),
+        h('div', { class: 'field' }, h('label', { for: 'st-stage', text: f.stage[0] }),
+          h('select', { id: 'st-stage', onchange: (e) => { s.stage = Number(e.target.value); save(); } },
+            T.stages.map((name, i) => h('option', { value: i, selected: i === s.stage ? 'selected' : null }, name))))));
+  },
+
+  equipe(ctx) {
+    const { s, save } = ctx;
+    const ui = T.ui.startup;
+    const out = h('div', { class: 'panel result p1', 'aria-live': 'polite' });
+    const draw = () => {
+      const cap = calc.capTable(s);
+      if (!cap) { out.replaceChildren(h('p', { class: 'notice', text: ui.capOver(0, F) })); return; }
+      const parts = s.founders.map((f, i) => [PALETTE[i % PALETTE.length], f.name || ui.defaultFounder(i + 1), cap.shares[i]]);
+      if (cap.pool > 0) parts.push(['off', ui.poolName, cap.pool]);
+      if (cap.free > 0) parts.push(['free', ui.freeName, cap.free]);
+      const shown = parts.filter((p) => p[2] > 0);
+      out.replaceChildren(h('h2', { class: 'result-title', text: ui.capTitle }),
+        cap.ok ? waffle(shown) : null,
+        legend(...shown.map((p) => [p[0], `${p[1]} : ${F.pct(p[2])}`])),
+        h('p', { class: 'verdict', text: cap.ok ? ui.capOk(cap.free, F) : ui.capOver(-cap.free, F) }),
+        h('p', { class: 'fineprint' }, ui.capTip, ' ', h('a', { href: '#/outil/vesting', text: '→ ' + T.tools.vesting.name })));
+    };
+    const rows = s.founders.map((f, i) => h('div', { class: 'st-row' },
+      stText(lab(ui.founderName, i), f.name, (x) => { f.name = x; save(); draw(); }, { placeholder: ui.defaultFounder(i + 1) }),
+      stText(lab(ui.founderRole, i), f.role, (x) => { f.role = x; save(); }),
+      stNumber(lab(ui.share, i), '', f.share, (x) => { f.share = x; save(); draw(); }, { min: 0, max: 100, step: 1 }),
+      rowRemove(T.ui.startup.removeRow, () => { s.founders.splice(i, 1); save(true); ctx.rerender(); })));
+    const form = h('div', { class: 'panel form' }, rows,
+      s.founders.length < calc.STARTUP_LIMITS.founders ? h('button', { class: 'btn', type: 'button', onclick: () => {
+        s.founders.push({ name: ui.defaultFounder(s.founders.length + 1), role: '', share: 0 }); save(true); ctx.rerender();
+      } }, '+ ' + ui.addFounder) : null,
+      stNumber(ui.pool, '', s.pool, (x) => { s.pool = x; save(); draw(); }, { min: 0, max: 50, step: 1 }));
+    draw();
+    return h('div', { class: 'tool-grid' }, form, out);
+  },
+
+  plan(ctx) {
+    const { s, save } = ctx;
+    const ui = T.ui.startup;
+    const p = s.plan;
+    const out = h('div', { class: 'panel result p1', 'aria-live': 'polite' });
+    const draw = () => {
+      const r = planOf(s);
+      if (!r) { out.replaceChildren(h('p', { class: 'notice', text: ui.planInvalid })); return; }
+      out.replaceChildren(h('h2', { class: 'result-title', text: T.ui.result }),
+        top(score(r.need > 0 ? F.money(r.need) : (r.breakEven ? 'M' + r.breakEven : '24+'), r.need > 0 ? ui.tiles.need : r.breakEven ? ui.tiles.breakEven : ui.tiles.runway, r.need > 0 ? 'bad' : '')),
+        verdict(ui.planVerdict(r, F)),
+        facts(ui.planFacts(r, F)),
+        h('h3', { text: ui.planChart }),
+        columns(r.series.map((x) => ({ label: ui.planTick(x.month), value: x.cash, title: ui.planBar(x, F) })), { pos: 'var(--ok)' }),
+        valuesTable(ui.planTable, r.series.map((x) => [ui.planTick(x.month), F.nf(x.customers), F.money(x.revenue), F.money(x.costs), F.money(x.cash)])));
+    };
+    const set = (key) => (x) => { p[key] = x; save(); draw(); };
+    const lim = { growth: { min: -50, max: 100, step: 1 }, churn: { min: 0, max: 100, step: 0.5 } };
+    const form = h('div', { class: 'panel form' },
+      Object.entries(ui.planFields).map(([key, [label, unit]]) => stNumber(label, unit, p[key], set(key), lim[key] || { min: 0, step: key === 'cash' ? 1000 : 1 })),
+      h('h3', { text: ui.costsTitle }),
+      p.costs.map((c, i) => h('div', { class: 'st-row two' },
+        stText(lab(ui.costLabel, i), c.label, (x) => { c.label = x; save(); }),
+        stNumber(lab(ui.amount, i), '€', c.amount, (x) => { c.amount = x; save(); draw(); }, { min: 0, step: 10 }),
+        rowRemove(ui.removeRow, () => { p.costs.splice(i, 1); save(true); ctx.rerender(); }))),
+      p.costs.length < calc.STARTUP_LIMITS.costs ? h('button', { class: 'btn', type: 'button', onclick: () => { p.costs.push({ label: '', amount: 0 }); save(true); ctx.rerender(); } }, '+ ' + ui.addCost) : null,
+      h('h3', { text: ui.hiresTitle }),
+      p.hires.map((x, i) => h('div', { class: 'st-row' },
+        stText(lab(ui.hireLabel, i), x.label, (v) => { x.label = v; save(); }),
+        stNumber(lab(ui.hireMonth, i), '', x.month, (v) => { x.month = v; save(); draw(); }, { min: 1, max: 24, step: 1 }),
+        stNumber(lab(ui.salary, i), '€', x.salary, (v) => { x.salary = v; save(); draw(); }, { min: 0, step: 100 }),
+        rowRemove(ui.removeRow, () => { p.hires.splice(i, 1); save(true); ctx.rerender(); }))),
+      p.hires.length < calc.STARTUP_LIMITS.hires ? h('button', { class: 'btn', type: 'button', onclick: () => { p.hires.push({ label: '', month: 6, salary: 0 }); save(true); ctx.rerender(); } }, '+ ' + ui.addHire) : null);
+    draw();
+    return h('div', { class: 'tool-grid' }, form, out);
+  },
+
+  route(ctx) {
+    const { s, save } = ctx;
+    const ui = T.ui.startup;
+    const done = s.tasks.filter((x) => x.state === 'done').length;
+    const moveTo = (task, state) => {
+      const before = s.tasks.every((x) => x.state === 'done');
+      task.state = state; save(true); ctx.rerender();
+      if (!before && s.tasks.every((x) => x.state === 'done')) burst(document.querySelector('.kanban') || document.body);
+    };
+    const input = h('input', { type: 'text', class: 'search', maxlength: calc.STARTUP_LIMITS.text, placeholder: ui.taskPlaceholder, 'aria-label': ui.taskPlaceholder });
+    const card = (task) => h('li', { class: 'task ' + task.state },
+      h('p', { text: task.text }),
+      h('div', { class: 'task-btns' },
+        task.state !== 'todo' ? h('button', { class: 'btn small', type: 'button', onclick: () => moveTo(task, 'todo') }, ui.move.todo) : null,
+        task.state === 'todo' ? h('button', { class: 'btn small', type: 'button', onclick: () => moveTo(task, 'doing') }, ui.move.doing) : null,
+        task.state !== 'done' ? h('button', { class: 'btn small p1', type: 'button', onclick: () => moveTo(task, 'done') }, ui.move.done) : null,
+        task.tool && toolById.has(task.tool) ? h('a', { class: 'btn small', href: '#/outil/' + task.tool }, ui.openTool) : null,
+        rowRemove(ui.removeRow, () => { s.tasks.splice(s.tasks.indexOf(task), 1); save(true); ctx.rerender(); })));
+    return h('div', {},
+      h('div', { class: 'panel route-head' },
+        h('div', { class: 'progress', role: 'img', 'aria-label': ui.progress(done, s.tasks.length) }, s.tasks.map((x) => h('i', { class: x.state === 'done' ? 'on' : '' }))),
+        h('p', { class: 'verdict', text: ui.progress(done, s.tasks.length) }),
+        h('form', { class: 'filters', onsubmit: (e) => {
+          e.preventDefault();
+          const text = input.value.trim();
+          if (!text || s.tasks.length >= calc.STARTUP_LIMITS.tasks) return;
+          s.tasks.push({ text, state: 'todo', tool: '' }); save(true); ctx.rerender();
+          const again = document.querySelector('.route-head .search'); if (again) again.focus();
+        } }, input, h('button', { class: 'btn p1', type: 'submit' }, '+ ' + ui.addTask))),
+      h('div', { class: 'kanban' }, ['todo', 'doing', 'done'].map((state) => {
+        const tasks = s.tasks.filter((x) => x.state === state);
+        return h('section', { class: 'panel lane ' + state }, h('h2', {}, ui.columns[state], h('small', { text: ` ${tasks.length}` })), h('ol', {}, tasks.map(card)));
+      })));
+  },
+
+  suivi(ctx) {
+    const { s, save } = ctx;
+    const ui = T.ui.startup;
+    const k = calc.kpiTrend(s.kpis);
+    const now = new Date();
+    const entry = { month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`, revenue: NaN, customers: NaN, spend: NaN };
+    const kf = ui.kpiFields;
+    const monthInput = h('input', { type: 'month', id: 'st-month', value: entry.month, oninput: (e) => { entry.month = e.target.value; } });
+    const form = h('form', { class: 'panel form', onsubmit: (e) => {
+      e.preventDefault();
+      if (!/^\d{4}-\d{2}$/.test(entry.month)) { monthInput.focus(); return; }
+      const row = { month: entry.month, revenue: entry.revenue || 0, customers: entry.customers || 0, spend: entry.spend || 0 };
+      s.kpis = s.kpis.filter((x) => x.month !== row.month).concat(row).slice(-calc.STARTUP_LIMITS.kpis);
+      save(true); ctx.rerender();
+    } },
+    h('div', { class: 'field' }, h('label', { for: 'st-month', text: kf.month }), monthInput),
+    stNumber(kf.revenue, '€', NaN, (x) => { entry.revenue = x; }, { min: 0, step: 100 }),
+    stNumber(kf.customers, '', NaN, (x) => { entry.customers = x; }, { min: 0, step: 1 }),
+    stNumber(kf.spend, '€', NaN, (x) => { entry.spend = x; }, { min: 0, step: 100 }),
+    h('div', { class: 'form-actions' }, h('button', { class: 'btn p1', type: 'submit' }, '+ ' + ui.addKpi)));
+    const out = h('div', { class: 'panel result p1' }, h('h2', { class: 'result-title', text: ui.modules.suivi[0] }));
+    if (!k || !k.rows.length) out.append(h('p', { class: 'verdict', text: ui.kpiEmpty }));
+    else {
+      out.append(facts(ui.kpiFacts(k, F)),
+        h('h3', { text: ui.kpiChart }),
+        columns(k.rows.map((x) => ({ label: x.month.slice(2), value: x.revenue, title: `${x.month} : ${F.money(x.revenue)}` })), { every: Math.max(1, Math.ceil(k.rows.length / 6)), pos: 'var(--p2)' }),
+        h('div', { class: 'table-wrap' }, h('table', {},
+          h('thead', {}, h('tr', {}, [...ui.kpiTable, ''].map((t, i) => h('th', { scope: 'col', class: i ? 'num' : '', text: t })))),
+          h('tbody', {}, [...k.rows].reverse().map((x) => h('tr', {},
+            [x.month, F.money(x.revenue), F.nf(x.customers), F.money(x.spend), x.growth != null ? F.pct(x.growth) : '—', x.burn > 0 ? F.money(x.burn) : '—']
+              .map((c, i) => h('td', { class: (i ? 'num' : '') + (i === 4 && x.growth != null ? (x.growth < 0 ? ' neg' : ' posv') : ''), text: c })),
+            h('td', { class: 'num' }, rowRemove(ui.removeRow, () => { s.kpis = s.kpis.filter((y) => y.month !== x.month); save(true); ctx.rerender(); }))))))));
+    }
+    return h('div', { class: 'tool-grid' }, form, out);
+  },
+
+  dossier({ s }) {
+    const ui = T.ui.startup;
+    const r = planOf(s);
+    const k = calc.kpiTrend(s.kpis);
+    const text = ui.summary(s, r, calc.capTable(s), k, F, T.stages);
+    const card = calc.encodeCard({ name: s.name, tagline: s.pitch, stage: T.stages[s.stage], sector: s.sector,
+      ask: r && r.need > 0 ? F.money(r.need) : '', t1: k && k.last ? `${k.last.month} : ${F.money(k.last.revenue)}` : '' });
+    const file = h('input', { type: 'file', accept: '.json,application/json', class: 'sr', tabindex: '-1', 'aria-hidden': 'true', onchange: async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      try {
+        const data = JSON.parse(await f.text());
+        const clean = calc.cleanStartup({ ...data, id: undefined });
+        if (!clean) throw new Error('forme');
+        const all = startups.all(); all.push(clean); startups.save(all); store.set('mb-startup', clean.id);
+        toast(ui.imported); go('#/startup/tableau');
+      } catch { toast(ui.importFail); }
+    } });
+    const download = () => {
+      const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
+      const a = h('a', { href: URL.createObjectURL(blob), download: (fold(s.name).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'startup') + '.json' });
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    return h('div', { class: 'studio-grid' },
+      h('div', { class: 'panel result p1' },
+        h('h2', { class: 'result-title', text: ui.summaryTitle }),
+        h('pre', { class: 'summary', text }),
+        h('div', { class: 'form-actions' },
+          h('button', { class: 'btn p1', type: 'button', onclick: () => copyText(text, ui.copied) }, ui.copySummary),
+          h('a', { class: 'btn', href: '#/pitch/' + card }, ui.card),
+          h('button', { class: 'btn', type: 'button', onclick: () => print() }, ui.print))),
+      h('div', { class: 'panel' },
+        h('p', { class: 'verdict', text: ui.backupNote }),
+        h('div', { class: 'form-actions' },
+          h('button', { class: 'btn', type: 'button', onclick: download }, ui.exportJson),
+          h('button', { class: 'btn', type: 'button', onclick: () => file.click() }, ui.importJson), file)));
+  },
+};
+
+function viewStartup(moduleId) {
+  const ui = T.ui.startup;
+  const list = startups.all();
+  const s = startups.current(list);
+  const mod = STARTUP_MODULES.some((m) => m.id === moduleId) ? moduleId : 'tableau';
+  const frag = h('div', { class: 'wrap studio' });
+  frag.append(h('div', { class: 'page-head' }, h('div', { class: 'head-sprite p1' }, sprite('rocket', 5)),
+    h('div', {}, h('h1', { text: ui.title }), h('p', { class: 'sub', text: ui.sub }))));
+  const createForm = () => {
+    const input = h('input', { type: 'text', class: 'search', maxlength: calc.STARTUP_LIMITS.name, placeholder: ui.namePlaceholder, 'aria-label': ui.namePlaceholder });
+    return h('form', { class: 'filters studio-create', onsubmit: (e) => {
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) { toast(ui.needName); input.focus(); return; }
+      const fresh = newStartup(name);
+      const all = startups.all(); all.push(fresh); startups.save(all); store.set('mb-startup', fresh.id);
+      go('#/startup/tableau');
+    } }, input, h('button', { class: 'btn p1', type: 'submit' }, ui.create));
+  };
+  if (!s) {
+    frag.append(h('div', { class: 'panel studio-empty' }, sprite('rocket', 8),
+      h('div', {}, h('h2', { text: ui.emptyTitle }), h('p', { class: 'sub', text: ui.emptyText }), createForm())));
+    return frag;
+  }
+  // Chaque changement est écrit tout de suite : rien ne se perd en changeant d'onglet.
+  const save = () => { const all = startups.all(); const i = all.findIndex((x) => x.id === s.id); if (i >= 0) all[i] = s; else all.push(s); startups.save(all); };
+  const picker = h('select', { 'aria-label': ui.pick, onchange: (e) => { store.set('mb-startup', e.target.value); render(); } },
+    list.map((x) => h('option', { value: x.id, selected: x.id === s.id ? 'selected' : null }, x.name)));
+  const createBox = h('div', {});
+  frag.append(h('div', { class: 'studio-bar' },
+    h('label', { class: 'studio-pick' }, h('span', { text: ui.pick }), picker),
+    h('button', { class: 'btn', type: 'button', onclick: () => {
+      if (createBox.childElementCount) { createBox.replaceChildren(); return; }
+      createBox.replaceChildren(createForm()); createBox.querySelector('input').focus();
+    } }, '+ ' + ui.newOne),
+    h('button', { class: 'btn', type: 'button', onclick: () => {
+      if (!confirm(ui.removeConfirm(s.name))) return;
+      save(true);
+      startups.save(startups.all().filter((x) => x.id !== s.id));
+      store.set('mb-startup', null); toast(ui.removed); go('#/startup');
+    } }, ui.remove)), createBox);
+  frag.append(h('nav', { class: 'seg studio-tabs', 'aria-label': ui.title }, STARTUP_MODULES.map((m) => h('a', {
+    href: '#/startup/' + m.id, class: m.id === mod ? 'on' : '', 'aria-current': m.id === mod ? 'page' : null }, sprite(m.sprite, 2), ui.modules[m.id][0]))));
+  frag.append(h('p', { class: 'sub studio-lead', text: ui.modules[mod][1] }));
+  const body = h('div', { class: 'studio-body' });
+  const ctx = { s, save, rerender: () => body.replaceChildren(MODULES[mod](ctx)),
+    refreshName: () => { const o = picker.querySelector(`option[value="${s.id}"]`); if (o) o.textContent = s.name; } };
+  ctx.rerender();
+  frag.append(body);
+  return frag;
+}
+
 /* ---------- Navigation ---------- */
 
 let lastPath = null;
@@ -1564,6 +1987,7 @@ function render(event) {
     case 'outil': node = viewTool(param, new URLSearchParams(queryPart)); title = toolById.has(param) ? T.tools[param].name : T.ui.missing.title; break;
     case 'arsenal': node = viewArsenal(param); title = T.ui.arsenal.title; break;
     case 'parcours': node = viewLevels(); title = T.ui.levels.title; break;
+    case 'startup': node = viewStartup(param); title = T.ui.startup.title; break;
     case 'pitch': node = viewPitch(param); title = T.ui.pitch.shared; break;
     case 'lexique': node = viewGlossary(); title = T.ui.glossary.title; break;
     case 'a-propos': node = viewAbout(); title = T.ui.about.title; break;
@@ -1593,6 +2017,7 @@ addEventListener('keydown', (e) => {
   const search = document.querySelector('#view .search');
   if (search) { e.preventDefault(); search.focus(); }
 });
+currency = CURRENCIES[store.get('mb-currency', 'EUR')] ? store.get('mb-currency', 'EUR') : 'EUR';
 setLang(pickLang()).then(() => {
   addEventListener('hashchange', render);
   render();

@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import * as calc from '../site/calculs.js';
-import { CANVAS, GUIDES, LEVELS, ROLES, TOOLS } from '../site/contenu.js';
+import { CANVAS, GUIDES, LEVELS, ROLES, STARTUP_EXAMPLE, STARTUP_MODULES, STARTUP_TASKS, TOOLS } from '../site/contenu.js';
 import { ARSENAL, VERIFIED } from '../site/arsenal.js';
 import fr from '../site/lang/fr.js';
 import en from '../site/lang/en.js';
@@ -195,4 +195,31 @@ describe('langues : le pitch en une phrase', () => {
     assert.equal(r.short, 'Nordlys helpt de buurtbakkers om hun onverkochte brood voor sluitingstijd te verkopen.');
     assert.equal(r.text, r.short + ' Ons verschil: Buurtbewoners krijgen een melding.');
   });
+});
+
+describe('langues : le studio Start-Up', () => {
+  for (const [code, pack] of Object.entries(PACKS)) {
+    it(`${code} : chaque phrase du studio se construit`, () => {
+      const F = formats(pack);
+      const ui = pack.ui.startup;
+      assert.equal(ui.tasks.length, STARTUP_TASKS.length, 'une phrase par étape de départ');
+      assert.equal(ui.defaultCosts.length, STARTUP_EXAMPLE.costs.length);
+      assert.deepEqual(Object.keys(ui.modules), STARTUP_MODULES.map((m) => m.id));
+      const s = calc.cleanStartup({ name: 'Nordlys', pitch: 'Une phrase.', sector: 'Food', stage: 2, pool: 10,
+        founders: [{ name: 'A', role: 'CEO', share: 50 }, { name: 'B', share: 40 }],
+        plan: { ...STARTUP_EXAMPLE.plan, costs: ui.defaultCosts.map((label, i) => ({ label, amount: STARTUP_EXAMPLE.costs[i] })), hires: [{ label: ui.defaultHire, ...STARTUP_EXAMPLE.hire }] },
+        kpis: [{ month: '2026-01', revenue: 1000, customers: 10, spend: 3000 }, { month: '2026-02', revenue: 1300, customers: 13, spend: 3000 }] });
+      for (const plan of [s.plan, { ...s.plan, price: 500 }, { ...s.plan, price: 0, cash: 1e6 }]) {
+        const r = calc.startupPlan(plan);
+        clean(ui.planVerdict(r, F), code);
+        ui.planFacts(r, F).forEach(([a, b]) => { clean(a, code); clean(String(b), code); });
+        clean(ui.planBar(r.series[0], F), code);
+        clean(ui.summary(s, r, calc.capTable(s), calc.kpiTrend(s.kpis), F, pack.stages), code);
+      }
+      const k = calc.kpiTrend(s.kpis);
+      ui.kpiFacts(k, F).forEach(([a, b]) => { clean(a, code); clean(String(b), code); });
+      for (const text of [ui.capOk(5, F), ui.capOk(0, F), ui.capOver(3, F), ui.actions.raise(1000, F), ui.actions.task('x'), ui.progress(1, 12), ui.progress(3, 12),
+        ui.removeConfirm('x'), ui.defaultFounder(2), pack.ui.next.go('x'), pack.ui.next.passes('a, b'), pack.ui.scenario.keep, pack.ui.currency]) clean(text, code);
+    });
+  }
 });

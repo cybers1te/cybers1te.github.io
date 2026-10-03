@@ -17,7 +17,7 @@ changeant une ligne (voir [Changer de site publié](#changer-de-site-publié)).
 
 | Projet | Emplacement | Nature |
 | --- | --- | --- |
-| **marketbuss** — le site publié | `plateforme/` | Site statique en trois langues : 52 bornes pour sept joueurs, arsenal, parcours, carte de pitch, lexique |
+| **marketbuss** — le site publié | `plateforme/` | Site statique en trois langues : 52 bornes pour sept joueurs, studio Start-Up, arsenal, parcours, carte de pitch, lexique |
 | **Répondeur IA** — publié à `/repondeur/` | `repondeur/` | Page de présentation statique, avec une démonstration |
 | **Comparateur d'IA** — en réserve | `marketbuss/` | Site statique + robot de collecte (GitHub Actions) |
 | **message-me** — en réserve | `public/`, `firestore.rules`, `firebase.json`, `android/` | Site statique + Firebase (Auth, Firestore) |
@@ -69,6 +69,21 @@ navigateur est choisie au premier passage, et `?lang=en` force une langue).
   par chiffre, un cran en plus ou en moins, avec le résultat qu'il donnerait.
   Un curseur sous chaque champ ; le grand chiffre défile, les barres glissent,
   les colonnes montent (rien ne bouge si le système demande moins d'animations).
+- **Studio Start-Up** (`#/startup`) : créer une ou plusieurs start-ups et les
+  piloter en sept modules. *Tableau de bord* (mois de trésorerie, mois
+  d'équilibre, argent à trouver, et les prochaines actions avec un lien vers
+  la bonne borne), *Identité*, *Équipe et capital* (qui possède quoi, réserve
+  salariés), *Plan financier* sur 24 mois (clients, départs, dépenses,
+  embauches), *Feuille de route* en trois colonnes (12 étapes de départ, liées
+  aux bornes), *Suivi* des vrais chiffres mois par mois (croissance, perte),
+  *Dossier* (résumé à copier, carte de pitch, impression, sauvegarde à
+  télécharger et à réimporter). Tout reste dans le navigateur ; un fichier
+  importé est nettoyé avant d'être lu (`cleanStartup`, testé).
+- **Scénario A** : garder ses chiffres, en changer, et voir l'écart et les
+  chiffres modifiés. **Bornes suivantes** : un lien qui ouvre la borne d'après
+  avec les chiffres déjà remplis (la mensualité du crédit va dans le
+  cash-flow, le tarif journalier dans le devis…). **Devise** au choix (€, $,
+  £, CHF, $ CA, FCFA, DH) : seul le symbole change, rien n'est converti.
 - **Recherche** dans les bornes (touche `/`), **dernières bornes ouvertes** sur
   l'accueil (gardées dans ce navigateur) et compteurs animés.
 - **Parcours** en six niveaux, **carte de pitch** à partager par lien (tout le
