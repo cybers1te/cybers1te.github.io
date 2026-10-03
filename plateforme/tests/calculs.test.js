@@ -131,7 +131,7 @@ describe('carte de pitch', () => {
   });
 });
 
-describe('nouvelles bornes', () => {
+describe('nouveaux outils', () => {
   it('marketSize : du marché total à la part visée', () => {
     const r = marketSize({ customers: 200000, price: 600, reachable: 20, share: 5 });
     assert.deepEqual([r.tam, r.sam, r.som], [120000000, 24000000, 1200000]);
@@ -252,7 +252,7 @@ describe('nouvelles bornes', () => {
   });
 });
 
-describe('bornes supplémentaires', () => {
+describe('outils supplémentaires', () => {
   it('vesting : rien avant le cliff, puis au prorata du temps', () => {
     assert.equal(vesting({ stake: 25, years: 4, cliff: 12, elapsed: 11 }).vested, 0);
     assert.equal(vesting({ stake: 25, years: 4, cliff: 12, elapsed: 11 }).toCliff, 1);

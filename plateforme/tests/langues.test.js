@@ -1,5 +1,5 @@
 // Tests des langues de la plateforme marketbuss : les trois fichiers ont la
-// même forme, couvrent toutes les bornes et tous les rayons, et leurs phrases
+// même forme, couvrent tous les outils et toutes les catégories, et leurs phrases
 // se construisent sans trou (aucune dépendance, aucun réseau).
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -19,13 +19,13 @@ function shape(x) {
   return typeof x;
 }
 
-// Les formats, comme dans arcade.js.
+// Les formats, comme dans marketbuss.js.
 function formats(pack) {
   const nf = (n, d = 0) => new Intl.NumberFormat(pack.locale, { maximumFractionDigits: d, minimumFractionDigits: 0 }).format(n);
   return { nf, money: (n) => pack.money(n, nf), pct: (n, d = 1) => pack.pct(nf(n, d)), times: (n) => pack.times(nf(n, 1)), ord: pack.ord, plural: pack.plural };
 }
 
-// Quelle fonction de calcul sert quelle borne.
+// Quelle fonction de calcul sert quel outil.
 const CALC = {
   runway: calc.runway, lever: calc.raiseNeed, dilution: calc.dilution, vesting: calc.vesting, marche: calc.marketSize, client: calc.unitEconomics,
   objectif: calc.revenueTarget, croissance: calc.growthRate, tarif: calc.dayRate, devis: calc.quote, prix: calc.pricing, remise: calc.discount,
@@ -50,7 +50,7 @@ describe('langues : même forme partout', () => {
       assert.deepEqual(shape(pack), shape(fr));
       assert.equal(pack.code, code);
     });
-    it(`${code} : le lexique suit le même ordre et les mêmes joueurs`, () => {
+    it(`${code} : le lexique suit le même ordre et les mêmes profils`, () => {
       assert.equal(pack.glossary.length, fr.glossary.length);
       pack.glossary.forEach((row, i) => assert.equal(row[1], fr.glossary[i][1], `mot n° ${i + 1} : ${row[0]}`));
       assert.equal(new Set(pack.glossary.map((r) => r[0])).size, pack.glossary.length, 'pas de doublon');
@@ -60,7 +60,7 @@ describe('langues : même forme partout', () => {
 
 describe('langues : tout le site est couvert', () => {
   for (const [code, pack] of Object.entries(PACKS)) {
-    it(`${code} : joueurs, guides, bornes, listes, parcours`, () => {
+    it(`${code} : profils, guides, outils, listes, parcours`, () => {
       assert.deepEqual(Object.keys(pack.roles).sort(), Object.keys(ROLES).sort());
       assert.deepEqual(Object.keys(pack.guides).sort(), Object.keys(GUIDES).sort());
       assert.deepEqual(Object.keys(pack.tools).sort(), TOOLS.map((t) => t.id).sort());
@@ -96,7 +96,7 @@ describe('langues : tout le site est couvert', () => {
       }
     });
 
-    it(`${code} : les résultats se disent sans trou, avec l'exemple de chaque borne`, () => {
+    it(`${code} : les résultats se disent sans trou, avec l'exemple de chaque outil`, () => {
       const F = formats(pack);
       for (const t of TOOLS.filter((x) => x.kind === 'calc')) {
         const v = Object.fromEntries(t.fields.map((f) => [f.key, f.value]));
@@ -113,7 +113,7 @@ describe('langues : tout le site est couvert', () => {
       }
     });
 
-    it(`${code} : le calcul pas à pas, pour chaque borne et dans les cas limites`, () => {
+    it(`${code} : le calcul pas à pas, pour chaque outil et dans les cas limites`, () => {
       const F = formats(pack);
       assert.deepEqual(Object.keys(pack.steps).sort(), TOOLS.filter((t) => t.kind === 'calc').map((t) => t.id).sort());
       for (const t of TOOLS.filter((x) => x.kind === 'calc')) {

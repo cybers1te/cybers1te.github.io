@@ -42,18 +42,19 @@ export default {
 
   ui: {
     title: 'marketbuss — outils pour entrepreneurs et investisseurs',
-    description: 'marketbuss : des bornes gratuites pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget, et les vrais outils du moment. Sans compte.',
+    description: 'marketbuss : des outils gratuits pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget. Chacun montre son calcul, ligne par ligne. Sans compte.',
     skip: 'Aller au contenu',
     loading: 'Chargement…',
     language: 'Langue',
-    nav: { outils: 'Bornes', startup: 'Start-Up', arsenal: 'Arsenal', parcours: 'Parcours', pitch: 'Pitch', lexique: 'Lexique', 'a-propos': 'À propos' },
+    nav: { outils: 'Outils', startup: 'Start-Up', arsenal: 'Arsenal', parcours: 'Parcours', pitch: 'Pitch', lexique: 'Lexique', 'a-propos': 'À propos' },
     foot: {
       blurb: "Des outils gratuits pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget, et un studio pour piloter ta start-up. Sans compte : tout se calcule dans ton navigateur.",
-      links: { outils: 'Toutes les bornes', startup: 'Studio Start-Up', arsenal: "L'arsenal", parcours: 'Le parcours', pitch: 'Carte de pitch', lexique: 'Le lexique', 'a-propos': 'À propos' },
+      links: { outils: 'Tous les outils', startup: 'Studio Start-Up', arsenal: "L'arsenal", parcours: 'Le parcours', pitch: 'Carte de pitch', lexique: 'Le lexique', 'a-propos': 'À propos' },
       note: "Les outils servent à comprendre et à s'entraîner. Ce ne sont pas des conseils financiers, juridiques ou fiscaux. Investir est risqué : on peut perdre toute sa mise.",
     },
     all: 'Tous',
-    player: 'Joueur',
+    profile: 'Profil',
+    theme: 'Thème clair ou sombre',
     result: 'Résultat',
     yourNumbers: 'Tes chiffres',
     reset: "Remettre l'exemple",
@@ -67,31 +68,32 @@ export default {
     steps: 'Le calcul, pas à pas',
     stepsSub: 'Avec tes chiffres, arrondis.',
     levers: 'Ce qui fait bouger le résultat',
-    leversSub: "Chaque bouton change un chiffre d'un cran et montre le résultat qu'il donnerait. La barre jaune montre ceux qui pèsent le plus.",
+    leversSub: "Chaque bouton change un chiffre d'un cran et montre le résultat qu'il donnerait. La petite barre montre ceux qui pèsent le plus.",
     leverTry: (label, step, result) => `${label} ${step} : le résultat deviendrait ${result}`,
     slider: (label) => `${label} (curseur)`,
     highest: (v) => `Le plus haut : ${v}`,
     newTab: '(nouvel onglet)',
-    nTools: (n) => `${n} borne${n > 1 ? 's' : ''}`,
-    nItems: (n) => `${n} outil${n > 1 ? 's' : ''}`,
+    nTools: (n) => `${n} outil${n > 1 ? 's' : ''}`,
+    nItems: (n) => `${n} site${n > 1 ? 's' : ''}`,
     nWords: (n) => `${n} mot${n > 1 ? 's' : ''}`,
     fineprint: "Ces outils servent à comprendre et à s'entraîner. Ce ne sont pas des conseils financiers, juridiques ou fiscaux.",
 
     home: {
-      insert: 'Outils gratuits, sans compte',
-      recent: 'Tes dernières bornes',
-      recentSub: 'Reprends là où tu en étais. Elles restent dans ce navigateur.',
-      stats: { tools: 'bornes', players: 'joueurs', arsenal: 'vrais outils', words: 'mots expliqués' },
-      tagline: "La salle d'arcade des entrepreneurs et des investisseurs.",
-      lead: 'Chiffrer un projet, fixer un prix, préparer une levée, juger un placement, acheter un logement, vendre en ligne, tenir son budget : des bornes qui calculent et montrent le calcul, et les vrais outils du moment.',
-      choose: 'Choisis ton joueur',
-      tools: 'Les bornes',
-      toolsSub: (n) => `${n} bornes qui répondent chacune à une question. Les chiffres de départ sont des exemples : remplace-les par les tiens.`,
+      headline: 'Fais le calcul avant de te lancer.',
+      allTools: (n) => `Voir les ${n} outils`,
+      note: 'Gratuit et sans compte. Tes chiffres restent dans ton navigateur.',
+      demo: 'Essaie avec tes chiffres',
+      demoOpen: "Ouvrir l'outil complet",
+      recent: 'Tes derniers outils',
+      recentSub: 'Reprends là où tu en étais. Ils restent dans ce navigateur.',
+      lead: (n) => `${n} outils gratuits pour chiffrer un projet, fixer un prix, préparer une levée, juger un placement, acheter un logement, vendre en ligne ou tenir ton budget. Chacun montre son calcul, ligne par ligne.`,
+      choose: 'Choisis ton profil',
+      toolsSub: (n) => `${n} outils qui répondent chacun à une question. Les chiffres de départ sont des exemples : remplace-les par les tiens.`,
       arsenal: "L'arsenal",
-      arsenalSub: (n, date) => `Les vrais outils du moment, rangés par besoin : ${n} outils et services publics, vérifiés le ${date}. Aucun lien sponsorisé.`,
+      arsenalSub: (n, date) => `Les vrais logiciels et services du moment, rangés par besoin : ${n} sites, vérifiés le ${date}. Aucun lien sponsorisé.`,
       arsenalOpen: "Ouvrir l'arsenal",
       guides: 'Les guides',
-      guidesSub: "Des personnages inventés. Sur chaque borne, l'un d'eux te donne un conseil.",
+      guidesSub: "Des personnages inventés. Sur chaque outil, l'un d'eux te donne un conseil.",
       path: 'Le parcours',
       pathSub: "De l'idée à la série A, en six niveaux : quoi faire, et ce que regarde un investisseur à chaque étape.",
       card: 'Ta carte de pitch',
@@ -106,22 +108,21 @@ export default {
       labText: "Un assistant qui répond tout seul aux questions des clients d'un commerce : horaires, prix, réservations. Première version, avec une démonstration à essayer.",
       labOpen: 'Voir le Répondeur IA',
       studio: 'Studio Start-Up',
-      studioSub: 'Crée ta start-up et pilote-la au même endroit.',
       studioText: "Sept modules qui travaillent ensemble : identité, équipe et capital, plan financier sur 24 mois, feuille de route, suivi des vrais chiffres, et un dossier prêt à partager. Le tableau de bord te dit quoi faire ensuite.",
       studioOpen: 'Ouvrir le studio',
     },
 
     tools: {
-      all: 'Toutes les bornes',
-      allSub: (n) => `${n} bornes, pour sept joueurs.`,
-      search: 'Chercher une borne : crédit, TVA, stock, dette…',
-      noMatch: 'Aucune borne ne correspond. Essaie un autre mot.',
-      crumb: 'Bornes',
+      all: 'Tous les outils',
+      allSub: (n) => `${n} outils, pour sept profils.`,
+      search: 'Chercher un outil : crédit, TVA, stock, dette…',
+      noMatch: 'Aucun outil ne correspond. Essaie un autre mot.',
+      crumb: 'Outils',
       howRead: 'Comment lire le résultat',
       howUse: "Comment s'en servir",
       inArsenal: "Dans l'arsenal",
-      inArsenalSub: 'Les vrais outils qui vont avec cette borne.',
-      others: 'Les autres bornes du joueur',
+      inArsenalSub: 'Les logiciels et services qui vont avec cet outil.',
+      others: 'Les autres outils du même profil',
     },
 
     check: {
@@ -177,7 +178,7 @@ export default {
       level: 'Niveau',
       founder: 'Côté entrepreneur',
       investor: 'Côté investisseur',
-      tools: 'Bornes utiles :',
+      tools: 'Outils utiles :',
       arsenal: "Dans l'arsenal :",
     },
 
@@ -211,10 +212,10 @@ export default {
 
     arsenal: {
       title: "L'arsenal",
-      sub: (n, k) => `Les vrais outils du moment, rangés par besoin : ${n} outils et services publics, en ${k} rayons.`,
+      sub: (n, k) => `Les vrais logiciels et services du moment, rangés par besoin : ${n} sites, en ${k} catégories.`,
       notice: (date) => `Sélection vérifiée le ${date}. Aucun lien sponsorisé : marketbuss ne touche rien. L'ordre n'est pas un classement. Les offres changent vite : regarde les conditions sur le site officiel avant de t'engager.`,
-      search: 'Chercher un outil ou un besoin',
-      empty: 'Aucun outil ne correspond. Essaie un autre mot, ou retire le filtre.',
+      search: 'Chercher un site ou un besoin',
+      empty: 'Aucun site ne correspond. Essaie un autre mot, ou retire le filtre.',
       fineprint: "« Sans abonnement » : une commission est prise sur chaque paiement. « Gratuit, limité » : l'offre gratuite existe mais se remplit vite. Les noms cités appartiennent à leurs propriétaires ; marketbuss n'a aucun lien avec eux.",
     },
 
@@ -223,7 +224,7 @@ export default {
       sub: (n) => `${n} mots de l'entreprise et de l'argent, expliqués simplement.`,
       search: 'Chercher un mot',
       empty: 'Aucun mot ne correspond. Essaie un autre terme, ou retire le filtre.',
-      useful: (name) => `Utile au joueur ${name}`,
+      useful: (name) => `Utile au profil ${name}`,
     },
 
     about: {
@@ -231,8 +232,8 @@ export default {
       sub: "Ce qu'est marketbuss, et ce que ce n'est pas.",
       sections: (n) => [
         ['Ce que tu trouves ici', [
-          `${n.tools} bornes pour chiffrer un projet, fixer un prix, évaluer un investissement, comprendre un placement, acheter ou louer un logement, vendre en ligne ou tenir son budget. Chacune montre son calcul, pas à pas.`,
-          `Un arsenal de ${n.arsenal} vrais outils et services publics, un parcours en six niveaux, un lexique de ${n.words} mots et une carte de pitch à partager.`,
+          `${n.tools} outils pour chiffrer un projet, fixer un prix, évaluer un investissement, comprendre un placement, acheter ou louer un logement, vendre en ligne ou tenir son budget. Chacun montre son calcul, pas à pas.`,
+          `Un arsenal de ${n.arsenal} vrais logiciels et services publics, un parcours en six niveaux, un lexique de ${n.words} mots et une carte de pitch à partager.`,
           'Tout est gratuit et sans compte.',
           'Tout se calcule dans ton navigateur : tes chiffres ne sont envoyés nulle part. Les listes cochées et tes brouillons restent dans ce navigateur.',
         ]],
@@ -242,18 +243,20 @@ export default {
           'Pas un annuaire : marketbuss ne met personne en relation et ne vérifie pas les cartes de pitch créées par les visiteurs.',
         ]],
         ["Comment l'arsenal est choisi", [
-          `Chaque outil a été vérifié le ${n.date} : il est actif, l'adresse est celle de son site officiel, et l'offre gratuite annoncée existe.`,
+          `Chaque site a été vérifié le ${n.date} : il est actif, l'adresse est l'adresse officielle, et l'offre gratuite annoncée existe.`,
           "La sélection s'appuie sur des comparatifs récents et sur les sites officiels. Ce n'est pas un classement, et elle n'est pas complète.",
           "Aucun lien sponsorisé ni affilié : marketbuss ne touche rien. Aucun courtier ni vendeur de placements n'est listé.",
           'Les offres et les prix changent vite : le site officiel fait foi.',
         ]],
         ['Les personnages et les exemples', [
-          'Les joueurs et les guides (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) sont des personnages inventés. Leurs conseils sont des repères généraux.',
-          "Les valeurs affichées à l'ouverture de chaque borne sont des exemples inventés pour montrer le calcul. Elles ne décrivent aucune entreprise réelle.",
+          'Les personnages des profils et les guides (Mira, Noé, Sam, Max, Lou, Ada, Iris, Bit, Zoé, Kai) sont inventés. Leurs conseils sont des repères généraux.',
+          "Les valeurs affichées à l'ouverture de chaque outil sont des exemples inventés pour montrer le calcul. Elles ne décrivent aucune entreprise réelle.",
         ]],
         ['Fabrication', [
-          'Le site est une page statique, sans dépendance. Les dessins sont en pixel art, tracés à la main dans le code.',
-          'Les polices Press Start 2P et Jersey 15 sont sous licence libre OFL et hébergées avec le site.',
+          'Le site est une page statique. La mise en forme est écrite avec Tailwind CSS.',
+          'Les icônes viennent de Lucide (licence ISC). Les personnages et le logo sont dessinés dans le code.',
+          'La police Recursive est sous licence libre OFL et hébergée avec le site.',
+          'Le thème clair ou sombre suit ton appareil ; le bouton en haut de la page permet de le changer.',
           'Le site existe en français, en anglais et en néerlandais. La langue choisie reste enregistrée dans ce navigateur.',
         ]],
       ],
@@ -304,7 +307,7 @@ export default {
         sector: ['Secteur', 'Ex. : alimentation, logiciel, mode…'],
         stage: ['Étape', ''],
       },
-      pitchHelp: 'Besoin d\'aide pour la phrase ? La borne « Pitch éclair » la construit avec toi.',
+      pitchHelp: "Besoin d'aide pour la phrase ? L'outil « Pitch éclair » la construit avec toi.",
       founderName: 'Nom',
       founderRole: 'Rôle',
       share: 'Part du capital (%)',
@@ -316,7 +319,7 @@ export default {
       freeName: 'Pas encore attribué',
       capOk: (free, F) => (free > 0 ? `Tout va bien. ${F.pct(free)} du capital n'est encore attribué à personne.` : 'Tout le capital est attribué.'),
       capOver: (over, F) => `Les parts dépassent 100 % de ${F.pct(over)} : baisse une part ou la réserve.`,
-      capTip: 'Prévois un vesting pour chaque associé : la borne « Sablier » montre comment.',
+      capTip: "Prévois un vesting pour chaque associé : l'outil « Sablier » montre comment.",
       planFields: {
         cash: ['Trésorerie au départ', '€'],
         price: ['Prix par client', '€ par mois'],
@@ -359,7 +362,7 @@ export default {
       move: { todo: 'Remettre à faire', doing: 'Commencer', done: 'Terminer' },
       taskPlaceholder: 'Nouvelle étape',
       addTask: 'Ajouter',
-      openTool: 'Ouvrir la borne',
+      openTool: "Ouvrir l'outil",
       progress: (a, b) => `${a} étape${a > 1 ? 's' : ''} faite${a > 1 ? 's' : ''} sur ${b}`,
       tasks: [
         'Interroger 10 clients possibles sur leur problème',
@@ -429,7 +432,7 @@ export default {
       print: 'Imprimer',
       backupNote: "Tout est enregistré dans ce navigateur seulement. Télécharge une sauvegarde pour changer d'appareil ou pour ne rien perdre.",
     },
-    missing: { title: 'Page introuvable', sub: "Cette page n'existe pas, ou le lien est incomplet.", home: "Retour à l'accueil", tools: 'Voir les bornes' },
+    missing: { title: 'Page introuvable', sub: "Cette page n'existe pas, ou le lien est incomplet.", home: "Retour à l'accueil", tools: 'Voir les outils' },
   },
 
   roles: {
@@ -455,7 +458,7 @@ export default {
     shopkeeper: { name: 'Kai', job: 'le e-commerçant', line: 'Compte chaque colis, chaque retour et chaque euro de pub avant de fêter une vente.' },
   },
 
-  /* Une borne : nom, question, présentation, champs {clé: [libellé, unité, aide]}, lecture, limites, conseil du guide. */
+  /* Un outil : nom, question, présentation, champs {clé: [libellé, unité, aide]}, lecture, limites, conseil du guide. */
   tools: {
     runway: {
       name: 'Mois de survie',
@@ -491,7 +494,7 @@ export default {
         "Un repère souvent cité : de quoi tenir 18 à 24 mois, parce qu'une levée prend du temps et qu'il faut avoir avancé avant la suivante.",
         'Part cédée = montant levé ÷ (valorisation avant la levée + montant levé).',
       ],
-      limits: 'Le calcul suppose des dépenses et des revenus constants. Si tes revenus grandissent, le besoin réel est plus faible : compare avec la borne « Mois de survie ».',
+      limits: "Le calcul suppose des dépenses et des revenus constants. Si tes revenus grandissent, le besoin réel est plus faible : compare avec l'outil « Mois de survie ».",
       tip: "Lève pour atteindre une étape précise, pas pour « tenir ». Un investisseur veut savoir ce que l'argent va prouver.",
     },
     dilution: {
@@ -583,7 +586,7 @@ export default {
         'Chaque mois, une partie de tes clients part : il faut les remplacer en plus de grandir.',
         'Baisser le taux de départ réduit le nombre de clients à trouver, tous les mois.',
       ],
-      limits: 'Le calcul suppose un prix unique et un taux de départ constant. Il ne dit pas si ton marché contient assez de clients : regarde la borne « Carte du monde ».',
+      limits: "Le calcul suppose un prix unique et un taux de départ constant. Il ne dit pas si ton marché contient assez de clients : regarde l'outil « Carte du monde ».",
       tip: "Avant d'aller chercher de nouveaux clients, demande-toi pourquoi les anciens partent.",
     },
     croissance: {
@@ -767,7 +770,7 @@ export default {
       tip: 'Les règles changent selon le pays et le statut. Une heure avec un comptable au départ évite bien des soucis.',
     },
     ticket: {
-      name: 'Retour de pièce',
+      name: 'Retour sur mise',
       question: "Que vaut mon ticket si l'entreprise est revendue ?",
       lead: "Un montant investi, une valorisation à l'entrée, une à la sortie : l'outil donne le multiple et le rendement par an.",
       fields: {
@@ -929,7 +932,7 @@ export default {
         years: ['Durée', 'ans'],
       },
       read: [
-        'En jaune, ce que tu as versé. En vert, ce que les intérêts ont ajouté.',
+        'En bleu, ce que tu as versé. En vert, ce que les intérêts ont ajouté.',
         "Plus la durée est longue, plus la partie verte grandit vite : c'est l'effet boule de neige.",
       ],
       limits: "Le rendement est supposé constant. En vrai il varie d'une année à l'autre et peut être négatif ; frais, impôts et inflation ne sont pas comptés.",
@@ -1080,7 +1083,7 @@ export default {
       read: [
         "Rendement brut = loyers d'un an ÷ prix. C'est le chiffre des annonces, mais il oublie les frais et les dépenses.",
         "Rendement net = (loyers encaissés − dépenses) ÷ (prix + frais). C'est lui qu'il faut comparer à un placement.",
-        'Le chiffre est avant impôts et sans crédit : pour le crédit, utilise la borne « Cash-flow ».',
+        "Le chiffre est avant impôts et sans crédit : pour le crédit, utilise l'outil « Cash-flow ».",
       ],
       limits: "Avant impôts, sans crédit et sans revente. Les loyers, les dépenses et la vacance changent d'une année à l'autre.",
       tip: 'Un rendement brut très élevé cache souvent un quartier difficile ou de gros travaux. Va voir sur place, deux fois.',
@@ -1093,7 +1096,7 @@ export default {
         rent: ['Loyer', '€ par mois'],
         vacancy: ["Part de l'année sans locataire", '%', 'Environ 5 % = un peu plus de deux semaines par an.'],
         charges: ['Dépenses à ta charge', '€ par mois', 'Taxe foncière, copropriété, assurance, gestion, ramenées au mois.'],
-        loan: ['Mensualité du crédit', '€ par mois', 'La borne « Clé en main » la calcule.'],
+        loan: ['Mensualité du crédit', '€ par mois', "L'outil « Clé en main » la calcule."],
         works: ['Réserve pour les travaux', '% du loyer'],
       },
       read: [
@@ -1120,7 +1123,7 @@ export default {
         horizon: ['Comparer au bout de', 'ans'],
       },
       read: [
-        "Chaque colonne est l'écart de patrimoine entre l'acheteur et le locataire. Orange : acheter est devant. Cyan : louer est devant.",
+        "Chaque colonne est l'écart de patrimoine entre l'acheteur et le locataire. Au-dessus de la ligne : acheter est devant. En dessous : louer est devant.",
         "Le locataire place son apport, puis chaque mois ce qu'il dépense en moins que l'acheteur. Si le loyer coûte plus cher, c'est l'acheteur qui place la différence.",
         "Plus tu restes longtemps, plus l'achat a de chances de gagner : les frais d'achat ne se paient qu'une fois.",
       ],
@@ -1526,7 +1529,7 @@ export default {
   arsenal: {
     access: { free: 'Offre gratuite', limited: 'Gratuit, limité', trial: 'Essai gratuit', paid: 'Payant', fee: 'Sans abonnement', open: 'Logiciel libre', public: 'Service public' },
     places: { BE: 'Belgique', FR: 'France', BXL: 'Bruxelles', WAL: 'Wallonie', VLA: 'Flandre' },
-    /* Un rayon : nom, besoin, descriptions des outils (dans l'ordre d'arsenal.js), conseil du guide. */
+    /* Une catégorie : nom, besoin, descriptions des outils (dans l'ordre d'arsenal.js), conseil du guide. */
     cats: {
       construire: { name: 'Créer une app sans coder', need: "Tu décris ce que tu veux, une IA construit l'application.",
         tools: [
@@ -1877,7 +1880,8 @@ export default {
       return [
         ['Valorisation avec la décote', `${F.money(v.pre)} × (1 − ${F.pct(v.discount)}) = ${F.money(discounted)}`],
         v.cap > 0 ? ['Valorisation retenue : la plus basse', `min(${F.money(v.cap)} ; ${F.money(discounted)}) = ${F.money(r.effective)}`] : null,
-        ['Le porteur achète comme si', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} du capital d'avant`],
+        // Sans valorisation au-dessus de zéro, la division ne veut rien dire : la ligne disparaît.
+        r.effective > 0 ? ['Le porteur achète comme si', `${F.money(v.amount)} ÷ ${F.money(r.effective)} = ${F.pct((v.amount / r.effective) * 100, 2)} du capital d'avant`] : null,
         ['Sa part après la levée', F.pct(r.stake, 2)],
       ];
     },
@@ -2077,7 +2081,7 @@ export default {
     },
   },
 
-  /* Les résultats des bornes. v = ce que tu as saisi, r = le calcul, F = les formats. */
+  /* Les résultats des outils. v = ce que tu as saisi, r = le calcul, F = les formats. */
   res: {
     runway: {
       invalid: 'Vérifie tes chiffres : la trésorerie, les dépenses et les revenus ne peuvent pas être négatifs.',
@@ -2097,8 +2101,8 @@ export default {
         if (r.breakEven) t += ` Tes revenus ne couvriraient tes dépenses qu'au ${F.ord(r.breakEven)} mois : trop tard, sauf à lever des fonds ou à réduire les dépenses.`;
         return t;
       },
-      hearts: (n) => `${n} cœur${n > 1 ? 's' : ''} sur 12`,
-      heartsNote: 'Un cœur par mois, douze au plus.',
+      months: (n) => `${n} mois sur 12`,
+      monthsNote: 'Une case par mois, douze au plus.',
       facts: (v, r, F) => [
         ["Tu perds chaque mois, aujourd'hui", r.netBurn > 0 ? F.money(r.netBurn) : 'rien'],
         ['Revenus qui couvrent les dépenses', r.breakEven === 1 ? (v.growth < 0 ? "aujourd'hui, mais en baisse" : "dès aujourd'hui") : r.breakEven ? `au ${F.ord(r.breakEven)} mois` : `pas avant ${r.horizon} mois`],

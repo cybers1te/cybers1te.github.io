@@ -1,0 +1,16 @@
+{
+  "name": "marketbuss-plateforme",
+  "private": true,
+  "type": "module",
+  "description": "Outils de fabrication de la plateforme marketbuss : la feuille de style (Tailwind CSS) et les icônes (Lucide). Le site publié n'en dépend pas : les fichiers produits sont dans site/.",
+  "scripts": {
+    "css": "tailwindcss -i tailwind.css -o site/marketbuss.css --minify",
+    "css:watch": "tailwindcss -i tailwind.css -o site/marketbuss.css --watch",
+    "icons": "node tools/icons.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "lucide-static": "1.51.0",
+    "tailwindcss": "4.3.3"
+  }
+}

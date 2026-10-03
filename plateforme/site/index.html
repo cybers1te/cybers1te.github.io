@@ -4,67 +4,71 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>marketbuss — outils pour entrepreneurs et investisseurs</title>
-<meta name="description" content="marketbuss : des bornes gratuites pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget, et les vrais outils du moment. Sans compte.">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0f0d24">
+<meta name="description" content="marketbuss : des outils gratuits pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget. Chacun montre son calcul, ligne par ligne. Sans compte.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f6fb">
 <meta property="og:title" content="marketbuss — outils pour entrepreneurs et investisseurs">
-<meta property="og:description" content="Chiffrer un projet, fixer un prix, préparer une levée, juger un placement, acheter un logement, vendre en ligne, tenir son budget : des bornes gratuites qui montrent leur calcul, en pixel art. Français, English, Nederlands.">
-<!-- L'icône de l'onglet : la pièce en pixel art de l'en-tête. Nom de fichier neuf et
-     versionné, pour qu'aucun navigateur ne garde l'icône d'un ancien site. -->
-<link rel="icon" href="piece.svg?v=__V__" type="image/svg+xml">
-<link rel="icon" href="piece-32.png?v=__V__" type="image/png" sizes="32x32">
-<link rel="apple-touch-icon" href="piece-180.png?v=__V__">
-<link rel="preload" href="fonts/jersey-15.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/press-start-2p.woff2" as="font" type="font/woff2" crossorigin>
-<!-- ?v=__V__ : remplacé par la version publiée, pour ne jamais servir un ancien fichier. -->
-<link rel="stylesheet" href="arcade.css?v=__V__">
-<script type="module" src="arcade.js?v=__V__"></script>
+<meta property="og:description" content="Chiffrer un projet, fixer un prix, préparer une levée, juger un placement, acheter un logement, vendre en ligne, tenir son budget : des outils gratuits qui montrent leur calcul, ligne par ligne. Français, English, Nederlands.">
+<!-- L'icône de l'onglet : la pièce de l'en-tête. Nom de fichier versionné, pour
+     qu'aucun navigateur ne garde l'icône d'une ancienne version. -->
+<link rel="icon" href="logo.svg?v=__V__" type="image/svg+xml">
+<link rel="icon" href="logo-32.png?v=__V__" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="logo-180.png?v=__V__">
+<link rel="preload" href="fonts/recursive-sans.woff2" as="font" type="font/woff2" crossorigin>
+<!-- ?v=__V__ : remplacé par la version publiée, pour ne jamais servir un ancien fichier.
+     marketbuss.css est fabriqué par Tailwind CSS à partir de plateforme/tailwind.css. -->
+<link rel="stylesheet" href="marketbuss.css?v=__V__">
+<!-- Le thème choisi avec le bouton de l'en-tête, posé avant le premier affichage. -->
+<script>try { var t = JSON.parse(localStorage.getItem('mb-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) { /* stockage indisponible */ }</script>
+<script type="module" src="marketbuss.js?v=__V__"></script>
 </head>
-<body>
-<!-- Les textes ci-dessous sont en français par défaut ; arcade.js les remplace par ceux de la langue choisie. -->
-<a class="skip" href="#view">Aller au contenu</a>
-<header class="top">
-  <div class="wrap top-row">
-    <a class="brand" href="#/" aria-label="marketbuss">
-      <span class="logo" id="logo" aria-hidden="true"></span>
+<body class="flex min-h-screen flex-col bg-paper font-sans text-[1.0625rem] leading-normal text-ink antialiased">
+<!-- Les textes ci-dessous sont en français par défaut ; marketbuss.js les remplace par ceux de la langue choisie. -->
+<a data-skip class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-fluo focus:px-3 focus:py-2 focus:font-semibold focus:text-fluo-ink" href="#view">Aller au contenu</a>
+<header data-chrome class="z-20 border-b border-line bg-paper md:sticky md:top-0">
+  <div class="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 px-5 sm:px-8 md:min-h-16 md:flex-nowrap md:gap-x-6">
+    <a class="casual flex flex-none items-center gap-2 py-3 text-lg font-extrabold tracking-tight text-ink no-underline sm:gap-2.5 sm:text-xl" href="#/" aria-label="marketbuss">
+      <span id="logo" aria-hidden="true"></span>
       <span>marketbuss</span>
     </a>
-    <nav class="nav" aria-label="marketbuss">
-      <a href="#/outils" data-nav="outils">Bornes</a>
-      <a href="#/startup" data-nav="startup">Start-Up</a>
-      <a href="#/arsenal" data-nav="arsenal">Arsenal</a>
-      <a href="#/parcours" data-nav="parcours">Parcours</a>
-      <a href="#/pitch" data-nav="pitch">Pitch</a>
-      <a href="#/lexique" data-nav="lexique">Lexique</a>
-      <a href="#/a-propos" data-nav="a-propos">À propos</a>
+    <nav class="order-3 -mx-5 flex basis-full gap-0.5 overflow-x-auto px-3.5 pb-2.5 [scrollbar-width:none] sm:-mx-8 sm:px-6.5 md:order-none md:mx-0 md:min-w-0 md:flex-1 md:basis-auto md:p-0" aria-label="marketbuss">
+      <a class="whitespace-nowrap rounded-md px-2 py-1 text-[0.95rem] font-medium text-soft no-underline hover:text-ink aria-[current=page]:bg-fluo aria-[current=page]:font-semibold aria-[current=page]:text-fluo-ink" href="#/outils" data-nav="outils">Outils</a>
+      <a class="whitespace-nowrap rounded-md px-2 py-1 text-[0.95rem] font-medium text-soft no-underline hover:text-ink aria-[current=page]:bg-fluo aria-[current=page]:font-semibold aria-[current=page]:text-fluo-ink" href="#/startup" data-nav="startup">Start-Up</a>
+      <a class="whitespace-nowrap rounded-md px-2 py-1 text-[0.95rem] font-medium text-soft no-underline hover:text-ink aria-[current=page]:bg-fluo aria-[current=page]:font-semibold aria-[current=page]:text-fluo-ink" href="#/arsenal" data-nav="arsenal">Arsenal</a>
+      <a class="whitespace-nowrap rounded-md px-2 py-1 text-[0.95rem] font-medium text-soft no-underline hover:text-ink aria-[current=page]:bg-fluo aria-[current=page]:font-semibold aria-[current=page]:text-fluo-ink" href="#/parcours" data-nav="parcours">Parcours</a>
+      <a class="whitespace-nowrap rounded-md px-2 py-1 text-[0.95rem] font-medium text-soft no-underline hover:text-ink aria-[current=page]:bg-fluo aria-[current=page]:font-semibold aria-[current=page]:text-fluo-ink" href="#/pitch" data-nav="pitch">Pitch</a>
+      <a class="whitespace-nowrap rounded-md px-2 py-1 text-[0.95rem] font-medium text-soft no-underline hover:text-ink aria-[current=page]:bg-fluo aria-[current=page]:font-semibold aria-[current=page]:text-fluo-ink" href="#/lexique" data-nav="lexique">Lexique</a>
+      <a class="whitespace-nowrap rounded-md px-2 py-1 text-[0.95rem] font-medium text-soft no-underline hover:text-ink aria-[current=page]:bg-fluo aria-[current=page]:font-semibold aria-[current=page]:text-fluo-ink" href="#/a-propos" data-nav="a-propos">À propos</a>
     </nav>
-    <div class="lang" id="lang" role="group" aria-label="Langue"></div>
+    <div class="ml-auto flex flex-none items-center gap-1 pb-2 sm:gap-1.5 min-[23.5rem]:pb-0">
+      <div class="flex overflow-hidden rounded-md border border-line bg-sheet" id="lang" role="group" aria-label="Langue"></div>
+    </div>
   </div>
 </header>
-<main id="view" tabindex="-1">
-  <div class="wrap loading"><p>…</p></div>
-  <noscript><div class="wrap loading"><p>marketbuss a besoin de JavaScript. marketbuss needs JavaScript. marketbuss heeft JavaScript nodig.</p></div></noscript>
+<main id="view" tabindex="-1" class="flex-1 pb-6 outline-none">
+  <div class="mx-auto w-full max-w-6xl px-5 py-28 text-faint sm:px-8"><p>…</p></div>
+  <noscript><div class="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8"><p>marketbuss a besoin de JavaScript. marketbuss needs JavaScript. marketbuss heeft JavaScript nodig.</p></div></noscript>
 </main>
-<footer class="foot">
-  <div class="wrap foot-grid">
+<footer data-chrome class="mt-20 border-t border-line bg-sheet text-[0.95rem] text-soft">
+  <div class="mx-auto grid w-full max-w-6xl gap-x-12 gap-y-6 px-5 pb-6 pt-9 sm:px-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
     <div>
-      <p class="foot-brand">marketbuss</p>
-      <p data-foot="blurb">Des outils gratuits pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget, et un studio pour piloter ta start-up. Sans compte : tout se calcule dans ton navigateur.</p>
+      <p class="casual mb-2.5 text-lg font-extrabold text-ink">marketbuss</p>
+      <p class="max-w-md leading-relaxed" data-foot="blurb">Des outils gratuits pour entreprendre, investir, épargner, acheter un logement, vendre en ligne et tenir son budget, et un studio pour piloter ta start-up. Sans compte : tout se calcule dans ton navigateur.</p>
     </div>
     <nav aria-label="marketbuss">
-      <ul>
-        <li><a href="#/outils" data-foot-link="outils">Toutes les bornes</a></li>
-        <li><a href="#/startup" data-foot-link="startup">Studio Start-Up</a></li>
-        <li><a href="#/arsenal" data-foot-link="arsenal">L'arsenal</a></li>
-        <li><a href="#/parcours" data-foot-link="parcours">Le parcours</a></li>
-        <li><a href="#/pitch" data-foot-link="pitch">Carte de pitch</a></li>
-        <li><a href="#/lexique" data-foot-link="lexique">Le lexique</a></li>
-        <li><a href="#/a-propos" data-foot-link="a-propos">À propos</a></li>
+      <ul class="grid grid-cols-2 gap-x-6 gap-y-1.5">
+        <li><a class="text-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink" href="#/outils" data-foot-link="outils">Tous les outils</a></li>
+        <li><a class="text-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink" href="#/startup" data-foot-link="startup">Studio Start-Up</a></li>
+        <li><a class="text-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink" href="#/arsenal" data-foot-link="arsenal">L'arsenal</a></li>
+        <li><a class="text-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink" href="#/parcours" data-foot-link="parcours">Le parcours</a></li>
+        <li><a class="text-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink" href="#/pitch" data-foot-link="pitch">Carte de pitch</a></li>
+        <li><a class="text-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink" href="#/lexique" data-foot-link="lexique">Le lexique</a></li>
+        <li><a class="text-soft underline decoration-line underline-offset-4 hover:text-ink hover:decoration-ink" href="#/a-propos" data-foot-link="a-propos">À propos</a></li>
       </ul>
     </nav>
   </div>
-  <div class="wrap foot-note" data-foot="note">Les outils servent à comprendre et à s'entraîner. Ce ne sont pas des conseils financiers, juridiques ou fiscaux. Investir est risqué : on peut perdre toute sa mise.</div>
+  <div class="mx-auto w-full max-w-6xl border-t border-line px-5 pb-7 pt-4 text-sm leading-relaxed text-faint sm:px-8" data-foot="note">Les outils servent à comprendre et à s'entraîner. Ce ne sont pas des conseils financiers, juridiques ou fiscaux. Investir est risqué : on peut perdre toute sa mise.</div>
 </footer>
-<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="fixed bottom-5 left-1/2 z-[60] grid w-[min(26rem,calc(100%-2.5rem))] -translate-x-1/2 gap-2.5" id="toasts" aria-live="polite"></div>
 </body>
 </html>
